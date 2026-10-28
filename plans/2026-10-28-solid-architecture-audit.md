@@ -628,6 +628,78 @@ flowchart TD
 обязаны остаться зелёными **без правок**. Все они ходят только через публичную поверхность
 фасада и три `internal` тест-щели, поэтому разбиение их не задевает.
 
+#### 5.2.1. `SolutionManager` — выполнено 2026-10-28
+
+Разбит на фасад + **шесть** подчинённых типов в `src/RoslynCodeLens/SolutionLifecycle/`
+(два сверх исходной таблицы — `StaleRebuildCoordinator` и `SolutionLifecycleFactory` — появились
+по факту инвентаризации: rebuild-движок и композиция оказались слишком велики, чтобы остаться
+в фасаде, и слишком связаны, чтобы делить иначе).
+
+| Тип | Ответственность | LOC | Членов |
+|---|---|---|---|
+| `SolutionManager` (фасад) | публичный контракт, делегирование | **334** (было 899) | 49 (было 61) |
+| `SolutionSnapshotStore` | `_loaded`/`_resolver`/`_metadataResolver` + `lock`, атомарность #282 | ~130 | 6 |
+| `StaleRebuildCoordinator` | rebuild-движок: `RebuildIfStale*`, drain/restore, incremental vs full reload | 337 | 17 |
+| `StaleRebuildGate` | single-flight gate + контракт drain/restore | ~135 | 8 |
+| `ReadyGate` | `EnsureReady*`, warmup-ожидание, `ThrowIfLoadFailed` | ~170 | 15 |
+| `RecentChangesJournal` | `RecentlyChangedDocuments`/`Reset`/`Record` | ~55 | 3 |
+| `SolutionLifecycleFactory` | открытие решения, warmup, полная перезагрузка, сообщение о пустом workspace | ~230 | 8 |
+
+**Что уйдёт с порцией C.** В `ReadyGate` (методы `Ready`, `ResetWarmupCompleted`,
+`SignalWarmupCompleted`, поле `_warmupCompleted`) и в `StaleRebuildCoordinator`
+(`RebuildIfStale`), плюс обёртки `SolutionManager.EnsureReady`/`GetAnalysisContext()`.
+Порция C удаляет их из **двух** файлов вместо одного, зато снимает `_warmupCompleted` из
+менеджера целиком — цель раздела 4.3 достижима.
+
+**Что осталось в фасаде навсегда:** 17 публичных членов контракта (см. `get_type_overview`),
+композиция из фабрики, `ReloadAndSwapAsync` (свап тройки и workspace обязан быть в одном
+критическом сечении — это единственное место, знающее оба лока), `DescribeEmptyWorkspace`
+(делегирует в фабрику, 4 тест-сайта) и реализация `ISolutionLifecycleState`.
+
+**Инварианты — подтверждены.**
+
+| Инвариант | Как обеспечен после разбиения |
+|---|---|
+| `EnsureReady()` вне `_lock` | `ReadyGate` не держит ни одного лока; `GetAnalysisContextAsync` ждёт протокол, затем читает `_snapshot.Snapshot()` |
+| Снимок одним `lock` (#282) | `SolutionSnapshotStore.Snapshot()` — единственная точка чтения тройки; покрыт тестом на гонку `SolutionSnapshotStore_ConcurrentSnapshotDuringSwap_NeverTears` |
+| `CreateAsync` неблокирующий, резолвер не пересоздаётся | warmup стартует из `CreateAsync` через фабрику и ждётся только при первом доступе; тёплый путь возвращает тот же экземпляр (`GetResolver_ReturnsCachedInstance_WhenNotStale`) |
+
+**Найденный при переносе дефект (настоящий, не косметический).** Первая версия
+`ReadyGate.SetAfterReadyHook` принимала `Func<Task>` без `CancellationToken`, и менеджер
+регистрировал `() => RebuildIfStaleAsync(CancellationToken.None)` — то есть **токен
+вызывающего терялся**, и перестройка становилась неотменяемой. Это поймал существующий
+тест-контракт `GetAnalysisContextAsync_CancelledBeforeRebuild_ThrowsAndKeepsStaleState`
+(«No exception was thrown»). Исправлено: хук принимает `Func<CancellationToken, Task>` и
+получает `ct`. Урок: перенос через лямбду легко «зашивает» `CancellationToken.None`.
+
+**Метрика до/после.**
+
+| Метрика | До | После |
+|---|---|---|
+| `SolutionManager` — LOC | **899** | **334** |
+| `SolutionManager` — членов | **61** | 49 (17 публичных) |
+| `SolutionManager` — полей состояния | 12 | 8 |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| `dotnet test RoslynCodeLens.slnx` | 1259 passed | **1276 passed, 0 failed** |
+| Тесты `SolutionManager*` | 14 | 14 **без правок** |
+
+Новых тестов — 17 в `SolutionManagerDecompositionTests` (5 journal + 4 store + 4 gate +
+4 ready-gate), база 1259 + 17 = 1276.
+
+⚠️ **Критерий «`SolutionManager` отсутствует в `find_large_classes(300, 15)`» не достигнут.**
+Фасад — 334 LOC и `StaleRebuildCoordinator` — 337 LOC, оба выше порога 300. Членов строго
+меньше 300 LOC порога по строкам не даёт: `355→334` это уже предел для кода, который обязан
+держать публичный контракт (17 членов), композицию, `Dispose` и реализацию порта.
+Дальнейшее дробление требует либо разнести публичный контракт по нескольким типам (ломает
+тесты-контракт и 51 сайт инструментов), либо вынести `ReloadAndSwapAsync` из фасада (сломает
+атомарность «снимок + workspace в одном критическом сечении»). Обе альтернативы нарушают
+явные запреты задачи, поэтому **остановлено на 334/337 и зафиксировано как остаток**.
+Сравнение: `SolutionLoader` 751, `GenerateTestSkeletonLogic` 530, `ChangeSignatureLogic` 507 —
+`SolutionManager` больше не входит даже в первую десятку по размеру.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1276 passed, 0 failed**.
+Подробности — [`decision/2026-10-28T22-40-stage5-2-solutionmanager-decomposition.md`](../decision/2026-10-28T22-40-stage5-2-solutionmanager-decomposition.md).
+
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
 `find_large_classes(maxLines=300, maxMembers=15)` — 0 типов в `src/`;
