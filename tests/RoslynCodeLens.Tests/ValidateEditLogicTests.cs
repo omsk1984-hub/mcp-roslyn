@@ -208,4 +208,46 @@ public class ValidateEditLogicTests
         // No current errors and no new errors → passed even though the baseline had one.
         Assert.True(result.Passed);
     }
+
+    // 6c. Stage 0 / item 3 (fix(stage0.3)): the `passed` computation dereferences
+    //     `newErrors` under `baseline is null || newErrors.Count == 0` (CS8602). The
+    //     compiler cannot prove the delta path populated it. This pins the invariant the
+    //     fix must preserve: with a baseline supplied, NewErrors is always non-null and
+    //     empty here, and Passed follows the error count.
+    [Fact]
+    public async Task BaselineDelta_SuppliedBaselineAlwaysPopulatesNewErrors()
+    {
+        var path = MakePath("CleanWithBaseline.cs");
+        var (loaded, resolver) = BuildSolution((path, "class A { }"));
+        var (trust, allowlist) = NewSecurity();
+        var baseline = new ValidateEditBaseline([]);
+
+        var result = await ValidateEditLogic.ExecuteAsync(
+            loaded, resolver, [path], null, "error", false,
+            trust, allowlist, baseline, CancellationToken.None);
+
+        // Non-null is what makes the `newErrors.Count` dereference safe.
+        Assert.NotNull(result.NewErrors);
+        Assert.Empty(result.NewErrors!);
+        Assert.True(result.Passed);
+    }
+
+    // 6d. Stage 0 / item 3: the null-baseline path must never touch NewErrors at all —
+    //     no baseline means no delta, so NewErrors stays null while Passed is computed
+    //     from the error list alone. Pins both branches of the `passed` expression.
+    [Fact]
+    public async Task NoBaseline_LeavesNewErrorsNull_AndPassesOnCleanFile()
+    {
+        var path = MakePath("CleanNoBaseline.cs");
+        var (loaded, resolver) = BuildSolution((path, "class A { }"));
+        var (trust, allowlist) = NewSecurity();
+
+        var result = await ValidateEditLogic.ExecuteAsync(
+            loaded, resolver, [path], null, "error", false,
+            trust, allowlist, baseline: null, CancellationToken.None);
+
+        Assert.Null(result.NewErrors);
+        Assert.Null(result.ResolvedErrors);
+        Assert.True(result.Passed);
+    }
 }

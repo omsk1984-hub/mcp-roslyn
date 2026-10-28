@@ -97,8 +97,12 @@ public static class ValidateEditLogic
         // 5. passed + message.
         var errorCount = allErrors.Count;
         var filesChecked = files.Count;
+        // Stage 0 / item 3: `newErrors` is only populated on the baseline path (step 4), so
+        // reading its Count unconditionally is a possible null dereference (CS8602). Tie the
+        // read to the baseline check instead of relying on the caller's invariant.
+        var noNewErrors = baseline is null || newErrors is { Count: 0 };
         var passed = errorCount == 0
-                     && (baseline is null || newErrors.Count == 0)
+                     && noNewErrors
                      && symbolReports.All(s => s.Resolved)
                      && !(filesChecked == 0 && skipped.Count > 0);
 
