@@ -7,16 +7,16 @@ description: Инструкция по работе с MCP-сервером rosl
 
 Сервер предоставляет 67 инструментов семантического анализа и рефакторинга
 решения C# поверх Roslyn. Запускается из
-[`D:\work\MCP\roslyn-codelens-mcp\publish\RoslynCodeLens.dll`](.roo/mcp.json:6)
+[`D:\work\MCP\mcp-roslyn\publish\RoslynCodeLens.dll`](.roo/mcp.json:6)
 с путём к решению в аргументах; транспорт — stdio.
 
 Планируемое расширение (71 инструмент: `validate_edit`, `format_document`,
 `apply_fix`, `extract_method`, плюс скоуп `get_diagnostics` по файлу) —
-[`plans/27_roslyn-codelens-server-feature-plan.md`](plans/27_roslyn-codelens-server-feature-plan.md).
+[`plan/27_roslyn-codelens-server-feature-plan.md`](plan/27_roslyn-codelens-server-feature-plan.md).
 До его реализации пользоваться эквивалентами из §3.7.
 
-Единственное решение проекта: [`src/LLMNetHelper/LLMNetHelper.slnx`](src/LLMNetHelper/LLMNetHelper.slnx)
-(14 проектов).
+Единственное решение проекта: [`RoslynCodeLens.slnx`](RoslynCodeLens.slnx)
+(3 проекта).
 
 ---
 
@@ -257,7 +257,7 @@ description: Инструкция по работе с MCP-сервером rosl
 
 - `suggestedFilePath` использует префикс `tests/` и может указать не тот
   тестовый проект. Путь и пространство имён каркаса сверять с фактической
-  структурой (`src/LLMNetHelper/LLMNetHelper.Tests/<Область>/`).
+  структурой (`tests/RoslynCodeLens.Tests/<Область>/`).
 
 ### Нюанс 7: `get_extension_methods`
 

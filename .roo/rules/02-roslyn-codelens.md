@@ -9,7 +9,7 @@ MCP-сервер `roslyn-codelens` (настроен в `.roo/mcp.json`) пре�
 
 - **Все режимы агента** (code, architect, ask, debug, orchestrator).
 - Только код единственного решения проекта —
-  `src/LLMNetHelper/LLMNetHelper.slnx` (14 проектов, C#).
+  `RoslynCodeLens.slnx` (3 проекта, C#).
 - Для не-C# файлов (`.ps1`, `.sql`, `.md`, `.json`, `.env`, `.yml`) —
   обычные инструменты `read_file` / `search_files` / `codebase_search`.
 
@@ -75,7 +75,7 @@ fallback, а не как первый выбор.
 
 1. `list_solutions` — проверить, загружено ли решение (в начале сессии).
 2. Не загружено → `load_solution` с путём
-   `D:\work\LLMNetHelper\src\LLMNetHelper\LLMNetHelper.slnx` (~3 с).
+   `D:\work\MCP\mcp-roslyn\RoslynCodeLens.slnx` (~3 с).
    Для больших выборок — `background: true` + опрос `get_task_status`.
 3. Массовые правки файлов / смена `Directory.Build.props` / NuGet →
    `rebuild_solution` (долго: предпочесть `start_background_task`).
@@ -119,11 +119,11 @@ fallback, а не как первый выбор.
   `Exception.ToString()` (`... in File.cs:line 30`), а не `File.cs:30`.
 - `generate_test_skeleton`: `suggestedFilePath` условный — сверять путь и
   неймспейс с фактической структурой
-  `src/LLMNetHelper/LLMNetHelper.Tests/<Область>/`.
+  `tests/RoslynCodeLens.Tests/<Область>/`.
 
 ## Полный справочник
 
 Перед крупным анализом или при нестандартной задаче загрузить скилл
 `roslyn-codelens-usage` (`.roo/skills/roslyn-codelens-usage/SKILL.md`):
-каталог всех 65 инструментов, типовые сценарии, дефекты и обходные пути.
+каталог всех 67 инструментов, типовые сценарии, дефекты и обходные пути.
 Правило — короткий автопилот; скилл — справочник по требованию.

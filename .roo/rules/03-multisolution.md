@@ -3,49 +3,50 @@
 ## 1. Проверенные факты о поведении сервера
 
 Все факты подтверждены чтением исходников сервера
-(`D:\work\RoslynMCP\roslyn-codelens-mcp\src\RoslynCodeLens\`) 2026-10-26.
+(`src/RoslynCodeLens/`) 2026-10-26.
 
 ### 1.1. Запуск и автообнаружение
 
 - Позиционные аргументы командной строки = пути к `.sln`/`.slnx`
-  ([`CliOptions.Parse()`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/CliOptions.cs:28)).
+  ([`CliOptions.Parse()`](src/RoslynCodeLens/CliOptions.cs:28)).
   Флаги — только `--http`, `--port`, `--host`.
-- Без аргументов [`Program.cs:30-34`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/Program.cs:30)
-  вызывает [`SolutionLoader.FindSolutionFile()`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/SolutionLoader.cs:666):
+- Без аргументов [`Program.cs:30-34`](src/RoslynCodeLens/Program.cs:30)
+  вызывает [`SolutionLoader.FindSolutionFile()`](src/RoslynCodeLens/SolutionLoader.cs:666):
   - поиск идёт **вверх** по дереву каталогов от cwd (`dir.Parent` в цикле),
     **вниз не заглядывает**;
   - в каждом каталоге просматриваются `*.sln` и `*.slnx`;
   - при нескольких файлах выбирается **один** — с самой короткой полной
     строкой пути. Остальные игнорируются молча.
 - Следствие для этого репозитория: решение
-  [`src/LLMNetHelper/LLMNetHelper.slnx`](src/LLMNetHelper/LLMNetHelper.slnx)
-  вложено относительно корня `d:\work\LLMNetHelper`, поэтому автообнаружение
-  его **не найдёт**. Явный путь в [`.roo/mcp.json:7`](.roo/mcp.json:7) —
-  единственно рабочий вариант.
+  [`RoslynCodeLens.slnx`](RoslynCodeLens.slnx)
+  находится в корне `d:\work\MCP\mcp-roslyn`, поэтому автообнаружение
+  его **найдёт** (поиск вверх от cwd найдёт файл в корне).
+  Тем не менее явный путь в [`.roo/mcp.json:7`](.roo/mcp.json:7)
+  гарантирует однозначность.
 
 ### 1.2. Мультисолюшен-менеджер
 
-- [`MultiSolutionManager.CreateAsync()`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/MultiSolutionManager.cs:20)
+- [`MultiSolutionManager.CreateAsync()`](src/RoslynCodeLens/MultiSolutionManager.cs:20)
   создаёт **отдельный `SolutionManager` на каждый путь из аргументов**
   (полный `MSBuildWorkspace` + компиляция). Первый успешно загруженный
   становится активным. Сбой одного солюшена не блокирует остальные —
   он пропускается с записью в stderr.
-- [`LoadSolutionAsync()`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/MultiSolutionManager.cs:200):
-  - новый путь → загрузка (~3 с на 14 проектах) и **автоматическая
+- [`LoadSolutionAsync()`](src/RoslynCodeLens/MultiSolutionManager.cs:200):
+  - новый путь → загрузка (~3 с на 3 проектах) и **автоматическая
     активация**;
   - уже загруженный путь без фильтра → мгновенная реактивация;
   - уже загруженный путь **с фильтром** (`include`/`rootProjects`) →
     старый workspace уничтожается и пересоздаётся (replace semantics).
-- [`UnloadSolution()`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/MultiSolutionManager.cs:259):
+- [`UnloadSolution()`](src/RoslynCodeLens/MultiSolutionManager.cs:259):
   partial case-insensitive match по имени; если выгружался активный —
   активным становится первый из оставшихся (или ни одного).
-- [`SetActiveSolution()`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/MultiSolutionManager.cs:171):
+- [`SetActiveSolution()`](src/RoslynCodeLens/MultiSolutionManager.cs:171):
   partial match; 0 совпадений → `ProjectNotFound`, >1 → `AmbiguousMatch`.
 
 ### 1.3. Доверие (trust)
 
 - Session-trust автоматически выдаётся **только** солюшенам из
-  CLI-аргументов ([`Program.cs:47-48`](D:/work/RoslynMCP/roslyn-codelens-mcp/src/RoslynCodeLens/Program.cs:47)).
+  CLI-аргументов ([`Program.cs:47-48`](src/RoslynCodeLens/Program.cs:47)).
 - Солюшен, догруженный в рантайме через `load_solution`, для
   `get_diagnostics(includeAnalyzers: true)` нужно доверять явно —
   `trust_solution` со `scope: "session"` (или `"persistent"` с разрешения
@@ -119,7 +120,7 @@ flowchart TD
 
 | Случай | Поведение |
 |---|---|
-| Относительный путь к солюшену | Нормализовать до абсолютного относительно корня репозитория `d:/work/LLMNetHelper` |
+| Относительный путь к солюшену | Нормализовать до абсолютного относительно корня репозитория `d:/work/MCP/mcp-roslyn` |
 | `AmbiguousMatch` в `set_active_solution`/`unload_solution` | Уточнить имя более длинным уникальным фрагментом пути |
 | `load_solution` завершился ошибкой | Старый солюшен не выгружать; сообщить текст ошибки пользователю |
 | Нужны диагностики анализаторов для рантайм-солюшена | `trust_solution` со `scope: "session"` (persistent — только с разрешения пользователя) |
@@ -127,16 +128,16 @@ flowchart TD
 
 ## 4. Базовая конфигурация
 
-- Единственное решение репозитория — `src/LLMNetHelper/LLMNetHelper.slnx` —
-  указано явным аргументом в `.roo/mcp.json`. Автообнаружение (поиск вверх
-  от рабочего каталога) его не найдёт: решение вложено, поиск вниз не идёт,
-  а при нескольких файлах берётся только один (с кратчайшим путём).
-  Явный путь из `args` не удалять.
+- Единственное решение репозитория — `RoslynCodeLens.slnx` —
+  указано явным аргументом в `.roo/mcp.json`. Решение находится в корне
+  репозитория, поэтому автообнаружение (поиск вверх от рабочего каталога)
+  его найдёт. Явный путь из `args` не удалять — он гарантирует
+  однозначность.
 
 ## 5. Бюджет загруженных решений
 
 - Каждое загруженное решение — отдельный скомпилированный Roslyn-workspace:
-  память и ~3 с на 14 проектов при каждом старте MCP-процесса.
+  память и ~3 с на 3 проекта при каждом старте MCP-процесса.
 - В `args` `.roo/mcp.json` держать не более 1–2 солюшенов.
 - Остальные подключать по требованию через `load_solution` и обязательно
   выгружать через `unload_solution` после завершения задачи.

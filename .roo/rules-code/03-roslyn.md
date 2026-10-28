@@ -35,7 +35,7 @@
 ## После правок
 
 1. `get_diagnostics` по всем затронутым проектам — ошибки и предупреждения.
-   После реализации плана 27 (`plans/27_roslyn-codelens-server-feature-plan.md`)
+   После реализации плана 27 (`plan/27_roslyn-codelens-server-feature-plan.md`)
    это один вызов `validate_edit` (диагностики по файлам + висячие ссылки
    по символам) вместо трёх (`get_diagnostics` + `get_file_overview` +
    `find_references`).
@@ -45,7 +45,7 @@
    инкрементальный rebuild сам (`FileChangeTracker` + `RebuildIfStale`),
    а после правок самого MCP снапшот обновляется через `CommitAsync`.
 3. Тесты — по `.roo/rules-code/01-test.md`:
-   `dotnet test src/LLMNetHelper/LLMNetHelper.slnx`.
+   `dotnet test RoslynCodeLens.slnx`.
 4. Затронут публичный API? → `get_public_api_surface` (baseline) и
    `find_breaking_changes` при наличии предыдущего снимка. Помнить:
    return-типы, `sealed` и nullable-аннотации инструмент не видит —

@@ -84,7 +84,7 @@ MCP-сервер `roslyn-codelens` — инструмент **верификац
    `git status --porcelain` → пусто. Если не чисто — спросить пользователя,
    как поступить (не коммитить чужие изменения).
 3. Базовый прогон тестов ДО любых правок:
-   `dotnet test src/LLMNetHelper/LLMNetHelper.slnx`
+   `dotnet test RoslynCodeLens.slnx`
    Зафиксировать стартовое число пройденных/упавших/пропущенных.
 4. Базовая диагностика: `get_diagnostics` (severity = warning) —
    зафиксировать стартовый набор.
@@ -99,13 +99,13 @@ MCP-сервер `roslyn-codelens` — инструмент **верификац
 ### 2.1. Red — тест, фиксирующий дефект
 
 - Найти существующий тестовый файл по области
-  (`LLMNetHelper.Tests/<Область>/*Tests.cs`); если нет — создать новый
+  (`RoslynCodeLens.Tests/<Область>/*Tests.cs`); если нет — создать новый
   (каркас: `generate_test_skeleton`, доработать вручную).
 - Написать тест, который **падает на текущем коде** и описывает желаемое
   поведение. Обязательно с комментарием, какой дефект плана он фиксирует
   (например `// Дефект D1: находки теряются при маппинге Diagnosis → AnalysisResult`).
 - Запустить точечно:
-  `dotnet test src/LLMNetHelper/LLMNetHelper.Tests/LLMNetHelper.Tests.csproj --filter <ИмяТеста>`
+  `dotnet test tests/RoslynCodeLens.Tests/RoslynCodeLens.Tests.csproj --filter <ИмяТеста>`
   Ожидание: **FAILED**. Если тест прошёл — дефект не воспроизводится;
   разобраться (возможно, путь не исполняется — проверить `find_callers`)
   прежде чем править код.
@@ -124,7 +124,7 @@ MCP-сервер `roslyn-codelens` — инструмент **верификац
 - После правки:
   1. `get_diagnostics` по затронутому проекту → 0 ошибок;
   2. точечный тест того же фильтра → **PASSED**;
-  3. полный прогон `dotnet test src/LLMNetHelper/LLMNetHelper.slnx` →
+  3. полный прогон `dotnet test RoslynCodeLens.slnx` →
      не меньше пройденных, чем на шаге 1.3, и 0 падений.
 
 ### 2.3. Verify — MCP-контроль
@@ -154,7 +154,7 @@ MCP-сервер `roslyn-codelens` — инструмент **верификац
 
 ## 3. Завершение этапа
 
-1. Полный прогон: `dotnet test src/LLMNetHelper/LLMNetHelper.slnx` — все
+1. Полный прогон: `dotnet test RoslynCodeLens.slnx` — все
    зелёные (сетевые помечены `Category=Integration` и остаются Skipped).
 2. `get_diagnostics` (warning) — 0.
 3. `get_complexity_metrics` по затронутым файлам — зафиксировать динамику

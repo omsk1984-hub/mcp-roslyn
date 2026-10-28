@@ -1,10 +1,13 @@
-# Правила проекта LLMNetHelper
+# Правила проекта mcp-roslyn (RoslynCodeLens)
 
 ## Автономность репозитория
 
 - Репозиторий не зависит от других репозиториев и внешних решений.
-  Единственное решение проекта — `RoslynCodeLens.slnx`.
-  в `plans/`, помечены как архивные; как актуальную конфигурацию не читать.
+  Единственное решение проекта — `RoslynCodeLens.slnx` (3 проекта:
+  `src/RoslynCodeLens`, `tests/RoslynCodeLens.Tests`,
+  `benchmarks/RoslynCodeLens.Benchmarks`).
+- Планы в `docs/plans/` и `plan/` — исторические; как актуальную
+  конфигурацию не читать.
 
 ## Запуск .ps1: только через явный вызов `pwsh`, никогда `.\script.ps1`
 
@@ -18,14 +21,13 @@ pwsh -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $Outp
 
 - `&`/`-File` — обязательно (минует ассоциацию notepad).
 - UTF-8-префикс обязателен (иначе кириллица в выводе ломается).
-- Для неинтерактивных запусков всегда `-NoPause` (иначе терминал зависнет).
-- Путь — относительно корня `d:/work/LLMNetHelper`.
+- Путь — относительно корня `d:/work/MCP/mcp-roslyn`.
 
 Подробности — `.roo/rules-code/02-powershell.md`.
 
 ## Поиск и анализ кода: MCP-сервер `roslyn-codelens`
 
-Для любых вопросов о C#-коде решения `src/LLMNetHelper/LLMNetHelper.slnx`
+Для любых вопросов о C#-коде решения `RoslynCodeLens.slnx`
 (определения, ссылки, вызывающие, реализации, сигнатуры, диагностики,
 исключения, покрытие тестами, стек-трейсы, зависимости и слоистость) —
 сначала семантические инструменты MCP `roslyn-codelens`, а не текстовый
@@ -38,17 +40,14 @@ pwsh -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $Outp
 `.roo/rules-code/03-roslyn.md`, полный справочник — скилл
 `roslyn-codelens-usage`.
 
-## Тесты: только через `dotnet test src/LLMNetHelper/LLMNetHelper.slnx`
+## Тесты: только через `dotnet test RoslynCodeLens.slnx`
 
 См. `.roo/rules-code/01-test.md`.
 
 ## Процессы: НЕ завершать без явного разрешения пользователя
 
-- **Запрещено** останавливать/убивать любые процессы (MonitorAgent-демон,
-  docker-контейнеры, Loki/Prometheus и т.п.) без **явного** разрешения
-  пользователя в текущей сессии.
-- Исключение: `run_LLMNetHelper.ps1 -Stop` — останавливает ТОЛЬКО процесс,
-  запущенный самим скриптом (PID из файла); сам флаг и есть разрешение.
+- **Запрещено** останавливать/убивать любые процессы без **явного**
+  разрешения пользователя в текущей сессии.
 - Диагностика выполняется **только в режиме чтения**: логи, `netstat`,
-  `Get-Process`, HTTP-GET, `docker ps/logs` (без `down/stop`).
+  `Get-Process`.
 - Если для проверки требуется перезапуск — сначала **спросить разрешение**.
