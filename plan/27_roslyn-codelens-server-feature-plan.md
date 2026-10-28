@@ -4,7 +4,7 @@
 Основание: отчёт [`plans/27_roslyn-codelens-edit-quality-report.md`](27_roslyn-codelens-edit-quality-report.md)
 (в LLMNetHelper), разделы 1, 3, 5.
 
-Целевой репозиторий: `D:\work\MCP\roslyn-codelens-mcp`
+Целевой репозиторий: `D:\work\MCP\mcp-roslyn`
 (сервер `RoslynCodeLens`, `net10.0`, Roslyn 5.9.0, MCP SDK 2.3.0).
 
 ---
@@ -581,7 +581,7 @@ conflicts, message }` (переиспользовать существующую
    conventional commits (`feat: add validate_edit tool` и т.п.).
 6. Проверка: `dotnet build`, `dotnet test` (полный прогон),
    `dotnet publish` — сервер пересобирается в
-   `D:\work\MCP\roslyn-codelens-mcp\publish\RoslynCodeLens.dll`
+   `D:\work\MCP\mcp-roslyn\publish\RoslynCodeLens.dll`
    (именно этот путь указан в `.roo/mcp.json` репозитория LLMNetHelper),
    после чего MCP-клиент надо перезапустить (перезапуск процесса сервера
    — **только с разрешения пользователя**, это правило проекта).
