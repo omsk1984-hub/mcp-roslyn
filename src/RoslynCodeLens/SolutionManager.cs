@@ -95,53 +95,28 @@ public sealed class SolutionManager : IDisposable, ISolutionLifecycleState
         manager._workspace = open.Opened.Workspace;
         // CreateAsync stays NON-blocking: the warmup is started here and awaited only on first
         // access, which is pinned by CreateAsync_ReturnsBeforeCompilationCompletes.
-        manager._ready.SetWarmup(manager.WarmupAsync(open.Opened));
+        manager._ready.SetWarmup(SolutionLifecycleFactory.WarmupAsync(
+            open.Opened, manager._ready, manager.InstallWarmSnapshot, solutionPath, manager.AttachTracker));
         return manager;
+    }
+
+    /// <summary>Installs the snapshot the background warmup produced (called by the factory).</summary>
+    private void InstallWarmSnapshot(LoadedSolution newLoaded)
+    {
+        var newResolver = new SymbolResolver(newLoaded);
+        _snapshot.Swap(newLoaded, newResolver, new MetadataSymbolResolver(newLoaded, newResolver));
+    }
+
+    /// <summary>Starts watching the solution for changes once the warmup knows its layout.</summary>
+    private void AttachTracker(FileChangeTracker tracker)
+    {
+        tracker.OnDllChanged = path => _peCache.Invalidate(path);
+        _tracker = tracker;
     }
 
     public static SolutionManager CreateEmpty()
     {
         return new SolutionManager(LoadedSolution.Empty, null);
-    }
-
-    private async Task WarmupAsync(SolutionLifecycleFactory.Opened opened)
-    {
-        _ready.ResetWarmupCompleted();
-        try
-        {
-            await Console.Error.WriteLineAsync("[roslyn-codelens] Background compilation starting...").ConfigureAwait(false);
-            var compilations = await opened.Loader.CompileAllParallelAsync(opened.Solution).ConfigureAwait(false);
-
-            var newLoaded = SolutionLifecycleFactory.CreateLoadedSolution(
-                opened.Solution, compilations, opened.Skipped, opened.LoadDiagnostics);
-            var newResolver = new SymbolResolver(newLoaded);
-            var newMetadataResolver = new MetadataSymbolResolver(newLoaded, newResolver);
-
-            _snapshot.Swap(newLoaded, newResolver, newMetadataResolver);
-
-            if (_solutionPath != null)
-            {
-                _tracker = new FileChangeTracker(newLoaded, _solutionPath);
-                _tracker.OnDllChanged = path => _peCache.Invalidate(path);
-            }
-
-            await Console.Error.WriteLineAsync(
-                $"[roslyn-codelens] Background compilation complete. {compilations.Count} project(s) compiled.")
-                .ConfigureAwait(false);
-            _ready.SetWarmup(null);
-        }
-        catch (Exception ex)
-        {
-            _ready.RecordWarmupFailure(ex);
-            await Console.Error.WriteLineAsync($"[roslyn-codelens] Background compilation failed: {ex}").ConfigureAwait(false);
-        }
-        finally
-        {
-            // Release synchronous waiters whatever the outcome; the recorded warmup failure carries
-            // the error. Signalled before the task completes, which is fine: the state swap above
-            // happens before both.
-            _ready.SignalWarmupCompleted();
-        }
     }
 
     public Task WaitForWarmupAsync() => _ready.WarmupTask ?? Task.CompletedTask;
@@ -187,28 +162,12 @@ public sealed class SolutionManager : IDisposable, ISolutionLifecycleState
     }
 
     /// <summary>
-    /// An empty workspace has two very different causes and they need different messages. Saying
-    /// "No .sln file found" when a solution WAS found but every project failed to open sends the
-    /// reader hunting for a missing file instead of at the load failure that actually happened
-    /// (issue #399 was reported partly on the strength of this message).
+    /// Diagnostic text for an empty workspace. Delegates to
+    /// <see cref="SolutionLifecycleFactory.DescribeEmptyWorkspace"/> — the message belongs with the
+    /// loader that produces the skip reasons, not with the contract.
     /// </summary>
     internal static string DescribeEmptyWorkspace(string? solutionPath, IReadOnlyList<SkippedProject> skipped)
-    {
-        if (solutionPath is null)
-        {
-            return "No solution found. Either run from a directory containing a .sln/.slnx file, " +
-                   "or pass the solution path as argument: roslyn-codelens-mcp /path/to/Solution.sln";
-        }
-
-        var name = Path.GetFileName(solutionPath);
-        if (skipped.Count == 0)
-            return $"Solution '{name}' loaded but contains no projects that could be compiled.";
-
-        var reasons = string.Join("; ", skipped.Take(5).Select(p => $"{p.Name}: {p.Reason}"));
-        var more = skipped.Count > 5 ? $" (and {skipped.Count - 5} more)" : "";
-        return $"Solution '{name}' loaded but all {skipped.Count} project(s) were skipped, so there is " +
-               $"nothing to query. Reasons: {reasons}{more}";
-    }
+        => SolutionLifecycleFactory.DescribeEmptyWorkspace(solutionPath, skipped);
 
     /// <summary>Test-only seam: an artificial pause inside the stale rebuild.</summary>
     internal void SetRebuildDelayForTest(TimeSpan delay) => _rebuild.SetRebuildDelayForTest(delay);

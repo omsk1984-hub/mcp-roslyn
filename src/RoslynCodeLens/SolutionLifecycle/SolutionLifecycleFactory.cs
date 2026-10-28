@@ -133,6 +133,87 @@ public static class SolutionLifecycleFactory
         return new ReloadResult(newLoaded, open.Workspace, analyzerLoader);
     }
 
+    /// <summary>
+    /// Formats the "nothing to query" message for an empty workspace.
+    ///
+    /// <para>
+    /// An empty workspace has two very different causes and they need different messages. Saying
+    /// "No .sln file found" when a solution WAS found but every project failed to open sends the
+    /// reader hunting for a missing file instead of at the load failure that actually happened
+    /// (issue #399 was reported partly on the strength of this message).
+    /// </para>
+    /// </summary>
+    public static string DescribeEmptyWorkspace(string? solutionPath, IReadOnlyList<SkippedProject> skipped)
+    {
+        if (solutionPath is null)
+        {
+            return "No solution found. Either run from a directory containing a .sln/.slnx file, " +
+                   "or pass the solution path as argument: roslyn-codelens-mcp /path/to/Solution.sln";
+        }
+
+        var name = Path.GetFileName(solutionPath);
+        if (skipped.Count == 0)
+            return $"Solution '{name}' loaded but contains no projects that could be compiled.";
+
+        var reasons = string.Join("; ", skipped.Take(5).Select(p => $"{p.Name}: {p.Reason}"));
+        var more = skipped.Count > 5 ? $" (and {skipped.Count - 5} more)" : "";
+        return $"Solution '{name}' loaded but all {skipped.Count} project(s) were skipped, so there is " +
+               $"nothing to query. Reasons: {reasons}{more}";
+    }
+
+    /// <summary>
+    /// Compiles every project of the opened solution in the background and reports the result to
+    /// <paramref name="ready"/>: the swapped-in snapshot is installed through
+    /// <paramref name="install"/>, the warmup completion is signalled, and any failure is recorded
+    /// so the readiness protocol can surface it.
+    ///
+    /// <para>
+    /// Started by <see cref="SolutionManager.CreateAsync"/> and awaited only on first access — that
+    /// non-blocking start is what keeps server startup fast and is pinned by
+    /// <c>CreateAsync_ReturnsBeforeCompilationCompletes</c>.
+    /// </para>
+    /// </summary>
+    public static async Task WarmupAsync(
+        Opened opened,
+        ReadyGate ready,
+        Action<LoadedSolution> install,
+        string? solutionPath,
+        Action<FileChangeTracker>? attachTracker)
+    {
+        ready.ResetWarmupCompleted();
+        try
+        {
+            await Console.Error.WriteLineAsync("[roslyn-codelens] Background compilation starting...").ConfigureAwait(false);
+            var compilations = await opened.Loader.CompileAllParallelAsync(opened.Solution).ConfigureAwait(false);
+
+            var newLoaded = CreateLoadedSolution(
+                opened.Solution, compilations, opened.Skipped, opened.LoadDiagnostics);
+            install(newLoaded);
+
+            // The tracker watches the solution path the manager was told about, not the path the
+            // opened solution reports — those differ for a directory-discovered solution.
+            if (attachTracker != null && solutionPath != null)
+                attachTracker(new FileChangeTracker(newLoaded, solutionPath));
+
+            await Console.Error.WriteLineAsync(
+                $"[roslyn-codelens] Background compilation complete. {compilations.Count} project(s) compiled.")
+                .ConfigureAwait(false);
+            ready.SetWarmup(null);
+        }
+        catch (Exception ex)
+        {
+            ready.RecordWarmupFailure(ex);
+            await Console.Error.WriteLineAsync($"[roslyn-codelens] Background compilation failed: {ex}").ConfigureAwait(false);
+        }
+        finally
+        {
+            // Release synchronous waiters whatever the outcome; the recorded warmup failure carries
+            // the error. Signalled before the task completes, which is fine: the state swap above
+            // happens before both.
+            ready.SignalWarmupCompleted();
+        }
+    }
+
     /// <summary>The successfully opened pieces, before any warmup has run.</summary>
     public sealed record Opened(
         LoadedSolution Loaded,
