@@ -155,8 +155,13 @@ public class SolutionLoader
                 await s_buildHostGate.WaitAsync(ct).ConfigureAwait(false);
                 try
                 {
+                    // Stage 0 / item 2: the lambda is annotated Task<Solution?> explicitly so it
+                    // matches RunWithTimeoutAsync's `Func<CancellationToken, Task<T?>>` parameter
+                    // (CS8619). RunWithTimeoutAsync already returns null on timeout.
                     solution = await RunWithTimeoutAsync<Solution>(
-                        innerCt => workspace.OpenSolutionAsync(solutionPath, cancellationToken: innerCt),
+                        async (CancellationToken innerCt) => (Solution?)await workspace
+                            .OpenSolutionAsync(solutionPath, cancellationToken: innerCt)
+                            .ConfigureAwait(false),
                         GetOpenProjectTimeoutSec(),
                         ct).ConfigureAwait(false);
                 }
@@ -376,8 +381,12 @@ public class SolutionLoader
                         await s_buildHostGate.WaitAsync(ct).ConfigureAwait(false);
                         try
                         {
+                            // Stage 0 / item 2: explicit Task<Project?> lambda — CS8619 fix, same
+                            // rationale as the solution-level call above.
                             loaded = await RunWithTimeoutAsync<Project>(
-                                innerCt => ws.OpenProjectAsync(entry.Path, cancellationToken: innerCt),
+                                async (CancellationToken innerCt) => (Project?)await ws
+                                    .OpenProjectAsync(entry.Path, cancellationToken: innerCt)
+                                    .ConfigureAwait(false),
                                 timeoutSec,
                                 ct).ConfigureAwait(false);
                         }
