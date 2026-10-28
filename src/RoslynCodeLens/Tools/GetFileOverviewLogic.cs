@@ -51,17 +51,8 @@ public static class GetFileOverviewLogic
 
     private static (Project?, Document?) FindDocument(LoadedSolution loaded, string normalizedPath)
     {
-        foreach (var project in loaded.Solution.Projects)
-        {
-            foreach (var doc in project.Documents)
-            {
-                if (doc.FilePath != null &&
-                    doc.FilePath.Equals(normalizedPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return (project, doc);
-                }
-            }
-        }
+        if (DocumentLocator.TryFind(loaded, normalizedPath, out var project, out var document))
+            return (project, document);
         return (null, null);
     }
 

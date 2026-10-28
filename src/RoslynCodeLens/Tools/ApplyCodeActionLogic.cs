@@ -11,27 +11,8 @@ public static class ApplyCodeActionLogic
         string actionTitle, bool preview,
         CommitWrittenDocuments? commitToMemory, CancellationToken ct)
     {
-        var normalizedPath = Path.GetFullPath(filePath);
-        Project? targetProject = null;
-        Document? targetDocument = null;
-
-        foreach (var project in loaded.Solution.Projects)
-        {
-            ct.ThrowIfCancellationRequested();
-            foreach (var doc in project.Documents)
-            {
-                if (doc.FilePath != null &&
-                    doc.FilePath.Equals(normalizedPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    targetProject = project;
-                    targetDocument = doc;
-                    break;
-                }
-            }
-            if (targetProject != null) break;
-        }
-
-        if (targetProject == null || targetDocument == null)
+        ct.ThrowIfCancellationRequested();
+        if (!DocumentLocator.TryFind(loaded, filePath, out var targetProject, out var targetDocument))
         {
             return new CodeActionResult(
                 Success: false,
