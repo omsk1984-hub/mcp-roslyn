@@ -63,7 +63,7 @@
 |---|---|---|
 | `SolutionManager` — 51 член, 647 строк, 22+ ответственности | `find_large_classes` | [`SolutionManager.cs:10`](../src/RoslynCodeLens/SolutionManager.cs:10) |
 | `SolutionLoader` — 22 члена, **731 строка**, `OpenPerProjectAsync` CC=23 / cognitive=50 | `find_large_classes`, `get_complexity_metrics` | [`SolutionLoader.cs:10`](../src/RoslynCodeLens/SolutionLoader.cs:10), [`:278`](../src/RoslynCodeLens/SolutionLoader.cs:278) |
-| `SymbolResolver` — **45 членов**, 13 полей, 414 строк, 6 входящих namespace — единственный god-object по метрике размер×зацепление | `find_god_objects` (3 size axes + 1 coupling axis) | [`SymbolResolver.cs:7`](../src/RoslynCodeLens/SymbolResolver.cs:7) |
+| `SymbolResolver` — **45 членов**, 13 полей, 414 строк, 6 входящих namespace | ⚠️ `find_god_objects` вернул его при первом аудите, но **не воспроизводится** (см. «Поправки к аудиту» ниже) — фактически оценивался по LOC/членам | [`SymbolResolver.cs:7`](../src/RoslynCodeLens/SymbolResolver.cs:7) |
 | `GenerateTestSkeletonLogic` — 18 членов, 530 строк: резолвинг символа + выбор фреймворка + генерация C#-текста | `find_large_classes` | [`GenerateTestSkeletonLogic.cs:10`](../src/RoslynCodeLens/Tools/GenerateTestSkeletonLogic.cs:10) |
 | `ChangeSignatureBridge` — 525 строк: рефлексия + межверсионная совместимость Roslyn + доменная логика изменения сигнатуры | `find_large_classes`; 5 из 13 reflection usages | [`ChangeSignatureBridge.cs:25`](../src/RoslynCodeLens/Analysis/ChangeSignatureBridge.cs:25) |
 | `FindAsyncViolationsLogic.Execute` — CC=27, **cognitive=66**, вложенность 5. Один метод ищет 6 классов нарушений | худший метод решения | [`FindAsyncViolationsLogic.cs:14`](../src/RoslynCodeLens/Tools/FindAsyncViolationsLogic.cs:14) |
@@ -98,6 +98,37 @@
 | Все 51 вызов `GetAnalysisContext()` зависят от **конкретного** `MultiSolutionManager`; подменить в тесте нечем | [`GetCallGraphTool.cs:37`](../src/RoslynCodeLens/Tools/GetCallGraphTool.cs:37) (типичный сайт) |
 | `MultiSolutionManager` публикует конкретные `SolutionManager`, `SymbolResolver`, `MetadataSymbolResolver`, `IlDisassemblerAdapter` — ни одной абстракции | [`MultiSolutionManager.cs:74-86`](../src/RoslynCodeLens/MultiSolutionManager.cs:74) |
 | `SolutionManager` держит `FileChangeTracker`, `PEFileCache`, `ShadowCopyAnalyzerAssemblyLoader` как поля с конкретными типами | [`SolutionManager.cs:10`](../src/RoslynCodeLens/SolutionManager.cs:10) |
+
+### 1.3.1. Поправки к аудиту (выявлены в ходе реализации, 2026-10-28)
+
+Две ошибки исходного аудита, обнаруженные при исполнении плана. Обе меняют способ
+проверки готовности — фиксируются здесь, чтобы план не оценивался по неисправным критериям.
+
+| Ошибка | Что было заявлено | Факт | Следствие |
+|---|---|---|---|
+| **A1. Неверный критерий `find_god_objects`** | «`SymbolResolver` — единственная находка `find_god_objects`» | `find_god_objects` возвращает **пусто и до, и после** декомпозиции. Порог `minOutgoingNamespaces = 5` не достигается: тип зависит от 2 не-BCL namespace (`Analysis`, `Symbols`) | Критерий «`find_god_objects` пусто» **не мог провалиться** и ничего не доказывает. Заменяющий критерий — `find_large_classes` (LOC / члены) |
+| **A2. Заниженный масштаб sync-over-async** | «5 сайтов, все в `SolutionManager`» | Фактически `SolutionManager` содержал 4 копии одного вызова (сведены в `EnsureReady()` этапом 3) + **3 сайта в слое логики** (`FindReferencesLogic` ×2, `FindCallersLogic` ×1), не значившихся в аудите | Цель этапа 4 была недостижима правкой только `SolutionManager`; потребовалось разделение на порции A/B/C (раздел 4.2) |
+
+**Актуальный размер god-классов после этапа 5.1** (`find_large_classes(300, 15)`, по убыванию LOC,
+только `src/`, без сгенерированного кода):
+
+| Класс | LOC | Члены |
+|---|---|---|
+| `SolutionManager` | **899** | **61** |
+| `SolutionLoader` | 751 | 22 |
+| `GenerateTestSkeletonLogic` | 530 | 18 |
+| `ChangeSignatureBridge` | 525 | 15 |
+| `ChangeSignatureLogic` | 507 | 16 |
+| `GetInstantiationOptionsLogic` | 493 | 22 |
+| `CheckArchitectureLogic` | 463 | 18 |
+| `CodeActionRunner` | 441 | 15 |
+| `GetExtensionMethodsLogic` | 428 | 16 |
+| `MultiSolutionManager` | 321 | 24 |
+| `GetCallGraphLogic` | 311 | 10 |
+
+⚠️ `SolutionManager` вырос с 647 до 899 LOC за этапы 3–4: единый протокол, async-варианты и
+синхронные обёртки добавлены, но удаления старых путей ещё не было (отложено до порции C).
+Это ожидаемый рост, но этап 5 должен его вернуть к норме.
 
 ### 1.4 Антипаттерны
 
@@ -612,7 +643,11 @@ flowchart LR
 3. `find_disposable_misuse` — **0** реальных нарушений (сейчас 9, часть ложные).
 4. `get_complexity_metrics(threshold=15)` — **0** методов (сейчас 22).
 5. `find_large_classes(maxLines=300, maxMembers=15)` — **0** типов в `src/` (сейчас 13).
-6. `find_god_objects` — **пусто** (сейчас 1).
+6. `find_god_objects` — **пусто** — ⚠️ **критерий недействителен** (поправка A1):
+   инструмент возвращает пусто и до, и после; на этом решении порог
+   `minOutgoingNamespaces = 5` недостижим. Заменять проверкой по `find_large_classes`:
+   ни один тип в `src/` не превышает 300 LOC / 15 членов (сейчас превышают **12** типов,
+   худший — `SolutionManager` 899 LOC / 61 член).
 7. `find_circular_dependencies` и `check_architecture` — **0** (уже выполнено; не регрессировать).
 8. `find_uncovered_symbols` — **0** символов с CC ≥ 10 (сейчас 46 risk hotspots).
 9. Публичный API содержит **контракты** (`Interface` в `get_public_api_surface`), а не только конкретные типы.
