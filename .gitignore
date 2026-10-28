@@ -22,6 +22,10 @@ TestResults/
 # Build artifacts
 artifacts/
 
+# Local publish output (dotnet publish -o publish). The MCP client launches the
+# server from this path, but the binaries themselves are build output, not source.
+publish/
+
 # Benchmark results
 BenchmarkDotNet.Artifacts/
 
