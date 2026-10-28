@@ -561,6 +561,73 @@ flowchart TD
 (база 1254 + 5 новых в `SymbolIndexDecompositionTests`).
 Подробности — [`decision/2026-10-28T20-47-stage5-1-symbolresolver-decomposition.md`](../decision/2026-10-28T20-47-stage5-1-symbolresolver-decomposition.md).
 
+#### 5.2. `SolutionManager` — инвентаризация перед декомпозицией
+
+Исходное состояние: **899 LOC, 61 член** (рос с 647 LOC за этапы 3–4 — добавлены единый
+`EnsureReady()`, async-варианты и синхронные обёртки, удаления старых путей ещё не было).
+
+**Ключевое обстоятельство: класс одновременно объект этапа 4 (порция C).** Часть роста —
+синхронные обёртки и поле `_warmupCompleted` — по разделу 4.3 подлежит **удалению** после
+перевода 49 инструментов на async. Поэтому в разбиении явно разделено: что уходит вместе
+с порцией C, а что остаётся навсегда. Декомпозировать то, что всё равно будет удалено,
+бессмысленно — такие члены помечены ниже как `[C]`.
+
+##### Инвентаризация: член → новый тип
+
+| Член | Вид | Куда переезжает | Примечание |
+|---|---|---|---|
+| `_loaded`, `_resolver`, `_metadataResolver`, `_lock` | поле ×4 | `SolutionSnapshotStore` | ядро инварианта #282 |
+| `GetAnalysisContextAsync` | метод | **фасад** — протокол через `ReadyGate`, снимок у `SolutionSnapshotStore` | тело покидает фасад |
+| `GetAnalysisContext()` `[C]` | метод | **фасад** (обёртка) | удаляется порцией C |
+| `_recentlyChangedDocuments` | поле | `RecentChangesJournal` | — |
+| `RecentlyChangedDocuments` | свойство | `RecentChangesJournal` + делегирование | — |
+| `ResetRecentChanges()` | метод | `RecentChangesJournal` + делегирование | вызывается `GetDiagnosticsTool` |
+| `RecordRecentlyChanged(path)` | приватный | `RecentChangesJournal` | 2 сайта вызова |
+| `_rebuildGate` | поле | `StaleRebuildCoordinator` | — |
+| `RebuildIfStaleAsync` | приватный | `StaleRebuildCoordinator` | opportunistic `WaitAsync(0)` |
+| `RebuildIfStale()` `[C]` | приватный | `StaleRebuildCoordinator` | удаляется порцией C |
+| `RunRebuildUnderGateAsync` | приватный | `StaleRebuildCoordinator` | drain/restore/catch |
+| `_rebuildDelayForTest`, `DelayForTestAsync` | приватный | `StaleRebuildCoordinator` | тестовая щель |
+| `RebuildAsync`, `TryRebuildIncrementalAsync` | приватный | `StaleRebuildCoordinator` | — |
+| `RecompileAndSwapAsync` | приватный | `SolutionSnapshotStore` (пишет снимок) | 2 сайта вызова |
+| `RebuildViaFullReloadAsync` | приватный | `StaleRebuildCoordinator` | — |
+| `TryReadSourceTextAsync` | приватный static | `StaleRebuildCoordinator` | — |
+| `CommitDocumentTextsAsync` | **публичный** | **фасад** (оркестрация) | 5 инструментов передают метод как делегат |
+| `ForceReloadAsync`, `ReloadAndSwapAsync` | публичный + приватный | **фасад** / `StaleRebuildCoordinator` | gate держит координатор |
+| `_warmupTask`, `_warmupException`, `_warmupCompleted` | поле ×3 | `ReadyGate` | `_warmupCompleted` удаляется порцией C |
+| `WarmupAsync` | приватный | `ReadyGate` | — |
+| `WaitForWarmupAsync` | **публичный** | **фасад** → `ReadyGate` | 8 тест-сайтов |
+| `EnsureReadyAsync` | приватный | `ReadyGate` | вызывается **вне** `_lock` |
+| `EnsureReady()` `[C]` | приватный | `ReadyGate` | удаляется порцией C |
+| `ThrowIfLoadFailed` | приватный | `ReadyGate` | — |
+| `WarmupFailedMessage` | const | `ReadyGate` | — |
+| `_loadException`, `_loadFailureMessage` | поле readonly ×2 | `ReadyGate`; свойства — в фасаде | `MultiSolutionManager` читает оба |
+| `HasLoadFailure`, `LoadFailureMessage` | **публичный** | **фасад** → `ReadyGate` | 2 прод-сайта в `MultiSolutionManager` |
+| `EnsureLoaded` | **публичный** | **фасад** | 49 инструментов |
+| `GetLoadedSolution` `[C]` | **публичный** | **фасад** | 4 инструмента передают метод как делегат; геттер удаляется в C, метод остаётся |
+| `GetIlDisassembler` | **публичный** | **фасад** (осознанное исключение) | не трогается: вне протокола |
+| `_peCache`, `_ilAdapter`, `_analyzerLoader`, `_workspace`, `SharedCache` | поле ×5 | остаются в фасаде (жизненный цикл) | не декомпозируются |
+| `CreateAsync`, `CreateEmpty`, `_solutionPath`, `_disposed`, `Dispose` | — | остаются в фасаде | композиция + `IDisposable` |
+| `SimulateFileChangeForTest`, `HasStaleProjectsForTest`, `SetRebuildDelayForTest` | internal | `StaleRebuildCoordinator` (форвард в фасаде) | тесты не меняются |
+| `DescribeEmptyWorkspace` | internal static | остаётся в фасаде | 4 тест-сайта |
+
+Пометка `[C]` = удаляется порцией C, декомпозиции не подлежит.
+
+##### Три инварианта — что нельзя сломать
+
+| Инвариант | Как закреплён | Обеспечение в новом коде |
+|---|---|---|
+| **`EnsureReady()` вне `_lock`** — warmup и перестройка берут лок сами; блокировка снаружи = самоблокировка | комментарии `EnsureReadyAsync`, `GetAnalysisContextAsync` | `ReadyGate` **не** владеет локом `SolutionSnapshotStore`: протокол вызывается до `store.Snapshot()` |
+| **Снимок одним `lock (_lock)`** (атомарность #282) | тело `GetAnalysisContextAsync`; тест `GetAnalysisContextAsync_MatchesSyncPath_OnSameSnapshot` | `SolutionSnapshotStore.Snapshot()` — единственное место чтения тройки полей, под одним локом |
+| **`CreateAsync` неблокирующий**, `_resolver` не пересоздаётся на тёплом пути | `CreateAsync_ReturnsBeforeCompilationCompletes`, `GetResolver_ReturnsCachedInstance_WhenNotStale` | warmup остаётся фоновой задачей, стартующей из `CreateAsync`; `ReadyGate` не создаёт резолверов |
+
+##### Тесты — контракт (не править)
+
+`SolutionManagerTests` (14 тестов, включая 3 `GetAnalysisContextAsync_*`), `IncrementalRebuildTests`,
+`LoaderConcurrencyHardeningTests`, `MultiSolutionManagerTests`, `LegacySolutionHandlingTests` —
+обязаны остаться зелёными **без правок**. Все они ходят только через публичную поверхность
+фасада и три `internal` тест-щели, поэтому разбиение их не задевает.
+
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
 `find_large_classes(maxLines=300, maxMembers=15)` — 0 типов в `src/`;

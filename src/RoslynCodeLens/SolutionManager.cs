@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using RoslynCodeLens.Analyzers;
 using RoslynCodeLens.Metadata;
+using RoslynCodeLens.SolutionLifecycle;
 using RoslynCodeLens.Symbols;
 
 namespace RoslynCodeLens;
@@ -16,13 +17,9 @@ public sealed class SolutionManager : IDisposable
     private FileChangeTracker? _tracker;
     private readonly Lock _lock = new();
 
-    // Journal of .cs document paths changed since the last explicit reset
-    // (ResetRecentChanges). Accumulated on every incremental rebuild and every
-    // commit of written documents. Backs the `changedOnly` filter of
-    // get_diagnostics: unlike the tracker's live stale set (which is drained by
-    // the rebuild that consumes it), this journal survives the rebuild so a
-    // query issued right after an edit still sees "what changed".
-    private readonly HashSet<string> _recentlyChangedDocuments = new(StringComparer.OrdinalIgnoreCase);
+    // Journal of .cs document paths changed since the last explicit reset (stage 5.2: extracted
+    // into RecentChangesJournal — see that type for the contract and the rationale).
+    private readonly RecentChangesJournal _recentChanges = new();
 
     // Serializes every operation that produces a new loaded solution — the watcher-driven
     // auto-rebuild (RebuildIfStale) and the explicit rebuild_solution (ForceReloadAsync). Only one
@@ -772,32 +769,19 @@ public sealed class SolutionManager : IDisposable
 
     /// <summary>
     /// Paths of .cs documents changed since the last <see cref="ResetRecentChanges"/>
-    /// (or since load). Accumulated by incremental rebuilds and by
-    /// <see cref="CommitDocumentTextsAsync"/>. Backs the `changedOnly` filter of
-    /// get_diagnostics. A full reload clears the journal: after a reload every
-    /// project was recompiled from disk, so "changed since last reset" is empty.
+    /// (or since load). Delegates to <see cref="RecentChangesJournal"/>, which owns the journal
+    /// and its synchronization (stage 5.2).
     /// </summary>
-    public IReadOnlyList<string> RecentlyChangedDocuments
-    {
-        get { lock (_lock) return _recentlyChangedDocuments.ToList(); }
-    }
+    public IReadOnlyList<string> RecentlyChangedDocuments => _recentChanges.Snapshot();
 
     /// <summary>
     /// Clears the <see cref="RecentlyChangedDocuments"/> journal. Called by
     /// get_diagnostics with `resetRecentChanges: true` so the next changedOnly
     /// query starts from a clean slate.
     /// </summary>
-    public void ResetRecentChanges()
-    {
-        lock (_lock)
-            _recentlyChangedDocuments.Clear();
-    }
+    public void ResetRecentChanges() => _recentChanges.Reset();
 
-    private void RecordRecentlyChanged(string path)
-    {
-        lock (_lock)
-            _recentlyChangedDocuments.Add(path);
-    }
+    private void RecordRecentlyChanged(string path) => _recentChanges.Record(path);
 
     public async Task<(int ProjectCount, TimeSpan Elapsed)> ForceReloadAsync()
     {
