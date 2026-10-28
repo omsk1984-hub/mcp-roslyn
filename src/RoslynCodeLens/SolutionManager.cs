@@ -26,12 +26,9 @@ public sealed class SolutionManager : IDisposable
     // into RecentChangesJournal — see that type for the contract and the rationale).
     private readonly RecentChangesJournal _recentChanges = new();
 
-    // Serializes every operation that produces a new loaded solution — the watcher-driven
-    // auto-rebuild (RebuildIfStale) and the explicit rebuild_solution (ForceReloadAsync). Only one
-    // runs at a time so neither can read _loaded, have the other swap + dispose its workspace, and
-    // then clobber the swap with a solution forked off a now-disposed workspace. Auto-rebuild
-    // acquires it opportunistically (skips if busy, returning current data); ForceReloadAsync waits.
-    private readonly SemaphoreSlim _rebuildGate = new(1, 1);
+    // Serializes every operation that produces a new loaded solution (stage 5.2: extracted into
+    // StaleRebuildGate, which owns the single-flight rule and the drain/restore bookkeeping).
+    private readonly StaleRebuildGate _rebuildGate = new();
     private Task? _warmupTask;
     private Exception? _warmupException;
 
@@ -327,21 +324,12 @@ public sealed class SolutionManager : IDisposable
         if (_tracker == null || !_tracker.HasStaleProjects)
             return;
 
-        // Opportunistic acquire: if a rebuild or a full reload (ForceReloadAsync) is already
-        // running, skip and let this query return the current consistent data rather than start a
-        // competing rebuild. WaitAsync(0) — not Wait(0): a synchronous Wait would block a pool
-        // thread even for the zero-timeout opportunistic probe, defeating the point of this path.
-        if (!await _rebuildGate.WaitAsync(0, ct).ConfigureAwait(false))
-            return;
-
-        try
-        {
-            await RunRebuildUnderGateAsync(ct).ConfigureAwait(false);
-        }
-        finally
-        {
-            _rebuildGate.Release();
-        }
+        // Opportunistic: if a rebuild or a full reload is already running, skip and let this query
+        // return the current consistent data rather than start a competing rebuild.
+        await _rebuildGate.TryRunExclusiveAsync(
+            () => RunRebuildUnderGateAsync(ct),
+            restoreOnIncomplete: () => Task.CompletedTask,
+            ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -536,8 +524,9 @@ public sealed class SolutionManager : IDisposable
         if (documents.Count == 0)
             return;
 
-        await _rebuildGate.WaitAsync(ct).ConfigureAwait(false);
-        try
+        // No drained state here, so nothing needs restoring on failure: the committed texts are on
+        // disk already and the watcher will pick them up.
+        await _rebuildGate.RunExclusiveAsync(async () =>
         {
             var solution = _snapshot.Snapshot().Loaded.Solution;
             var changedProjects = new HashSet<ProjectId>();
@@ -565,11 +554,7 @@ public sealed class SolutionManager : IDisposable
             await Console.Error.WriteLineAsync(
                 $"[roslyn-codelens] Committed {documents.Count} written document(s) to the in-memory snapshot.")
                 .ConfigureAwait(false);
-        }
-        finally
-        {
-            _rebuildGate.Release();
-        }
+        }, restoreOnIncomplete: () => Task.CompletedTask, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -780,15 +765,12 @@ public sealed class SolutionManager : IDisposable
         // Hold the rebuild gate for the whole reload: wait for any in-progress auto-rebuild to
         // finish, then keep it out (auto-rebuilds skip and serve current data) so none can clobber
         // our swap or dispose a workspace we still reference.
-        await _rebuildGate.WaitAsync().ConfigureAwait(false);
-        try
+        var result = default((int ProjectCount, TimeSpan Elapsed));
+        await _rebuildGate.RunExclusiveAsync(async () =>
         {
-            return await ReloadAndSwapAsync().ConfigureAwait(false);
-        }
-        finally
-        {
-            _rebuildGate.Release();
-        }
+            result = await ReloadAndSwapAsync().ConfigureAwait(false);
+        }, restoreOnIncomplete: () => Task.CompletedTask).ConfigureAwait(false);
+        return result;
     }
 
     /// <summary>

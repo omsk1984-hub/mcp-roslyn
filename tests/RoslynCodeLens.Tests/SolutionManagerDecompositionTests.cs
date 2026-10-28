@@ -224,4 +224,117 @@ public class SolutionManagerDecompositionTests
         Assert.Same(skipped, loaded.SkippedProjects);
         Assert.Same(diagnostics, loaded.LoadDiagnostics);
     }
+
+    // ---------------------------------------------------------------------------------------
+    // StaleRebuildCoordinator — the gate plus the drain/restore bookkeeping.
+    //
+    // The risky part of the extraction: an aborted rebuild must never lose the drained stale
+    // state, and the gate must stay a single-flight lock shared by the watcher-driven rebuild and
+    // the explicit reload. These tests pin the two behaviours that make that safe.
+    // ---------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// A rebuild that FAILS must restore the drained snapshot, otherwise the pending work is
+    /// silently dropped and the solution serves stale data forever (the leak
+    /// <c>FileChangeTracker.DrainStale</c>'s contract explicitly warns about).
+    /// </summary>
+    [Fact]
+    public async Task StaleRebuildCoordinator_FailedRebuild_RestoresDrainedState()
+    {
+        var gate = new StaleRebuildGate();
+        var drained = 0;
+        var restored = 0;
+
+        // The exception must reach the caller (the rebuild layer above decides what to log), and
+        // the drained state must be handed back BEFORE it does.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => gate.RunExclusiveAsync(async () =>
+        {
+            drained++;
+            await Task.Yield();
+            throw new InvalidOperationException("rebuild blew up");
+        }, restoreOnIncomplete: () => { restored++; return Task.CompletedTask; }));
+
+        Assert.Equal(1, drained);
+        Assert.Equal(1, restored);
+    }
+
+    /// <summary>
+    /// A rebuild that completes must NOT restore: restoring would re-arm work that was just done,
+    /// causing a redundant second rebuild on the very next query.
+    /// </summary>
+    [Fact]
+    public async Task StaleRebuildCoordinator_CompletedRebuild_DoesNotRestore()
+    {
+        var gate = new StaleRebuildGate();
+        var restored = 0;
+
+        await gate.RunExclusiveAsync(
+            () => Task.CompletedTask,
+            restoreOnIncomplete: () => { restored++; return Task.CompletedTask; });
+
+        Assert.Equal(0, restored);
+    }
+
+    /// <summary>
+    /// The gate is a single-flight lock: a second entrant must not start while the first holds it.
+    /// This is what stops the watcher rebuild and an explicit reload from disposing each other's
+    /// workspace.
+    /// </summary>
+    [Fact]
+    public async Task StaleRebuildGate_SerializesEntrants()
+    {
+        var gate = new StaleRebuildGate();
+        var concurrent = 0;
+        var maxConcurrent = 0;
+
+        var tasks = Enumerable.Range(0, 5)
+            .Select(_ => (Task)gate.RunExclusiveAsync(async () =>
+            {
+                var now = Interlocked.Increment(ref concurrent);
+                InterlockedMax(ref maxConcurrent, now);
+                await Task.Delay(20);
+                Interlocked.Decrement(ref concurrent);
+            }, restoreOnIncomplete: () => Task.CompletedTask))
+            .ToArray();
+
+        await Task.WhenAll(tasks);
+
+        Assert.Equal(1, maxConcurrent);
+    }
+
+    /// <summary>
+    /// The opportunistic probe must NOT wait: when the gate is already held, it returns
+    /// <c>false</c> immediately so a query can serve the current consistent snapshot instead of
+    /// queueing behind a multi-second rebuild.
+    /// </summary>
+    [Fact]
+    public async Task StaleRebuildGate_TryEnterWhileHeld_ReturnsFalseImmediately()
+    {
+        var gate = new StaleRebuildGate();
+        var release = new TaskCompletionSource<bool>();
+        var holder = gate.RunExclusiveAsync(async () =>
+        {
+            await release.Task;
+        }, restoreOnIncomplete: () => Task.CompletedTask);
+
+        Assert.False(await gate.TryEnterAsync(CancellationToken.None));
+
+        release.SetResult(true);
+        await holder;
+        // Released: the probe succeeds again.
+        Assert.True(await gate.TryEnterAsync(CancellationToken.None));
+        gate.Exit();
+    }
+
+    private static void InterlockedMax(ref int target, int value)
+    {
+        var current = Volatile.Read(ref target);
+        while (value > current)
+        {
+            var seen = Interlocked.CompareExchange(ref target, value, current);
+            if (seen == current)
+                return;
+            current = seen;
+        }
+    }
 }
