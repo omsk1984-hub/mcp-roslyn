@@ -8,10 +8,11 @@
 
 | Dimension | sharplens-mcp | roslyn-codelens-mcp |
 |-----------|---------------|----------------------|
-| Tools | ~58 | 54 |
+| Tools | ~58 | 71 |
 | Architecture | Monolithic `RoslynService.cs` (~5 000 lines) | Modular Tool + Logic split per feature |
 | API paradigm | Position-based `(filePath, line, col)` | Symbol-name-based (`"IGreeter.Greet"`) |
-| Refactoring | 13 dedicated write/mutate tools | `get_code_actions` + `apply_code_action` (generic engine) |
+| Refactoring | 13 dedicated write/mutate tools | `get_code_actions` + `apply_code_action` (generic engine), plus purpose-built `rename_symbol`, `change_signature`, `apply_fix`, `extract_method`, `format_document` |
+| Post-edit validation | none | `validate_edit` — diagnostics + dangling references in one call |
 | Code generation | Dedicated tools (null checks, equality, ctor) | Via Roslyn code actions (no extra tools) |
 | Compound/batch | 6 tools | 3 (`get_type_overview`, `analyze_method`, `get_file_overview`) |
 | Multi-solution | Env var only | Built-in manager with `list_solutions` / `set_active_solution` |
@@ -145,7 +146,28 @@ All previously identified gaps have been closed. See Section 4 for phase status.
 
 ### 3.1 Refactoring via Roslyn Code Actions ✅ Done
 
-Load `CodeRefactoringProvider` and `CodeFixProvider` from `Microsoft.CodeAnalysis.CSharp.Features` via reflection. Two generic tools cover all built-in Roslyn refactorings (rename, extract method, inline, encapsulate field, etc.) without implementing each one individually. Preview mode returns a diff before writing.
+Load `CodeRefactoringProvider` and `CodeFixProvider` from `Microsoft.CodeAnalysis.CSharp.Features` via reflection. Two generic tools (`get_code_actions` + `apply_code_action`) cover all built-in Roslyn refactorings (inline, encapsulate field, add member, move member, etc.) without implementing each one individually. Preview mode returns a diff before writing.
+
+On top of the generic engine, five purpose-built write-tools add ergonomics the generic path cannot:
+
+| Tool | What it adds over `apply_code_action` |
+|------|---------------------------------------|
+| `rename_symbol` | Solution-wide rename via `Renamer.RenameSymbolAsync` with cascade to overrides, interfaces, `nameof`, XML-doc `cref`; conflict reporting; freshness gate |
+| `change_signature` | Add/remove/reorder parameters and rewrite every call site; cascades to overrides and interface implementations |
+| `apply_fix` | Applies the code fix for a specific diagnostic (id + file + line) in one call — no need to first enumerate fixes with `get_code_fixes` |
+| `extract_method` | Extracts a line range into a new method with a **name you choose**; identifies the Roslyn action by its locale-independent `EquivalenceKey`, then renames the generated `NewMethod` via `Renamer` |
+| `format_document` | Formats a file or line range with the project's own `.editorconfig` (real workspace options); no-op on already-formatted files writes nothing |
+
+All five share the same safety contract: **preview by default** (`preview: true`), conflict reporting (new compiler errors the edit would introduce), a freshness gate that refuses to clobber concurrent on-disk edits, and a degraded-load guard. None of them writes to disk without passing through `SolutionChangeSafety.PreviewOrApplyAsync`.
+
+### 3.1.1 Post-edit validation: `validate_edit`
+
+Answers "did I just break this file?" in one call after an `apply_diff` or any edit:
+
+- **Diagnostics** for the touched files (compiler errors and warnings, scoped server-side — not a client-side filter over the whole solution).
+- **Dangling references** for symbols you renamed, removed, or re-signatured — every call site that no longer resolves.
+
+Replaces the three-call sequence (`get_diagnostics` + `get_file_overview` + `find_references`) that agents previously had to stitch together.
 
 ### 3.2 Compound/Batch Tools
 
@@ -176,6 +198,8 @@ Transitive `find_references` + `find_callers` — direct references, affected ca
 | 3 | Impact analysis (`analyze_change_impact`) | ✅ Complete |
 | 4 | Compound tools (`get_type_overview`, `analyze_method`, `get_file_overview`) | ✅ Complete |
 | 5 | Code generation (`implement_missing_members`, `generate_constructor`) | N/A — covered by `apply_code_action` (see SKILL.md) |
+| 6 | Edit-quality toolset (`validate_edit`, `format_document`, `apply_fix`, `extract_method`, `get_diagnostics` scoping) | ✅ Complete (plan 27) |
+| 7 | `extract_interface`, `encapsulate_field`, `add_member`, `move_member` | Deferred — next plan, builds on `ApplyOperationsAsync` from stage D |
 
 ---
 

@@ -49,8 +49,10 @@ A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/marcel
 - **go_to_definition** — Find the source file and line where a symbol is defined
 - **get_method_source** — Full declaration source (XML docs, attributes, signature, body — original formatting) for one or many members by name in a single call: methods (all overloads), constructors, properties, indexers, fields, events; per-item statuses (`ok`/`notFound`/`ambiguous`/`metadata`/`unsupportedKind`) so a batch never fails wholesale
 - **resolve_stack_trace** — Map a pasted .NET stack trace to file/line/symbol, undoing compiler name mangling (async/iterator state machines, lambdas, local functions, generic arity); handles inner-exception chains, log-prefixed lines, and Demystifier traces
-- **get_diagnostics** — List compiler errors, warnings, and Roslyn analyzer diagnostics
+- **get_diagnostics** — List compiler errors, warnings, and Roslyn analyzer diagnostics; scope the response to one file (`filePath`), to the files changed since the last snapshot (`changedOnly`), or filter by an exact `column`
 - **get_code_fixes** — Get available code fixes with structured text edits for any diagnostic
+- **validate_edit** — One-call post-edit check: compiler diagnostics for the touched files plus dangling references for the symbols you renamed, removed, or re-signatured
+- **format_document** — Format a C# file (or a line range) with the project's own `.editorconfig`, preview-first; a no-op on already-formatted files writes nothing
 - **search_symbols** — Fuzzy workspace symbol search by name
 - **get_nuget_dependencies** — List NuGet package references per project
 - **find_attribute_usages** — Find types and members decorated with a specific attribute
@@ -71,6 +73,8 @@ A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/marcel
 - **peek_il** — Decompile any method to ilasm-style IL bytecode from closed-source or generated assemblies
 - **get_code_actions** — Discover available refactorings and fixes at any position (extract method, rename, inline variable, and more)
 - **apply_code_action** — Execute any Roslyn refactoring by title, with preview mode (returns a diff before writing to disk)
+- **apply_fix** — Apply the code fix for a specific diagnostic (id + file + line) in one call, preview-first, refusing to write when the fix would introduce new compiler errors
+- **extract_method** — Extract a line range into a new method with a name you choose: a facade over Roslyn's own provider, so parameters and return type are inferred from the captured locals; locale-independent action matching, preview-first
 - **rename_symbol** — Solution-wide safe rename of a type or member via Roslyn's Renamer, with preview mode, conflict reporting, and a freshness check against on-disk edits
 - **change_signature** — Add, remove, and reorder a method's parameters and rewrite every call site; handles named/optional arguments, `params` and extension methods, and reports the overrides and interface implementations it cascaded to
 - **list_solutions** — List all loaded solutions and which one is currently active
@@ -138,7 +142,7 @@ When a tool can't proceed (symbol not resolved, solution not trusted, file not f
 Error codes (switch on `code` to handle each):
 
 - `SymbolNotFound` — type / method / property could not be resolved.
-- `SolutionNotTrusted` — `get_diagnostics` or `get_code_fixes` requested analyzers but the solution hasn't been authorized via `trust_solution`.
+- `SolutionNotTrusted` — `get_diagnostics`, `get_code_fixes`, or `apply_fix` requested analyzers or code-fix providers but the solution hasn't been authorized via `trust_solution`.
 - `AmbiguousMatch` — `set_active_solution` / `unload_solution` matched multiple solutions; `details.matches` lists them.
 - `FileNotFound` — file path or baseline doesn't exist (or isn't in any loaded project).
 - `ProjectNotFound` — solution name didn't match any loaded solution.
@@ -163,7 +167,7 @@ Location-returning results include an `Origin` field (`source` or `metadata`) an
 
 ## Security: Trust Model
 
-`get_diagnostics` and `get_code_fixes` can load Roslyn analyzers — DLLs that execute in-process. To prevent untrusted analyzers from running automatically, this server uses a VS/Rider-style trust model:
+`get_diagnostics`, `get_code_fixes`, and `apply_fix` can load Roslyn analyzers and code-fix providers — DLLs that execute in-process. To prevent untrusted analyzers from running automatically, this server uses a VS/Rider-style trust model:
 
 - **Solutions passed on the CLI at startup** are auto-trusted for the current session.
 - **Other solutions** must be explicitly trusted via the `trust_solution` MCP tool.

@@ -71,6 +71,11 @@ Items previously in this backlog, now merged. Listed for orientation; do not re-
 
 | Tool | Theme | PR |
 |---|---|---|
+| `validate_edit` | Edit quality | plan 27 |
+| `format_document` | Edit quality | plan 27 |
+| `apply_fix` | Edit quality | plan 27 |
+| `extract_method` | Edit quality | plan 27 |
+| `get_diagnostics` scoping (`filePath`, `changedOnly`, `column`) | Edit quality | plan 27 |
 | `get_instantiation_options` | Navigation | #327 |
 | `get_extension_methods` | Navigation | #319 |
 | `check_architecture` | Code quality | #314 |
@@ -102,6 +107,13 @@ Items previously in this backlog, now merged. Listed for orientation; do not re-
 ## Deferred from shipped features
 
 Items considered during design of shipped features and consciously punted on. Re-promote to the main backlog above if a use case emerges.
+
+### From the edit-quality toolset (plan 27, shipped 2026-10-28)
+
+- **`extract_interface`, `encapsulate_field`, `add_member`, `move_member`** — the remaining dedicated refactoring facades. `extract_method` proved the pattern (locate the Roslyn action by locale-independent `EquivalenceKey`, apply through `SolutionChangeSafety.PreviewOrApplyAsync`), so these are mechanical follow-ups on top of `CodeActionRunner.ApplyOperationsAsync`. Deliberately held out of plan 27 to keep its blast radius to the four tools that close the report's top findings.
+- **`writeBaselineTo` on `validate_edit`** — persisting the baseline snapshot to disk instead of returning it in the response. The scenario-based flow (agent passes the baseline back) is unproven; only promote to disk-writing once an agent has actually used it end to end.
+- **`find_nullability_mismatches`, `get_analyzer_config`, the source-gen/AOT tool, `run_incremental_tests`** — priority 3 of the edit-quality report. `run_incremental_tests` additionally needs a `ProcessRunner` this server does not have; that is a separate architectural decision, not a missing tool.
+- **`get_diagnostics` `changedOnly` state lives in `SolutionManager`** — it tracks only paths plus a reset timestamp, deliberately without re-triggering a project build. If a later design needs content-level change detection, this is the seam.
 
 ### From cognitive complexity in `get_complexity_metrics` (shipped 2026-07-22)
 - **The recursion rule is an identifier match, not a semantic one, so it can false-positive.** Cognitive complexity adds +1 when a member calls itself. `CognitiveComplexityCalculator` is a pure syntax primitive with no semantic model, so it decides "calls itself" by comparing the invoked identifier to the member's own name. A method `Foo.Process` that calls an unrelated `Bar.Process` — or a same-named overload, or a local variable's delegate — scores the recursion point it has not earned. The overcount is 1 on a metric already advisory, and threading a `SemanticModel` through would make the calculator no longer a pure syntax primitive, so it was accepted deliberately rather than overlooked. Fix it only if a real solution shows a misleading ranking.

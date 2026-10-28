@@ -21,7 +21,8 @@
 
 ## Протокол изменяющих MCP-инструментов
 
-Для `rename_symbol`, `change_signature`, `apply_code_action`:
+Для `rename_symbol`, `change_signature`, `apply_code_action`,
+`apply_fix`, `extract_method`, `format_document`:
 
 1. Вызов с `preview: true` (по умолчанию) → изучить `edits` и `conflicts`.
 2. Есть Conflicts (новые ошибки компилятора) → править план, **не применять**;
@@ -32,13 +33,16 @@
 5. Если правок много или они кросс-проектные — подтверждение пользователя
    до применения.
 
+Изменяющие инструменты пишут на диск в обход ограничений режимов;
+`format_document` / `apply_fix` / `extract_method` в `alwaysAllow`
+`.roo/mcp.json` **не добавлять**.
+
 ## После правок
 
-1. `get_diagnostics` по всем затронутым проектам — ошибки и предупреждения.
-   После реализации плана 27 (`plan/27_roslyn-codelens-server-feature-plan.md`)
-   это один вызов `validate_edit` (диагностики по файлам + висячие ссылки
-   по символам) вместо трёх (`get_diagnostics` + `get_file_overview` +
-   `find_references`).
+1. Один вызов `validate_edit` — диагностики по затронутым файлам плюс висячие
+   ссылки по затронутым символам (вместо трёх вызовов `get_diagnostics` +
+   `get_file_overview` + `find_references`). Fallback для файла вне решения —
+   `get_diagnostics` с `filePath`.
 2. Правки затронули `.csproj` / `Directory.Build.props` / NuGet / добавили
    новый файл → `rebuild_solution` (или `start_background_task`). Правки
    **только `.cs`** полного reload не требуют: сервер делает
