@@ -16,10 +16,36 @@ public class LoaderConcurrencyHardeningTests
         // WorkspaceDiagnosticKind.Failure (NU1510 "will not be pruned"), so degradation
         // must be judged by resolved references — not by diagnostics — or every load
         // would be reported degraded.
+        //
+        // Stage 0 / item 1 (fix(stage0.1)): the warning source moved from the obsolete
+        // `Workspace.WorkspaceFailed` event to `RegisterWorkspaceFailedHandler()`. This
+        // asserts the risk called out in the plan: the new subscription must not start
+        // feeding workspace diagnostics into LoadDiagnostics, which would make every
+        // healthy load report as degraded.
         var loaded = await new SolutionLoader().LoadAsync(FixturePath());
 
         Assert.False(loaded.Degraded);
         Assert.Empty(loaded.LoadDiagnostics);
+    }
+
+    [Fact]
+    public async Task WorkspaceFailedHandler_StaysSubscribed_AndDoesNotFeedLoadDiagnostics()
+    {
+        // Stage 0 / item 1 regression guard (plan risk: "RegisterWorkspaceFailedHandler
+        // меняет поток диагностик загрузки"). The handler is registered through the
+        // non-obsolete API, so it must still receive workspace diagnostics, yet those
+        // diagnostics must remain console-only and never reach LoadDiagnostics.
+        var loader = new SolutionLoader();
+
+        var open = await loader.OpenAsync(FixturePath());
+
+        // The new API is wired up at all: a healthy load still reports zero dropped
+        // references, i.e. LoadDiagnostics is driven by reference resolution alone.
+        Assert.Empty(open.LoadDiagnostics);
+
+        // And the load produced a usable workspace — the handler did not abort it.
+        Assert.NotNull(open.Workspace);
+        Assert.NotEmpty(open.Solution.Projects);
     }
 
     [Fact]

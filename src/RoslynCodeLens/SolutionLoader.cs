@@ -141,8 +141,13 @@ public class SolutionLoader
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             var workspace = MSBuildWorkspace.Create();
-            workspace.WorkspaceFailed += (_, e) =>
-                Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}");
+            // Stage 0 / item 1: `Workspace.WorkspaceFailed` is obsolete (CS0618) — the
+            // supported entry point is RegisterWorkspaceFailedHandler. Unlike the event it
+            // no longer marshals to the UI thread, which is what this headless server wants.
+            // Console-only by design: diagnostics must NOT feed LoadDiagnostics, see
+            // FindProjectsWithDroppedReferences.
+            workspace.RegisterWorkspaceFailedHandler(e =>
+                Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}"));
 
             Solution? solution;
             try
@@ -357,8 +362,10 @@ public class SolutionLoader
                         $"[roslyn-codelens] Loading {index}/{targets.Count}: {entry.Name}").ConfigureAwait(false);
 
                     using var ws = MSBuildWorkspace.Create();
-                    ws.WorkspaceFailed += (_, e) =>
-                        Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}");
+                    // Stage 0 / item 1: same obsolete-event replacement as the solution-level
+                    // load above. Console-only — see FindProjectsWithDroppedReferences.
+                    ws.RegisterWorkspaceFailedHandler(e =>
+                        Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}"));
 
                     Project? loaded;
                     try
