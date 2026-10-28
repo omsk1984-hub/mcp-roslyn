@@ -325,11 +325,11 @@ public class SolutionLoader
         // and the leaves are skipped before they are scheduled) and to re-wire
         // references after re-stitch. Reuses the same lightweight XML reader and
         // separator normalisation as the filter feature, so it is cross-platform.
-        HashSet<string> targetPaths;
-        Dictionary<string, IReadOnlyList<string>> graph;
-        BuildTargetGraph(targets, out targetPaths, out graph);
+        var targetGraph = TargetProjectGraph.Build(targets);
+        var targetPaths = targetGraph.TargetPaths;
+        var graph = targetGraph.References;
 
-        var ordered = OrderRootsFirst(targets, graph);
+        var ordered = TargetProjectGraph.OrderRootsFirst(targets, graph);
 
         // path -> detached ProjectInfo (text materialised in-memory, ProjectReferences
         // stripped). Keep-first wins: a project pulled in transitively by an earlier
@@ -512,53 +512,6 @@ public class SolutionLoader
         }
 
         return true;
-    }
-
-    private static void BuildTargetGraph(List<ProjectClassifier.ClassifiedProject> targets, out HashSet<string> targetPaths, out Dictionary<string, IReadOnlyList<string>> graph)
-    {
-        targetPaths = new HashSet<string>(targets.Select(t => t.Path), StringComparer.OrdinalIgnoreCase);
-        graph = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var t in targets)
-        {
-            var refs = new List<string>();
-            foreach (var refPath in ProjectGraphReader.ReadProjectReferences(t.Path))
-                if (targetPaths.Contains(refPath))
-                    refs.Add(refPath);
-            graph[t.Path] = refs;
-        }
-    }
-
-    /// <summary>
-    /// Orders target projects by descending transitive in-set dependency count, so
-    /// dependency roots open first. Their transitive loads populate the capture
-    /// cache, letting leaf projects be skipped before they are ever scheduled.
-    /// Ordering affects only efficiency, never correctness (keep-first dedup).
-    /// </summary>
-    private static List<ProjectClassifier.ClassifiedProject> OrderRootsFirst(
-        IReadOnlyList<ProjectClassifier.ClassifiedProject> targets,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> graph)
-    {
-        int ClosureSize(string path)
-        {
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var stack = new Stack<string>();
-            stack.Push(path);
-            while (stack.Count > 0)
-            {
-                var cur = stack.Pop();
-                if (!graph.TryGetValue(cur, out var refs))
-                    continue;
-                foreach (var r in refs)
-                    if (seen.Add(r))
-                        stack.Push(r);
-            }
-            return seen.Count;
-        }
-
-        return targets
-            .OrderByDescending(t => ClosureSize(t.Path))
-            .ThenBy(t => t.Name, StringComparer.Ordinal)
-            .ToList();
     }
 
     private static async Task<SolutionOpen> OpenFilteredAsync(
