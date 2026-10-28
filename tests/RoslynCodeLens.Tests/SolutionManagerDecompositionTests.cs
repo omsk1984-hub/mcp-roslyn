@@ -326,6 +326,99 @@ public class SolutionManagerDecompositionTests
         gate.Exit();
     }
 
+    // ---------------------------------------------------------------------------------------
+    // ReadyGate — the readiness protocol: fail loudly on a failed load, wait out the warmup,
+    // surface a warmup failure, then trigger the stale rebuild. Extracted LAST because the
+    // synchronous half is what stage 4's portion C will delete; only the async protocol and the
+    // load-failure state are meant to survive.
+    // ---------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// A failed load must surface as <see cref="InvalidOperationException"/> carrying the ORIGINAL
+    /// failure message, with the loader's exception preserved as the inner one — the behaviour the
+    /// accessors' characteristic tests pin at the manager level.
+    /// </summary>
+    [Fact]
+    public async Task ReadyGate_LoadFailure_ThrowsWithOriginalMessage()
+    {
+        var loaderFailure = new IOException("disk exploded");
+        var gate = new ReadyGate("C:/code/App.slnx", loaderFailure, "load failed: disk exploded");
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => gate.ReadyAsync(CancellationToken.None));
+        Assert.Equal("load failed: disk exploded", thrown.Message);
+        Assert.Same(loaderFailure, thrown.InnerException);
+
+        // The state is queryable without throwing — MultiSolutionManager reads these to report why.
+        Assert.True(gate.HasLoadFailure);
+        Assert.Equal("load failed: disk exploded", gate.LoadFailureMessage);
+    }
+
+    /// <summary>
+    /// A successful load: no exception, and the gate reports no failure. This is the warm path and
+    /// must stay exception-free.
+    /// </summary>
+    [Fact]
+    public async Task ReadyGate_NoFailure_ReadyReturnsWithoutThrowing()
+    {
+        var gate = new ReadyGate("C:/code/App.slnx", loadException: null, loadFailureMessage: null);
+        var afterReadyRan = false;
+        gate.SetAfterReadyHook(_ => { afterReadyRan = true; return Task.CompletedTask; });
+
+        await gate.ReadyAsync(CancellationToken.None);
+
+        Assert.False(gate.HasLoadFailure);
+        Assert.Null(gate.LoadFailureMessage);
+        // The protocol is not just "check and return": it must run the after-ready step (the stale
+        // rebuild), otherwise a stale snapshot would be served forever.
+        Assert.True(afterReadyRan, "ReadyAsync skipped the after-ready step (stale rebuild).");
+    }
+
+    /// <summary>
+    /// A warmup that FAILED must surface as <see cref="InvalidOperationException"/> with the fixed
+    /// "Solution warmup failed." message and the original warmup exception inside. Without this the
+    /// solution looks merely empty and the real cause is invisible.
+    /// </summary>
+    [Fact]
+    public async Task ReadyGate_WarmupFailed_ThrowsWithWarmupMessage()
+    {
+        var warmupFailure = new InvalidOperationException("compile blew up");
+        var gate = new ReadyGate("C:/code/App.slnx", loadException: null, loadFailureMessage: null);
+        gate.RecordWarmupFailure(warmupFailure);
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => gate.ReadyAsync(CancellationToken.None));
+
+        Assert.Equal("Solution warmup failed.", thrown.Message);
+        Assert.Same(warmupFailure, thrown.InnerException);
+    }
+
+    /// <summary>
+    /// The gate must await the warmup task before running the after-ready step. A gate that ran the
+    /// rebuild first would rebuild against a half-warmed snapshot.
+    /// </summary>
+    [Fact]
+    public async Task ReadyGate_AwaitsWarmupBeforeAfterReady()
+    {
+        var gate = new ReadyGate("C:/code/App.slnx", loadException: null, loadFailureMessage: null);
+        var warmupFinished = false;
+        var sawWarmupFinished = false;
+
+        gate.SetWarmup(Task.Run(async () =>
+        {
+            await Task.Delay(50);
+            warmupFinished = true;
+        }));
+        gate.SetAfterReadyHook(_ =>
+        {
+            sawWarmupFinished = warmupFinished;
+            return Task.CompletedTask;
+        });
+
+        await gate.ReadyAsync(CancellationToken.None);
+
+        Assert.True(sawWarmupFinished, "ReadyAsync ran the after-ready step before warmup finished.");
+    }
+
     private static void InterlockedMax(ref int target, int value)
     {
         var current = Volatile.Read(ref target);

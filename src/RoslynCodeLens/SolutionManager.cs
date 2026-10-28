@@ -29,16 +29,9 @@ public sealed class SolutionManager : IDisposable
     // Serializes every operation that produces a new loaded solution (stage 5.2: extracted into
     // StaleRebuildGate, which owns the single-flight rule and the drain/restore bookkeeping).
     private readonly StaleRebuildGate _rebuildGate = new();
-    private Task? _warmupTask;
-    private Exception? _warmupException;
-
-    // Signalled once the background warmup has finished (success or failure). The synchronous
-    // readiness path waits on THIS rather than on _warmupTask: waiting on a Task from synchronous
-    // code is the sync-over-async pattern stage 4 exists to remove, and find_async_violations
-    // flags it inside this file. The async path awaits _warmupTask instead.
-    private readonly ManualResetEventSlim _warmupCompleted = new(initialState: true);
-    private readonly Exception? _loadException;
-    private readonly string? _loadFailureMessage;
+    // The readiness protocol — load-failure state, warmup task and the after-ready (stale rebuild)
+    // step (stage 5.2: extracted into ReadyGate, which holds no lock on purpose).
+    private readonly ReadyGate _ready;
     private readonly PEFileCache _peCache = new();
     private readonly IlDisassemblerAdapter _ilAdapter;
 
@@ -57,6 +50,10 @@ public sealed class SolutionManager : IDisposable
         _snapshot = new SolutionSnapshotStore(
             loaded, resolver, new MetadataSymbolResolver(loaded, resolver));
         _ilAdapter = new IlDisassemblerAdapter(_peCache);
+        _ready = new ReadyGate(solutionPath, null, null);
+        // The hook must receive the caller's token: a rebuild started with None would be
+        // uncancellable and the cancellation test (and real cancellation) would silently break.
+        _ready.SetAfterReadyHook(RebuildIfStaleAsync);
     }
 
     private SolutionManager(string solutionPath, Exception loadException)
@@ -66,12 +63,13 @@ public sealed class SolutionManager : IDisposable
         _snapshot = new SolutionSnapshotStore(
             LoadedSolution.Empty, resolver, new MetadataSymbolResolver(LoadedSolution.Empty, resolver));
         _ilAdapter = new IlDisassemblerAdapter(_peCache);
-        _loadException = loadException;
-        _loadFailureMessage = SolutionLoadFailure.Describe(solutionPath, loadException);
+        // A failed load installs no after-ready hook: every accessor throws before reaching it.
+        _ready = new ReadyGate(
+            solutionPath, loadException, SolutionLoadFailure.Describe(solutionPath, loadException));
     }
 
-    public bool HasLoadFailure => _loadException != null;
-    public string? LoadFailureMessage => _loadFailureMessage;
+    public bool HasLoadFailure => _ready.HasLoadFailure;
+    public string? LoadFailureMessage => _ready.LoadFailureMessage;
 
     public static async Task<SolutionManager> CreateAsync(string solutionPath, ProjectFilter? filter = null)
     {
@@ -101,7 +99,10 @@ public sealed class SolutionManager : IDisposable
         var manager = new SolutionManager(emptyLoaded, solutionPath);
         manager._analyzerLoader = analyzerLoader;
         manager._workspace = open.Workspace;
-        manager._warmupTask = manager.WarmupAsync(solutionLoader, open.Solution, open.Skipped, open.LoadDiagnostics);
+        // CreateAsync stays NON-blocking: the warmup is started here and awaited only on first
+        // access, which is pinned by CreateAsync_ReturnsBeforeCompilationCompletes.
+        manager._ready.SetWarmup(
+            manager.WarmupAsync(solutionLoader, open.Solution, open.Skipped, open.LoadDiagnostics));
         return manager;
     }
 
@@ -112,19 +113,14 @@ public sealed class SolutionManager : IDisposable
 
     private async Task WarmupAsync(SolutionLoader loader, Solution solution, IReadOnlyList<SkippedProject> skipped, IReadOnlyList<string> loadDiagnostics)
     {
-        _warmupCompleted.Reset();
+        _ready.ResetWarmupCompleted();
         try
         {
             await Console.Error.WriteLineAsync("[roslyn-codelens] Background compilation starting...").ConfigureAwait(false);
             var compilations = await loader.CompileAllParallelAsync(solution).ConfigureAwait(false);
 
-            var newLoaded = new LoadedSolution
-            {
-                Solution = solution,
-                Compilations = compilations,
-                SkippedProjects = skipped,
-                LoadDiagnostics = loadDiagnostics
-            };
+            var newLoaded = SolutionSnapshotStore.CreateLoadedSolution(
+                solution, compilations, skipped, loadDiagnostics);
             var newResolver = new SymbolResolver(newLoaded);
             var newMetadataResolver = new MetadataSymbolResolver(newLoaded, newResolver);
 
@@ -137,105 +133,74 @@ public sealed class SolutionManager : IDisposable
             }
 
             await Console.Error.WriteLineAsync($"[roslyn-codelens] Background compilation complete. {compilations.Count} project(s) compiled.").ConfigureAwait(false);
-            _warmupTask = null;
+            _ready.SetWarmup(null);
         }
         catch (Exception ex)
         {
-            _warmupException = ex;
+            _ready.RecordWarmupFailure(ex);
             await Console.Error.WriteLineAsync($"[roslyn-codelens] Background compilation failed: {ex}").ConfigureAwait(false);
         }
         finally
         {
-            // Release the synchronous waiters whatever the outcome; _warmupException carries the
-            // failure. Signalled before the warmup task completes, which is fine: the state swap
-            // above happens before both.
-            _warmupCompleted.Set();
+            // Release the synchronous waiters whatever the outcome; the recorded warmup failure
+            // carries the error. Signalled before the warmup task completes, which is fine: the
+            // state swap above happens before both.
+            _ready.SignalWarmupCompleted();
         }
     }
 
     public Task WaitForWarmupAsync()
     {
-        return _warmupTask ?? Task.CompletedTask;
+        return _ready.WarmupTask ?? Task.CompletedTask;
     }
 
     /// <summary>
-    /// The single snapshot-access protocol (stage 3, de-duplicating D1/D3/D4/D6): fail loudly
-    /// if the load failed, wait until the background warmup finished, surface a warmup
-    /// failure, then bring the snapshot up to date. Every accessor returns state only after
-    /// this, so no caller can observe a not-ready manager as if it were ready.
+    /// The async readiness protocol (stage 5.2: the state machine now lives in
+    /// <see cref="ReadyGate"/>; this method is the façade's name for it). Fail loudly if the load
+    /// failed, await the background warmup, surface a warmup failure, then run the stale rebuild.
     ///
     /// <para>
-    /// This is the async form (stage 4, portion A) and the one new code should use: both waits —
-    /// the warmup and the stale rebuild — are awaited, so a multi-second rebuild frees the
-    /// calling thread instead of blocking it. The synchronous <see cref="EnsureReady"/> is kept
-    /// only as a documented wrapper for the ~51 <c>*Tool</c> implementations that have not been
-    /// converted yet (stage 4, portion C).
+    /// Called OUTSIDE the snapshot store's lock on purpose: the warmup and the stale rebuild both
+    /// take that lock internally to publish their result, so holding it here would deadlock.
+    /// Callers that need several pieces from the same swap read them afterwards in one
+    /// <see cref="SolutionSnapshotStore.Snapshot"/> call — see
+    /// <see cref="GetAnalysisContextAsync"/>, which is why this split exists at all.
     /// </para>
     ///
     /// <para>
-    /// Called OUTSIDE <see cref="_lock"/> on purpose: warmup and the stale rebuild both take
-    /// that lock internally, so holding it here would deadlock. Callers that need several
-    /// pieces from the same swap must therefore re-acquire the lock around their read — see
-    /// <see cref="GetAnalysisContextAsync"/>, which is the reason this split exists at all.
-    /// </para>
-    ///
-    /// <para>
-    /// Note this deliberately does NOT create a fresh <see cref="_resolver"/>: with no stale
-    /// projects it must keep returning the cached instance.
+    /// Note this deliberately does NOT create a fresh resolver: with no stale projects it must keep
+    /// returning the cached instance.
     /// </para>
     /// </summary>
     private async Task EnsureReadyAsync(CancellationToken ct)
     {
-        ThrowIfLoadFailed();
-
-        // Awaiting (rather than blocking on) the warmup is what keeps this off the caller's thread.
-        // The wait itself is still unavoidable on first access: CreateAsync starts warmup in the
-        // background and returns immediately (pinned by CreateAsync_ReturnsBeforeCompilationCompletes),
-        // so moving the wait into CreateAsync would regress server startup.
-        var warmup = Volatile.Read(ref _warmupTask);
-        if (warmup != null)
-            await warmup.WaitAsync(ct).ConfigureAwait(false);
-
-
-        if (_warmupException != null)
-            throw new InvalidOperationException(WarmupFailedMessage, _warmupException);
-
-        await RebuildIfStaleAsync(ct).ConfigureAwait(false);
+        // The gate runs the whole protocol — load-failure check, warmup wait, warmup failure — and
+        // then the after-ready hook, which is the async stale rebuild. It holds no lock, so running
+        // it here (outside the snapshot store's lock) is what prevents the self-deadlock.
+        await _ready.ReadyAsync(ct).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// The synchronous form of the readiness protocol, kept for the ~51 <c>*Tool</c> implementations
-    /// that have not been converted yet (stage 4, portions A→C).
+    /// The synchronous readiness protocol, kept for the ~51 <c>*Tool</c> implementations that have
+    /// not been converted yet. <b>[Portion C]</b> — deleted together with
+    /// <see cref="RebuildIfStale"/> once every tool awaits <see cref="EnsureReadyAsync"/>.
     ///
     /// <para>
-    /// ⚠️ This blocks the calling thread for the whole duration of the background warmup and of a
-    /// stale rebuild (potentially seconds on a large solution). New code must await
-    /// <see cref="EnsureReadyAsync"/> instead; portion C converts the remaining tools and this
-    /// method is expected to disappear then.
+    /// ⚠️ Blocks the calling thread for the whole warmup and stale rebuild (potentially seconds).
+    /// New code must await <see cref="EnsureReadyAsync"/> instead.
     /// </para>
     ///
     /// <para>
-    /// It is NOT a wrapper over the async path: the two run the same protocol with their own
-    /// wait mechanism — this one blocks on <see cref="_warmupCompleted"/>, the async one awaits
-    /// the warmup <see cref="Task"/> — so neither is a synchronous call over an async API.
+    /// It is NOT a wrapper over the async path: the load-failure check and warmup wait live in
+    /// <see cref="ReadyGate"/>'s own synchronous form, and the rebuild uses the blocking twin — so
+    /// no synchronous call over an async API is involved.
     /// </para>
     /// </summary>
     private void EnsureReady()
     {
-        ThrowIfLoadFailed();
-
-        // Blocks, but only on first access: CreateAsync starts warmup in the background and
-        // returns immediately (pinned by CreateAsync_ReturnsBeforeCompilationCompletes), so moving
-        // the wait into CreateAsync would regress server startup. Waiting on the event rather than
-        // on the Task keeps this out of the sync-over-async pattern (stage 4).
-        _warmupCompleted.Wait();
-        if (_warmupException != null)
-            throw new InvalidOperationException(WarmupFailedMessage, _warmupException);
-
+        _ready.Ready();
         RebuildIfStale();
     }
-
-    private const string WarmupFailedMessage = "Solution warmup failed.";
 
     public LoadedSolution GetLoadedSolution()
     {
@@ -301,11 +266,7 @@ public sealed class SolutionManager : IDisposable
                $"nothing to query. Reasons: {reasons}{more}";
     }
 
-    private void ThrowIfLoadFailed()
-    {
-        if (_loadException != null)
-            throw new InvalidOperationException(_loadFailureMessage!, _loadException);
-    }
+    private void ThrowIfLoadFailed() => _ready.ThrowIfLoadFailed();
 
     /// <summary>
     /// Brings the snapshot up to date if the tracker reports stale projects (stage 4, portion A:
