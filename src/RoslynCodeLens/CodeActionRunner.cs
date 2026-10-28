@@ -120,6 +120,21 @@ public static class CodeActionRunner
     }
 
     /// <summary>
+    /// The raw <see cref="CodeAction"/>s available for a selection, before they are flattened
+    /// into <see cref="CodeActionInfo"/>. extract_method needs the objects (not just titles)
+    /// because it identifies the extract-method action by its provider type — titles are
+    /// localized, so matching on text would break on a non-English Roslyn build.
+    /// </summary>
+    public static async Task<IReadOnlyList<CodeAction>> GetRawActionsAsync(
+        Project project, Document document, Compilation compilation,
+        int line, int column, int? endLine, int? endColumn, CancellationToken ct)
+    {
+        var (actions, _) = await CollectRawActionsAsync(
+            project, document, compilation, line, column, endLine, endColumn, ct).ConfigureAwait(false);
+        return actions;
+    }
+
+    /// <summary>
     /// Collects the built-in code-fix <see cref="CodeAction"/>s for a single diagnostic
     /// (the same provider set <see cref="GetActionsAsync"/> uses for its code-fix half).
     /// apply_fix uses this to obtain the actual CodeAction for a diagnostic — the
