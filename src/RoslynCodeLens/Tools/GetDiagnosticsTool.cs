@@ -23,13 +23,33 @@ public static class GetDiagnosticsTool
             bool includeAnalyzers = false,
         [Description("Maximum number of items to return (default: 1000). Items are sorted severity-desc, then file, then line.")]
             int? limit = null,
+        [Description("Optional file path filter — only diagnostics whose file path matches (exact, case-insensitive)")]
+            string? filePath = null,
+        [Description("Only diagnostics in documents changed since the last solution snapshot (uses the file change tracker)")]
+            bool changedOnly = false,
+        [Description("Clear the changed-documents journal after this call (default: false)")]
+            bool resetRecentChanges = false,
         CancellationToken ct = default)
     {
         manager.EnsureLoaded();
         var context = manager.GetAnalysisContext();
+
+        IReadOnlySet<string>? changedFiles = null;
+        if (changedOnly)
+        {
+            var changed = manager.GetRecentlyChangedDocuments();
+            changedFiles = changed.Count > 0
+                ? new HashSet<string>(changed, StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase); // empty set → no diagnostics
+        }
+
         var raw = await GetDiagnosticsLogic.ExecuteAsync(
             context.Loaded, context.Resolver,
-            project, severity, includeAnalyzers, trustStore, allowlist, ct).ConfigureAwait(false);
+            project, severity, includeAnalyzers, trustStore, allowlist,
+            filePath, changedFiles, ct).ConfigureAwait(false);
+
+        if (resetRecentChanges)
+            manager.ResetRecentChanges();
 
         // Sort severity-first so truncated top-N keeps the most important diagnostics.
         var sorted = SortBySeverityFileLine(raw);

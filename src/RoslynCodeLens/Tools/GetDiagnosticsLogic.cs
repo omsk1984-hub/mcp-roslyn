@@ -5,9 +5,11 @@ namespace RoslynCodeLens.Tools;
 
 public static class GetDiagnosticsLogic
 {
-    public static IReadOnlyList<DiagnosticInfo> Execute(LoadedSolution loaded, SymbolResolver resolver, string? project, string? severity)
+    public static IReadOnlyList<DiagnosticInfo> Execute(
+        LoadedSolution loaded, SymbolResolver resolver, string? project, string? severity,
+        string? filePath = null, IReadOnlySet<string>? changedFiles = null)
     {
-        return CollectCompilerDiagnostics(loaded, resolver, project, severity);
+        return CollectCompilerDiagnostics(loaded, resolver, project, severity, filePath, changedFiles);
     }
 
     public static async Task<IReadOnlyList<DiagnosticInfo>> ExecuteAsync(
@@ -18,9 +20,11 @@ public static class GetDiagnosticsLogic
         bool includeAnalyzers,
         Security.TrustStore trustStore,
         Security.AnalyzerAllowlist allowlist,
+        string? filePath = null,
+        IReadOnlySet<string>? changedFiles = null,
         CancellationToken ct = default)
     {
-        var results = CollectCompilerDiagnostics(loaded, resolver, project, severity);
+        var results = CollectCompilerDiagnostics(loaded, resolver, project, severity, filePath, changedFiles);
 
         if (!includeAnalyzers)
             return results;
@@ -38,6 +42,7 @@ public static class GetDiagnosticsLogic
         }
 
         var minSeverity = ParseMinSeverity(severity);
+        var normalizedFilePath = filePath != null ? Path.GetFullPath(filePath) : null;
 
         foreach (var (projectId, compilation) in loaded.Compilations)
         {
@@ -64,6 +69,10 @@ public static class GetDiagnosticsLogic
                 var lineSpan = diagnostic.Location.GetLineSpan();
                 var file = lineSpan.Path ?? "";
                 var line = lineSpan.StartLinePosition.Line + 1;
+                var column = lineSpan.StartLinePosition.Character + 1;
+
+                if (!MatchesFileFilter(file, normalizedFilePath, changedFiles))
+                    continue;
 
                 results.Add(new DiagnosticInfo(
                     diagnostic.Id,
@@ -72,7 +81,8 @@ public static class GetDiagnosticsLogic
                     file,
                     line,
                     projectName,
-                    $"analyzer:{diagnostic.Id}"));
+                    $"analyzer:{diagnostic.Id}",
+                    column));
             }
         }
 
@@ -93,10 +103,13 @@ public static class GetDiagnosticsLogic
         LoadedSolution loaded,
         SymbolResolver resolver,
         string? project,
-        string? severity)
+        string? severity,
+        string? filePath,
+        IReadOnlySet<string>? changedFiles)
     {
         var minSeverity = ParseMinSeverity(severity);
         var results = new List<DiagnosticInfo>();
+        var normalizedFilePath = filePath != null ? Path.GetFullPath(filePath) : null;
 
         foreach (var (projectId, compilation) in loaded.Compilations)
         {
@@ -119,6 +132,10 @@ public static class GetDiagnosticsLogic
                 var lineSpan = diagnostic.Location.GetLineSpan();
                 var file = lineSpan.Path ?? "";
                 var line = lineSpan.StartLinePosition.Line + 1;
+                var column = lineSpan.StartLinePosition.Character + 1;
+
+                if (!MatchesFileFilter(file, normalizedFilePath, changedFiles))
+                    continue;
 
                 results.Add(new DiagnosticInfo(
                     diagnostic.Id,
@@ -126,10 +143,29 @@ public static class GetDiagnosticsLogic
                     diagnostic.GetMessage(),
                     file,
                     line,
-                    projectName));
+                    projectName,
+                    "compiler",
+                    column));
             }
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Returns true if the diagnostic's file passes both the exact-path filter and the
+    /// changed-files filter. A null filter means "no restriction" for that dimension.
+    /// </summary>
+    private static bool MatchesFileFilter(
+        string file, string? normalizedFilePath, IReadOnlySet<string>? changedFiles)
+    {
+        if (normalizedFilePath != null &&
+            !file.Equals(normalizedFilePath, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (changedFiles != null && !changedFiles.Contains(file))
+            return false;
+
+        return true;
     }
 }

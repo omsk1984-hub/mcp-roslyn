@@ -100,6 +100,18 @@ public sealed class FileChangeTracker : IDisposable
     }
 
     /// <summary>
+    /// Non-destructive snapshot of the currently-known changed document paths.
+    /// Unlike <see cref="DrainStale"/>, this does NOT clear the internal state,
+    /// so the same paths remain available for subsequent calls until a rebuild
+    /// drains them or <see cref="ClearStale"/> is called.
+    /// </summary>
+    public IReadOnlyList<string> SnapshotChangedDocuments()
+    {
+        lock (_lock)
+            return _changedDocumentPaths.ToList();
+    }
+
+    /// <summary>
     /// Merges a previously <see cref="DrainStale"/>d snapshot back into the live state (union with
     /// anything that arrived since), so a rebuild that failed re-arms and retries instead of
     /// silently dropping the changes it was meant to process.

@@ -96,6 +96,18 @@ public sealed class MultiSolutionManager : IDisposable
         CancellationToken ct = default)
         => Active.CommitDocumentTextsAsync(documents, ct);
 
+    /// <summary>
+    /// Paths of .cs documents changed in the active solution since the last
+    /// <see cref="ResetRecentChanges"/> (or since load). Backs the `changedOnly`
+    /// filter of get_diagnostics.
+    /// </summary>
+    public IReadOnlyList<string> GetRecentlyChangedDocuments() => Active.RecentlyChangedDocuments;
+
+    /// <summary>
+    /// Clears the active solution's recently-changed journal.
+    /// </summary>
+    public void ResetRecentChanges() => Active.ResetRecentChanges();
+
     public IReadOnlyList<SolutionInfo> ListSolutions()
     {
         string? activeKey;

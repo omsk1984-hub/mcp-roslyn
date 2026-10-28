@@ -54,6 +54,107 @@ public class GetDiagnosticsToolTests
     }
 
     [Fact]
+    public void GetDiagnostics_WithFilePathFilter_ReturnsOnlyThatFile()
+    {
+        // Find a file that actually has diagnostics (or any file — the filter must
+        // never return diagnostics from other files).
+        var all = GetDiagnosticsLogic.Execute(_loaded, _resolver, null, null);
+        var targetFile = all.FirstOrDefault(d => !string.IsNullOrEmpty(d.File))?.File;
+
+        if (targetFile == null)
+        {
+            // Clean solution: the filter must return nothing for a non-existent file.
+            var filteredEmpty = GetDiagnosticsLogic.Execute(
+                _loaded, _resolver, null, null, filePath: @"D:\nonexistent\file.cs");
+            Assert.Empty(filteredEmpty);
+            return;
+        }
+
+        var filtered = GetDiagnosticsLogic.Execute(
+            _loaded, _resolver, null, null, filePath: targetFile);
+
+        Assert.NotEmpty(filtered);
+        Assert.All(filtered, d =>
+            Assert.Equal(targetFile, d.File, StringComparer.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void GetDiagnostics_FilePathFilter_DoesNotMatchSubstring()
+    {
+        // The filter is exact (case-insensitive), not a substring match:
+        // "Greeter.cs" must not match "GreeterConsumer.cs" or similar.
+        var all = GetDiagnosticsLogic.Execute(_loaded, _resolver, null, null);
+        var targetFile = all.FirstOrDefault(d => !string.IsNullOrEmpty(d.File))?.File;
+        if (targetFile == null)
+            return; // clean solution — nothing to distinguish
+
+        // A path that is a prefix of the target file must not match.
+        var prefix = targetFile[..^1]; // drop last char
+        var filtered = GetDiagnosticsLogic.Execute(
+            _loaded, _resolver, null, null, filePath: prefix);
+        Assert.Empty(filtered);
+    }
+
+    [Fact]
+    public void GetDiagnostics_ProjectAndFilePathFilters_Intersect()
+    {
+        var all = GetDiagnosticsLogic.Execute(_loaded, _resolver, null, null);
+        var withFile = all.FirstOrDefault(d => !string.IsNullOrEmpty(d.File));
+        if (withFile == null)
+            return; // clean solution
+
+        // Same file, wrong project → empty (intersection).
+        var wrongProject = string.Equals(withFile.Project, "TestLib", StringComparison.Ordinal)
+            ? "TestLib2"
+            : "TestLib";
+        var filtered = GetDiagnosticsLogic.Execute(
+            _loaded, _resolver, wrongProject, null, filePath: withFile.File);
+        Assert.Empty(filtered);
+
+        // Same file, right project → non-empty.
+        var correct = GetDiagnosticsLogic.Execute(
+            _loaded, _resolver, withFile.Project, null, filePath: withFile.File);
+        Assert.NotEmpty(correct);
+    }
+
+    [Fact]
+    public void GetDiagnostics_ChangedFilesFilter_ReturnsOnlyChanged()
+    {
+        var all = GetDiagnosticsLogic.Execute(_loaded, _resolver, null, null);
+        var withFile = all.FirstOrDefault(d => !string.IsNullOrEmpty(d.File));
+        if (withFile == null)
+            return; // clean solution
+
+        // Only the changed file's diagnostics.
+        var changed = new HashSet<string>(
+            [withFile.File], StringComparer.OrdinalIgnoreCase);
+        var filtered = GetDiagnosticsLogic.Execute(
+            _loaded, _resolver, null, null, changedFiles: changed);
+        Assert.NotEmpty(filtered);
+        Assert.All(filtered, d =>
+            Assert.Equal(withFile.File, d.File, StringComparer.OrdinalIgnoreCase));
+
+        // Empty changed set → no diagnostics at all.
+        var empty = GetDiagnosticsLogic.Execute(
+            _loaded, _resolver, null, null,
+            changedFiles: new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        Assert.Empty(empty);
+    }
+
+    [Fact]
+    public void GetDiagnostics_Column_IsPopulated()
+    {
+        var all = GetDiagnosticsLogic.Execute(_loaded, _resolver, null, null);
+        var withFile = all.FirstOrDefault(d => !string.IsNullOrEmpty(d.File));
+        if (withFile == null)
+            return; // clean solution
+
+        // Column is 1-based and must be > 0 for every in-source diagnostic.
+        Assert.All(all.Where(d => !string.IsNullOrEmpty(d.File)),
+            d => Assert.True(d.Column > 0, $"Column must be > 0, got {d.Column} for {d.Id}"));
+    }
+
+    [Fact]
     public async Task GetDiagnostics_WithAnalyzers_IncludesAnalyzerDiagnostics()
     {
         using var tempFile = new TempTrustFile();
@@ -63,7 +164,7 @@ public class GetDiagnosticsToolTests
 
         var results = await GetDiagnosticsLogic.ExecuteAsync(
             _loaded, _resolver, null, null, includeAnalyzers: true,
-            trustStore, allowlist, CancellationToken.None);
+            trustStore, allowlist, ct: CancellationToken.None);
 
         // Any analyzer diagnostics should have Source starting with "analyzer"
         _ = results.Where(d => d.Source.StartsWith("analyzer", StringComparison.Ordinal)).ToList();
@@ -85,7 +186,7 @@ public class GetDiagnosticsToolTests
 
         var results = await GetDiagnosticsLogic.ExecuteAsync(
             _loaded, _resolver, null, null, includeAnalyzers: false,
-            trustStore, allowlist, CancellationToken.None);
+            trustStore, allowlist, ct: CancellationToken.None);
 
         Assert.All(results, d => Assert.Equal("compiler", d.Source));
     }
@@ -101,7 +202,7 @@ public class GetDiagnosticsToolTests
         {
             await GetDiagnosticsLogic.ExecuteAsync(
                 _loaded, _resolver, null, null, includeAnalyzers: true,
-                trustStore, allowlist, CancellationToken.None);
+                trustStore, allowlist, ct: CancellationToken.None);
         });
         Assert.Equal(ToolErrorCode.SolutionNotTrusted, ex.Code);
         Assert.Contains("not trusted", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -117,7 +218,7 @@ public class GetDiagnosticsToolTests
 
         var results = await GetDiagnosticsLogic.ExecuteAsync(
             _loaded, _resolver, null, null, includeAnalyzers: false,
-            trustStore, allowlist, CancellationToken.None);
+            trustStore, allowlist, ct: CancellationToken.None);
 
         Assert.All(results, d => Assert.Equal("compiler", d.Source));
     }
@@ -139,7 +240,7 @@ public class GetDiagnosticsToolTests
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await GetDiagnosticsLogic.ExecuteAsync(
                 _loaded, _resolver, null, null, includeAnalyzers: true,
-                trustStore, allowlist, cts.Token));
+                trustStore, allowlist, ct: cts.Token));
     }
 
     [Fact]
@@ -152,7 +253,7 @@ public class GetDiagnosticsToolTests
 
         var results = await GetDiagnosticsLogic.ExecuteAsync(
             _loaded, _resolver, null, null, includeAnalyzers: true,
-            trustStore, allowlist, CancellationToken.None);
+            trustStore, allowlist, ct: CancellationToken.None);
 
         Assert.Contains(results, d => d.Source.StartsWith("analyzer:", StringComparison.Ordinal));
     }

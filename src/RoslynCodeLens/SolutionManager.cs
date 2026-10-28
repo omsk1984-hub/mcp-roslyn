@@ -16,6 +16,14 @@ public sealed class SolutionManager : IDisposable
     private FileChangeTracker? _tracker;
     private readonly Lock _lock = new();
 
+    // Journal of .cs document paths changed since the last explicit reset
+    // (ResetRecentChanges). Accumulated on every incremental rebuild and every
+    // commit of written documents. Backs the `changedOnly` filter of
+    // get_diagnostics: unlike the tracker's live stale set (which is drained by
+    // the rebuild that consumes it), this journal survives the rebuild so a
+    // query issued right after an edit still sees "what changed".
+    private readonly HashSet<string> _recentlyChangedDocuments = new(StringComparer.OrdinalIgnoreCase);
+
     // Serializes every operation that produces a new loaded solution — the watcher-driven
     // auto-rebuild (RebuildIfStale) and the explicit rebuild_solution (ForceReloadAsync). Only one
     // runs at a time so neither can read _loaded, have the other swap + dispose its workspace, and
@@ -301,6 +309,8 @@ public sealed class SolutionManager : IDisposable
 
             foreach (var docId in docIds)
                 solution = solution.WithDocumentText(docId, text);
+
+            RecordRecentlyChanged(path);
         }
 
         await RecompileAndSwapAsync(solution, staleIds).ConfigureAwait(false);
@@ -338,6 +348,10 @@ public sealed class SolutionManager : IDisposable
                     continue;
                 solution = solution.WithDocumentText(docId, text);
                 changedProjects.Add(docId.ProjectId);
+
+                var doc = solution.GetDocument(docId);
+                if (doc?.FilePath != null)
+                    RecordRecentlyChanged(doc.FilePath);
             }
 
             if (changedProjects.Count == 0)
@@ -504,6 +518,35 @@ public sealed class SolutionManager : IDisposable
             return new SolutionAnalysisContext(_loaded, _resolver, _metadataResolver);
     }
 
+    /// <summary>
+    /// Paths of .cs documents changed since the last <see cref="ResetRecentChanges"/>
+    /// (or since load). Accumulated by incremental rebuilds and by
+    /// <see cref="CommitDocumentTextsAsync"/>. Backs the `changedOnly` filter of
+    /// get_diagnostics. A full reload clears the journal: after a reload every
+    /// project was recompiled from disk, so "changed since last reset" is empty.
+    /// </summary>
+    public IReadOnlyList<string> RecentlyChangedDocuments
+    {
+        get { lock (_lock) return _recentlyChangedDocuments.ToList(); }
+    }
+
+    /// <summary>
+    /// Clears the <see cref="RecentlyChangedDocuments"/> journal. Called by
+    /// get_diagnostics with `resetRecentChanges: true` so the next changedOnly
+    /// query starts from a clean slate.
+    /// </summary>
+    public void ResetRecentChanges()
+    {
+        lock (_lock)
+            _recentlyChangedDocuments.Clear();
+    }
+
+    private void RecordRecentlyChanged(string path)
+    {
+        lock (_lock)
+            _recentlyChangedDocuments.Add(path);
+    }
+
     public async Task<(int ProjectCount, TimeSpan Elapsed)> ForceReloadAsync()
     {
         if (_solutionPath == null)
@@ -572,6 +615,11 @@ public sealed class SolutionManager : IDisposable
 
         _tracker?.UpdateMappings(newLoaded);
         _tracker?.ClearStale();
+
+        // A full reload recompiled every project from disk — the "changed since last reset"
+        // journal is stale by definition and is cleared so the next changedOnly query
+        // starts from a clean slate.
+        ResetRecentChanges();
 
         // Dispose the previous workspace/loader AFTER the state swap so nothing in-flight uses them.
         oldWorkspace?.Dispose();
