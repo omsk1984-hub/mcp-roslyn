@@ -325,16 +325,9 @@ public class SolutionLoader
         // and the leaves are skipped before they are scheduled) and to re-wire
         // references after re-stitch. Reuses the same lightweight XML reader and
         // separator normalisation as the filter feature, so it is cross-platform.
-        var targetPaths = new HashSet<string>(targets.Select(t => t.Path), StringComparer.OrdinalIgnoreCase);
-        var graph = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var t in targets)
-        {
-            var refs = new List<string>();
-            foreach (var refPath in ProjectGraphReader.ReadProjectReferences(t.Path))
-                if (targetPaths.Contains(refPath))
-                    refs.Add(refPath);
-            graph[t.Path] = refs;
-        }
+        HashSet<string> targetPaths;
+        Dictionary<string, IReadOnlyList<string>> graph;
+        BuildTargetGraph(targets, out targetPaths, out graph);
 
         var ordered = OrderRootsFirst(targets, graph);
 
@@ -376,63 +369,11 @@ public class SolutionLoader
                     using var wsFailedSubscription = ws.RegisterWorkspaceFailedHandler(e =>
                         Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}"));
 
-                    Project? loaded;
-                    try
+                    if (!await LoadProjectIntoCaptureAsync(
+                            entry, ws, targetPaths, captured, failures,
+                            analyzerLoader, timeoutSec, ct).ConfigureAwait(false))
                     {
-                        // Bound concurrent design-time builds across all in-flight loads so
-                        // independent workers/loads don't oversubscribe the BuildHost and
-                        // drop references.
-                        await s_buildHostGate.WaitAsync(ct).ConfigureAwait(false);
-                        try
-                        {
-                            // Stage 0 / item 2: explicit Task<Project?> lambda — CS8619 fix, same
-                            // rationale as the solution-level call above.
-                            loaded = await RunWithTimeoutAsync<Project>(
-                                async (CancellationToken innerCt) => (Project?)await ws
-                                    .OpenProjectAsync(entry.Path, cancellationToken: innerCt)
-                                    .ConfigureAwait(false),
-                                timeoutSec,
-                                ct).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            s_buildHostGate.Release();
-                        }
-                    }
-                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        await Console.Error.WriteLineAsync(
-                            $"[roslyn-codelens] Skipping project {entry.Name}: {ex.GetType().Name}: {ex.Message}").ConfigureAwait(false);
-                        failures[entry.Path] = new SkippedProject(entry.Path, entry.Name, "Failed",
-                            $"{ex.GetType().Name}: {ex.Message}");
                         return;
-                    }
-
-                    if (loaded is null)
-                    {
-                        await Console.Error.WriteLineAsync(
-                            $"[roslyn-codelens] Timeout loading project {entry.Name} (exceeded {timeoutSec}s).").ConfigureAwait(false);
-                        failures[entry.Path] = new SkippedProject(entry.Path, entry.Name, "Timeout",
-                            $"Project load exceeded {timeoutSec}s. " +
-                            $"Set ROSLYN_CODELENS_OPEN_PROJECT_TIMEOUT_SECONDS to override.");
-                        return;
-                    }
-
-                    // Capture this project plus every in-set project the workspace
-                    // pulled in transitively, detaching each into a workspace-free
-                    // ProjectInfo before the worker workspace is disposed.
-                    foreach (var p in ws.CurrentSolution.Projects)
-                    {
-                        if (p.FilePath is null || !targetPaths.Contains(p.FilePath))
-                            continue;
-                        if (captured.ContainsKey(p.FilePath))
-                            continue;
-                        var info = await DetachedProjectFactory.ToDetachedInfoAsync(p, analyzerLoader).ConfigureAwait(false);
-                        captured.TryAdd(p.FilePath, info);
                     }
                 }
                 finally
@@ -480,6 +421,111 @@ public class SolutionLoader
         var dropped = FindProjectsWithDroppedReferences(workspace.CurrentSolution);
         return await WithAnalyzerSkewAsync(
             new SolutionOpen(workspace.CurrentSolution, workspace, skipped, dropped)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Opens one target project in <paramref name="ws"/> and captures it — plus every in-set
+    /// project the workspace pulled in transitively — into <paramref name="captured"/>.
+    /// Returns <c>false</c> when the project could not be loaded (the reason is recorded in
+    /// <paramref name="failures"/>); <c>true</c> when it was opened and captured.
+    /// </summary>
+    /// <remarks>
+    /// Behaviour contract, pinned by <c>SolutionLoaderTests</c>, <c>SolutionLoaderFilterTests</c>,
+    /// <c>LegacySolutionHandlingTests</c>, <c>LoaderConcurrencyHardeningTests</c> and
+    /// <c>SolutionLoaderTimeoutTests</c>:
+    /// <list type="bullet">
+    /// <item>User cancellation rethrows — cancellation is never reported as a skip.</item>
+    /// <item>Any other exception → skip kind <c>Failed</c>, reason <c>"{ExceptionType}: {Message}"</c>.</item>
+    /// <item>Timeout (<c>null</c> from <see cref="RunWithTimeoutAsync{T}"/>) → skip kind <c>Timeout</c>.</item>
+    /// </list>
+    /// The open itself runs under <c>s_buildHostGate</c>: concurrent design-time builds across all
+    /// in-flight loads must not oversubscribe the out-of-process BuildHost (that drop is what
+    /// silently loses project references).
+    /// </remarks>
+    private static async Task<bool> LoadProjectIntoCaptureAsync(
+        ProjectClassifier.ClassifiedProject entry,
+        MSBuildWorkspace ws,
+        HashSet<string> targetPaths,
+        ConcurrentDictionary<string, ProjectInfo> captured,
+        ConcurrentDictionary<string, SkippedProject> failures,
+        ShadowCopyAnalyzerAssemblyLoader? analyzerLoader,
+        int timeoutSec,
+        CancellationToken ct)
+    {
+        Project? loaded;
+        try
+        {
+            // Bound concurrent design-time builds across all in-flight loads so
+            // independent workers/loads don't oversubscribe the BuildHost and
+            // drop references.
+            await s_buildHostGate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                // Stage 0 / item 2: explicit Task<Project?> lambda — CS8619 fix, same
+                // rationale as the solution-level call above.
+                loaded = await RunWithTimeoutAsync<Project>(
+                    async (CancellationToken innerCt) => (Project?)await ws
+                        .OpenProjectAsync(entry.Path, cancellationToken: innerCt)
+                        .ConfigureAwait(false),
+                    timeoutSec,
+                    ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                s_buildHostGate.Release();
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await Console.Error.WriteLineAsync(
+                $"[roslyn-codelens] Skipping project {entry.Name}: {ex.GetType().Name}: {ex.Message}").ConfigureAwait(false);
+            failures[entry.Path] = new SkippedProject(entry.Path, entry.Name, "Failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
+
+        if (loaded is null)
+        {
+            await Console.Error.WriteLineAsync(
+                $"[roslyn-codelens] Timeout loading project {entry.Name} (exceeded {timeoutSec}s).").ConfigureAwait(false);
+            failures[entry.Path] = new SkippedProject(entry.Path, entry.Name, "Timeout",
+                $"Project load exceeded {timeoutSec}s. " +
+                $"Set ROSLYN_CODELENS_OPEN_PROJECT_TIMEOUT_SECONDS to override.");
+            return false;
+        }
+
+        // Capture this project plus every in-set project the workspace
+        // pulled in transitively, detaching each into a workspace-free
+        // ProjectInfo before the worker workspace is disposed.
+        foreach (var p in ws.CurrentSolution.Projects)
+        {
+            if (p.FilePath is null || !targetPaths.Contains(p.FilePath))
+                continue;
+            if (captured.ContainsKey(p.FilePath))
+                continue;
+            var info = await DetachedProjectFactory.ToDetachedInfoAsync(p, analyzerLoader).ConfigureAwait(false);
+            captured.TryAdd(p.FilePath, info);
+        }
+
+        return true;
+    }
+
+    private static void BuildTargetGraph(List<ProjectClassifier.ClassifiedProject> targets, out HashSet<string> targetPaths, out Dictionary<string, IReadOnlyList<string>> graph)
+    {
+        targetPaths = new HashSet<string>(targets.Select(t => t.Path), StringComparer.OrdinalIgnoreCase);
+        graph = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var t in targets)
+        {
+            var refs = new List<string>();
+            foreach (var refPath in ProjectGraphReader.ReadProjectReferences(t.Path))
+                if (targetPaths.Contains(refPath))
+                    refs.Add(refPath);
+            graph[t.Path] = refs;
+        }
     }
 
     /// <summary>
