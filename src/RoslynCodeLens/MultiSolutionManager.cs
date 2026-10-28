@@ -234,6 +234,10 @@ public sealed class MultiSolutionManager : IDisposable
         // Dispose the replaced manager OUTSIDE the lock to avoid blocking other callers.
         toDispose?.Dispose();
 
+        // Stage 0 / item 5: ownership of `manager` is transferred, not dropped — every exit
+        // path below either stores it in `_managers` (line ~258) or disposes it explicitly
+        // (load-failure and concurrent-insert branches). find_disposable_misuse cannot follow
+        // that control flow, so the finding is a false positive by construction.
         var manager = await SolutionManager.CreateAsync(normalised, filter).ConfigureAwait(false);
 
         if (manager.HasLoadFailure)

@@ -141,6 +141,9 @@ public static class SolutionChangeSafety
             // Before side prefers the cached compilation (already built at load
             // time); after side is the forked project. Both diagnostics passes
             // are CPU-bound, so run them concurrently.
+            // Stage 0 / item 5: the tasks are handed to `Task.WhenAll`, which takes
+            // ownership and releases them; neither is disposed because Task.Dispose is a
+            // no-op once awaited and these always complete before WhenAll returns.
             var beforeTask = Task.Run(async () =>
             {
                 if (!loaded.Compilations.TryGetValue(projectId, out var compilation))

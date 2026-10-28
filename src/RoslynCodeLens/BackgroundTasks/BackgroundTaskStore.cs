@@ -87,6 +87,11 @@ public sealed class BackgroundTaskStore : IDisposable
         var now = DateTimeOffset.UtcNow;
         foreach (var kvp in _tasks)
         {
+            // Stage 0 / item 5: BackgroundTask IS genuinely IDisposable (it owns a
+            // CancellationTokenSource), but this local is not what releases it — the
+            // disposal happens on the successful-removal branch below via
+            // `removed.Dispose()`. find_disposable_misuse cannot see across that
+            // indirection, so the finding is a false positive by construction.
             var task = kvp.Value;
             if (task.Status == BackgroundTaskStatus.Running) continue;
             if (task.CompletedAt is { } completed && now - completed >= EvictionAge)
