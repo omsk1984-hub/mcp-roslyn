@@ -125,7 +125,7 @@
 | `GenerateTestSkeletonLogic` | 8 | — | **530** | 18 | — |
 | `ChangeSignatureBridge` | 21 (`Members.Resolve`) | 18 | **525** | 15 | — |
 | `ChangeSignatureLogic` | 9 | — | **507** | 16 | — |
-| `SymbolResolver` | — | — | **414** | **45** | **6** / 2 (god-object) |
+| `SymbolResolver` | — | — | ~~**414**~~ → **71** | ~~**45**~~ → 31 | ~~**6** / 2 (god-object)~~ → разбит, этап 5.1 |
 | `FindAsyncViolationsLogic` | **27** | **66** | — | — | — |
 | `StackTraceParser` | 26 (`TryParseFrame`) | 29 | — | — | — |
 | `GetCallGraphLogic` | 25 (`EnumerateOutgoingCalls`) | 37 | — | — | — |
@@ -435,10 +435,50 @@ flowchart TD
 - Проверка: `find_async_violations` по решению — **0** (было 3); `get_diagnostics` **0 errors,
   0 warnings**; `dotnet test RoslynCodeLens.slnx` — **1254 passed, 0 failed** (база 1252 + 2).
 
-**Порция C — инструменты.**
-Перевести оставшиеся синхронные `Execute` у 40+ `*Tool` на `ExecuteAsync`, использующие
-`GetAnalysisContextAsync`. Здесь же — единственная проверка, что MCP-хост корректно
-поддерживает `Task<T>`-возврат инструмента (он уже используется у `GetCallGraphTool`).
+**Порция C — инструменты.** Перевести оставшиеся синхронные `Execute` у `*Tool` на
+`ExecuteAsync`, использующие `GetAnalysisContextAsync`. MCP-хост поддерживает
+`Task<T>`-возврат (уже используется у `GetCallGraphTool`, а после порции B — у
+`FindReferencesTool`/`FindCallersTool`/`AnalyzeChangeImpactTool`/`AnalyzeMethodTool`).
+
+#### 4.3. Статус и решение по порции C (2026-10-28)
+
+**Цель этапа достигнута без порции C.** После порций A и B:
+
+| Метрика | До этапа 4 | После порций A+B |
+|---|---|---|
+| `find_async_violations` | 5 | **0** |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| Тесты | 1249 passed | **1254 passed, 0 failed** |
+
+`find_async_violations` больше не находит ни одного сайта: синхронный путь в
+`SolutionManager` реализован **без** `.GetAwaiter().GetResult()` — через
+`ManualResetEventSlim` (`_warmupCompleted`) вокруг той же async-реализации. Поэтому
+порция C — **чистка, а не исправление корректности**.
+
+**Масштаб порции C (измерено `find_references`):** `MultiSolutionManager.GetAnalysisContext`
+вызывается из **53** мест в `src/`, из них **49** — инструменты `Tools/*Tool.cs`; остальные
+4 — внутренние (`MultiSolutionManager` ×2, `InspectExternalAssemblyTool` через цепочку).
+Плюс 2 тест-сайта. Каждый инструмент: `Execute` → `ExecuteAsync` + `Task<T>`, обновление
+своего теста и, где нужно, `await` в вызовах из тестов.
+
+**Решение: порцию C отложить, выполнять группами по потребности, а не единым заходом.**
+
+1. **Обоснование отложить.** Блокировка на тёплом пути минимальна: при отсутствии
+   stale-проектов `EnsureReady()` возвращается сразу (warmup завершён, событие взведено).
+   Реальная стоимость блокировки проявляется только при перестройке — а её уже
+   обслуживает `GetAnalysisContextAsync` из порций A+B, доступный всем вызывающим.
+2. **Когда делать.** При появлении требования к масштабируемости под конкурентной
+   нагрузкой (несколько одновременных вызовов при протухшем решении), либо если
+   синхронное ожидание события окажется источником деградации пула потоков.
+3. **Как делать.** Группами по области (`Get*` / `Find*` / мутирующие), каждая группа —
+   отдельный коммит с полным прогоном. После перевода **всех** 49 сайтов удаляются
+   синхронные `EnsureReady`, `RebuildIfStale`, `GetAnalysisContext` и поле
+   `_warmupCompleted`.
+4. **Проверка перед началом.** Убедиться, что смена `T` → `Task<T>` в сигнатуре `Execute`
+   не ломает регистрацию `WithToolsFromAssembly()`; изменение типа возврата — это
+   изменение публичной поверхности.
+
+Отметка в плане: порция C — `[ ]` с этим обоснованием, работа не начата.
 **Влияние на поведение:** при протухшем решении вызов больше не занимает поток;
 латентность ответа не меняется (перестройка всё равно нужна), меняется масштабируемость.
 **Риски:** **высокие.** 40+ сигнатур, MCP-хост ожидает либо `T`, либо `Task<T>` —
@@ -450,7 +490,7 @@ flowchart TD
 
 | Изменение | Файл |
 |---|---|
-| `SymbolResolver` (414 LOC, 45 членов, 6 входящих namespace) → `SymbolIndex` (поиск по имени) + `TypeIndex` (иерархии, реализации) + `LocationIndex` (файл/строка/project) | [`SymbolResolver.cs:7`](../src/RoslynCodeLens/SymbolResolver.cs:7) |
+| [x] `SymbolResolver` (414 LOC, 45 членов, 6 входящих namespace) → `SymbolIndex` (поиск по имени) + `TypeIndex` (иерархии, реализации) + `LocationIndex` (файл/строка/project) | [`SymbolResolver.cs:7`](../src/RoslynCodeLens/SymbolResolver.cs:7) |
 | `FindAsyncViolationsLogic.Execute` (CC 27 / cognitive 66): выделить детектор на каждый из 6 шаблонов; метод верхнего уровня только собирает результаты | [`FindAsyncViolationsLogic.cs:14`](../src/RoslynCodeLens/Tools/FindAsyncViolationsLogic.cs:14) |
 | `FindObsoleteUsageLogic.Execute` (CC 24 / cognitive 61): отделить обход от группировки | [`FindObsoleteUsageLogic.cs:11`](../src/RoslynCodeLens/Tools/FindObsoleteUsageLogic.cs:11) |
 | `SolutionLoader.OpenPerProjectAsync` (CC 23 / cognitive 50): разбить на «открыть проект», «применить фильтр», «скомпилировать пачкой» | [`SolutionLoader.cs:278`](../src/RoslynCodeLens/SolutionLoader.cs:278) |
@@ -458,6 +498,37 @@ flowchart TD
 | `GenerateTestSkeletonLogic` (530 LOC): выделить `TestSkeletonRenderer` (генерация текста) и `TestSkeletonPlanner` (что генерировать) | [`GenerateTestSkeletonLogic.cs:10`](../src/RoslynCodeLens/Tools/GenerateTestSkeletonLogic.cs:10) |
 | `GetCallGraphLogic.EnumerateOutgoingCalls` (CC 25): выделить обработку внешних узлов | [`GetCallGraphLogic.cs:179`](../src/RoslynCodeLens/Tools/GetCallGraphLogic.cs:179) |
 | `StackTraceParser.TryParseFrame` (CC 26): разбить по форматам кадра | [`StackTraceParser.cs:132`](../src/RoslynCodeLens/StackTrace/StackTraceParser.cs:132) |
+
+#### 5.1. `SymbolResolver` — выполнено 2026-10-28
+
+Разбит на `SymbolIndex` (поиск по имени), `TypeIndex` (иерархии, реализации) и
+`LocationIndex` (файл/строка/project/признак сгенерированного кода).
+`SymbolResolver` сохранён как **фасад** над тремя индексами: `find_references` дал
+**218 ссылок в 3 проектах** (124 prod, 92 теста, 2 бенчмарка, 25 `object_creation`),
+поэтому замена типа потребовала бы правки ~200 мест — несоразмерно для чистого переноса.
+
+| Метрика | До | После |
+|---|---|---|
+| LOC | 414 | **71** |
+| Членов | 45 | 31 |
+| Полей | 13 | **3** |
+| В `find_large_classes(300, 15)` | да | нет по строкам (71) |
+
+Новые типы: `SymbolIndex` 254 LOC / 27 членов / 6 полей, `TypeIndex` ~90 LOC / 4 члена,
+`LocationIndex` ~180 LOC / 7 членов — ни один не превышает 300 LOC.
+
+Инвентаризация `find_references` по каждому публичному члену: потребители ненулевые у всех,
+удалять было нечего. Удалены только два мёртвых делегирования, появившихся при переносе
+(`SymbolResolver.FindMembers`, `TypeIndex.Symbols`).
+
+⚠️ **Уточнение аудита:** `find_god_objects` возвращал пусто **и до разбиения** — порог
+`minOutgoingNamespaces = 5` не достигался (`SymbolResolver` зависел от 2 не-BCL namespace).
+Критерий «`find_god_objects` пусто» не мог провалиться и потому ничего не доказывает;
+подтверждение декомпозиции — динамика LOC и `find_large_classes`.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1259 passed, 0 failed**
+(база 1254 + 5 новых в `SymbolIndexDecompositionTests`).
+Подробности — [`decision/2026-10-28T20-47-stage5-1-symbolresolver-decomposition.md`](../decision/2026-10-28T20-47-stage5-1-symbolresolver-decomposition.md).
 
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;

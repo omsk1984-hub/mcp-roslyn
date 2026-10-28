@@ -1,420 +1,89 @@
-using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
-using RoslynCodeLens.Symbols;
 
 namespace RoslynCodeLens;
 
+/// <summary>
+/// Фасад над тремя узкими индексами решения:
+/// <see cref="SymbolIndex"/> (поиск по имени), <see cref="TypeIndex"/> (иерархии и реализации)
+/// и <see cref="LocationIndex"/> (файл, строка, проект, признак сгенерированного кода).
+///
+/// До этапа 5.1 плана SOLID-аудита всё это были 45 членов и 13 полей одного класса
+/// (414 LOC) — единственный god-объект решения. Разбиение — чистый перенос кода:
+/// публичная поверхность не изменилась, потому что у <c>SymbolResolver</c> 218 ссылок
+/// в трёх проектах, и менять все вызывающие ради формы было бы неоправданным риском.
+///
+/// Новый код должен зависеть от того индекса, который ему действительно нужен,
+/// а не от фасада. Фасад существует для существующих вызывающих и может быть
+/// удалён, когда их переведут на индексы напрямую.
+/// </summary>
 public class SymbolResolver
 {
-    private readonly List<INamedTypeSymbol> _allTypes;
-    private readonly Dictionary<string, List<INamedTypeSymbol>> _typesBySimpleName;
-    private readonly Dictionary<string, INamedTypeSymbol> _typesByFullName;
-    private readonly Dictionary<string, List<INamedTypeSymbol>> _typesByStrippedFullName;
-    private readonly Dictionary<string, string> _fileToProjectName;
-    private readonly Dictionary<ProjectId, string> _projectIdToName;
-    private readonly Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> _interfaceImplementors;
-    private readonly Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> _derivedTypes;
-    private readonly Dictionary<string, List<ISymbol>> _membersBySimpleName;
-    private readonly Dictionary<string, List<(ISymbol Symbol, AttributeData Attribute)>> _attributeIndex;
-    private readonly HashSet<string> _generatedFilePaths;
-    private readonly Dictionary<string, string> _generatedToMarkup;
+    private readonly SymbolIndex _symbols;
+    private readonly TypeIndex _types;
+    private readonly LocationIndex _locations;
 
     public SymbolResolver(LoadedSolution loaded)
     {
-        _allTypes = CollectAllTypes(loaded);
-        (_typesBySimpleName, _typesByFullName, _typesByStrippedFullName) = BuildTypeLookups(_allTypes);
-        (_fileToProjectName, _projectIdToName) = BuildProjectLookups(loaded);
-        (_interfaceImplementors, _derivedTypes) = BuildInheritanceMaps(_allTypes);
+        ArgumentNullException.ThrowIfNull(loaded);
 
-        _membersBySimpleName = new Dictionary<string, List<ISymbol>>(StringComparer.OrdinalIgnoreCase);
-        _attributeIndex = new Dictionary<string, List<(ISymbol, AttributeData)>>(StringComparer.OrdinalIgnoreCase);
-        BuildMemberAndAttributeIndexes();
-
-        _generatedFilePaths = BuildGeneratedFileIndex(loaded);
-        _generatedToMarkup = Analysis.MarkupDocumentMap.BuildGeneratedToMarkup(loaded);
+        // One type walk feeds both the name index and the inheritance maps; building
+        // them from a shared SymbolIndex keeps construction at its previous cost.
+        _symbols = new SymbolIndex(loaded);
+        _types = new TypeIndex(loaded, _symbols);
+        _locations = new LocationIndex(loaded);
     }
 
-    private static List<INamedTypeSymbol> CollectAllTypes(LoadedSolution loaded)
-    {
-        var allTypes = new List<INamedTypeSymbol>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+    /// <summary>Name lookup component: types, members, events, attributes.</summary>
+    public SymbolIndex Symbols => _symbols;
 
-        foreach (var compilation in loaded.Compilations.Values)
-        {
-            foreach (var type in GetAllTypes(compilation.GlobalNamespace))
-            {
-                if (seen.Add(type.ToDisplayString()))
-                    allTypes.Add(type);
-            }
-        }
+    /// <summary>Type hierarchy component: interface implementors, derived types.</summary>
+    public TypeIndex Types => _types;
 
-        return allTypes;
-    }
-
-    /// <summary>
-    /// Fully qualified name without generic type parameters: renders
-    /// "Data.Repository&lt;T&gt;" as "Data.Repository" and nested
-    /// "Ns.Outer&lt;T&gt;.Inner" as "Ns.Outer.Inner".
-    /// </summary>
-    private static readonly SymbolDisplayFormat StrippedGenericsFormat = new(
-        typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-        genericsOptions: SymbolDisplayGenericsOptions.None);
-
-    private static (Dictionary<string, List<INamedTypeSymbol>>, Dictionary<string, INamedTypeSymbol>,
-                     Dictionary<string, List<INamedTypeSymbol>>)
-        BuildTypeLookups(List<INamedTypeSymbol> allTypes)
-    {
-        var bySimple = new Dictionary<string, List<INamedTypeSymbol>>(StringComparer.Ordinal);
-        var byFull = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
-        var byStripped = new Dictionary<string, List<INamedTypeSymbol>>(StringComparer.Ordinal);
-
-        foreach (ref readonly var type in CollectionsMarshal.AsSpan(allTypes))
-        {
-            var fullName = type.ToDisplayString();
-            byFull[fullName] = type;
-
-            // Generic types display with their type parameters ("Data.Repository<T>"),
-            // so the documented qualified form "Data.Repository" misses byFull. Index
-            // them under the arity-stripped name too; multiple arities share a key and
-            // surface as multiple matches for the caller's ambiguity handling.
-            var strippedName = type.ToDisplayString(StrippedGenericsFormat);
-            if (!string.Equals(strippedName, fullName, StringComparison.Ordinal))
-            {
-                if (!byStripped.TryGetValue(strippedName, out var strippedList))
-                {
-                    strippedList = new List<INamedTypeSymbol>();
-                    byStripped[strippedName] = strippedList;
-                }
-                strippedList.Add(type);
-            }
-
-            if (!bySimple.TryGetValue(type.Name, out var list))
-            {
-                list = new List<INamedTypeSymbol>();
-                bySimple[type.Name] = list;
-            }
-            list.Add(type);
-        }
-
-        return (bySimple, byFull, byStripped);
-    }
-
-    private static (Dictionary<string, string>, Dictionary<ProjectId, string>)
-        BuildProjectLookups(LoadedSolution loaded)
-    {
-        var fileToProject = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var idToName = new Dictionary<ProjectId, string>();
-
-        foreach (var project in loaded.Solution.Projects)
-        {
-            idToName[project.Id] = project.Name;
-            foreach (var doc in project.Documents)
-            {
-                if (doc.FilePath != null)
-                    fileToProject[doc.FilePath] = project.Name;
-            }
-
-            // Source-generated documents are not in project.Documents, but their symbols are
-            // real and get returned by search_symbols/find_references. Indexing only the
-            // on-disk documents left every generated symbol reporting an empty project name
-            // — which is most symbols in a Blazor project, where components live in
-            // generator output. The compilation is the only place both kinds appear together.
-            if (loaded.Compilations.TryGetValue(project.Id, out var compilation))
-            {
-                foreach (var tree in compilation.SyntaxTrees)
-                {
-                    if (!string.IsNullOrEmpty(tree.FilePath))
-                        fileToProject[tree.FilePath] = project.Name;
-                }
-            }
-        }
-
-        return (fileToProject, idToName);
-    }
-
-    private static (Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>>,
-                     Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>>)
-        BuildInheritanceMaps(List<INamedTypeSymbol> allTypes)
-    {
-        var implementors = new Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>>(NamedTypeSignatureComparer.Instance);
-        var derived = new Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>>(NamedTypeSignatureComparer.Instance);
-
-        foreach (ref readonly var type in CollectionsMarshal.AsSpan(allTypes))
-        {
-            foreach (var iface in type.AllInterfaces)
-            {
-                // Skip error symbols (e.g. NoPiaMissingCanonicalTypeSymbol from unresolved
-                // embedded-interop types) — they have no real identity and would pollute the index.
-                if (iface.TypeKind == TypeKind.Error) continue;
-                if (!implementors.TryGetValue(iface, out var implList))
-                {
-                    implList = new List<INamedTypeSymbol>();
-                    implementors[iface] = implList;
-                }
-                implList.Add(type);
-            }
-
-            var baseType = type.BaseType;
-            while (baseType != null && baseType.SpecialType != SpecialType.System_Object)
-            {
-                if (baseType.TypeKind == TypeKind.Error) break;
-                if (!derived.TryGetValue(baseType, out var derivedList))
-                {
-                    derivedList = new List<INamedTypeSymbol>();
-                    derived[baseType] = derivedList;
-                }
-                derivedList.Add(type);
-                baseType = baseType.BaseType;
-            }
-        }
-
-        return (implementors, derived);
-    }
-
-    private void BuildMemberAndAttributeIndexes()
-    {
-        foreach (ref readonly var type in CollectionsMarshal.AsSpan(_allTypes))
-        {
-            IndexAttributes(type);
-
-            foreach (var member in type.GetMembers())
-            {
-                if (member.IsImplicitlyDeclared || string.IsNullOrEmpty(member.Name))
-                    continue;
-
-                IndexAttributes(member);
-
-                if (member is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove })
-                    continue;
-
-                if (!_membersBySimpleName.TryGetValue(member.Name, out var memberList))
-                {
-                    memberList = new List<ISymbol>();
-                    _membersBySimpleName[member.Name] = memberList;
-                }
-                memberList.Add(member);
-            }
-        }
-    }
-
-    private static HashSet<string> BuildGeneratedFileIndex(LoadedSolution loaded)
-    {
-        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var compilation in loaded.Compilations.Values)
-        {
-            foreach (var tree in compilation.SyntaxTrees)
-            {
-                if (IsGeneratedPath(tree.FilePath))
-                    paths.Add(tree.FilePath);
-            }
-        }
-        return paths;
-    }
-
-    private void IndexAttributes(ISymbol symbol)
-    {
-        foreach (var attr in symbol.GetAttributes())
-        {
-            var attrName = attr.AttributeClass?.Name;
-            if (string.IsNullOrEmpty(attrName))
-                continue;
-
-            // Index by full name (e.g., "ObsoleteAttribute")
-            if (!_attributeIndex.TryGetValue(attrName, out var list))
-            {
-                list = new List<(ISymbol, AttributeData)>();
-                _attributeIndex[attrName] = list;
-            }
-            list.Add((symbol, attr));
-
-            // Also index by short name (e.g., "Obsolete")
-            if (attrName.EndsWith("Attribute", StringComparison.Ordinal))
-            {
-                var shortName = attrName[..^"Attribute".Length];
-                if (!_attributeIndex.TryGetValue(shortName, out var shortList))
-                {
-                    shortList = new List<(ISymbol, AttributeData)>();
-                    _attributeIndex[shortName] = shortList;
-                }
-                shortList.Add((symbol, attr));
-            }
-        }
-    }
+    /// <summary>Location component: file, line, project, generated-code and markup mapping.</summary>
+    public LocationIndex Locations => _locations;
 
     /// <summary>
     /// All deduplicated types across all compilations, cached at construction.
     /// </summary>
-    public IReadOnlyList<INamedTypeSymbol> AllTypes => _allTypes;
+    public IReadOnlyList<INamedTypeSymbol> AllTypes => _symbols.AllTypes;
 
-    public IReadOnlyList<INamedTypeSymbol> FindNamedTypes(string symbol)
-    {
-        if (symbol.Contains('.', StringComparison.Ordinal))
-        {
-            if (_typesByFullName.TryGetValue(symbol, out var type))
-                return [type];
+    public IReadOnlyDictionary<string, List<INamedTypeSymbol>> TypesBySimpleName => _symbols.TypesBySimpleName;
+    public IReadOnlyDictionary<string, List<ISymbol>> MembersBySimpleName => _symbols.MembersBySimpleName;
+    public IReadOnlyDictionary<string, List<(ISymbol Symbol, AttributeData Attribute)>> AttributeIndex => _symbols.AttributeIndex;
 
-            // Fall back to the arity-stripped index so the documented qualified form
-            // ("Data.Repository") reaches generic types ("Data.Repository<T>").
-            return _typesByStrippedFullName.TryGetValue(symbol, out var strippedMatches)
-                ? strippedMatches
-                : [];
-        }
+    public IReadOnlyList<INamedTypeSymbol> FindNamedTypes(string symbol) => _symbols.FindNamedTypes(symbol);
 
-        return _typesBySimpleName.TryGetValue(symbol, out var list)
-            ? list
-            : [];
-    }
+    public IReadOnlyList<IMethodSymbol> FindMethods(string symbol) => _symbols.FindMethods(symbol);
 
-    public IReadOnlyList<IMethodSymbol> FindMethods(string symbol)
-    {
-        var results = new List<IMethodSymbol>();
-        var parts = symbol.Split('.');
-        if (parts.Length < 2) return results;
+    public IReadOnlyList<IEventSymbol> FindEvents(string symbol) => _symbols.FindEvents(symbol);
 
-        var typeName = string.Join('.', parts[..^1]);
-        var methodName = parts[^1];
+    public IReadOnlyList<ISymbol> FindSymbols(string symbol) => _symbols.FindSymbols(symbol);
 
-        foreach (var type in FindNamedTypes(typeName))
-        {
-            results.AddRange(type.GetMembers(methodName).OfType<IMethodSymbol>());
-        }
+    /// <inheritdoc cref="SymbolIndex.GetAllTypes(INamespaceSymbol)"/>
+    public static IEnumerable<INamedTypeSymbol> GetAllTypes(INamespaceSymbol ns) => SymbolIndex.GetAllTypes(ns);
 
-        return results;
-    }
+    /// <inheritdoc cref="LocationIndex.GetLocation(ISymbol)"/>
+    public static Location? GetLocation(ISymbol symbol) => LocationIndex.GetLocation(symbol);
 
-    public IReadOnlyList<IEventSymbol> FindEvents(string symbol)
-    {
-        var results = new List<IEventSymbol>();
-        var parts = symbol.Split('.');
-        if (parts.Length < 2) return results;
+    public (string File, int Line) GetFileAndLine(ISymbol symbol) => _locations.GetFileAndLine(symbol);
 
-        var typeName = string.Join('.', parts[..^1]);
-        var eventName = parts[^1];
+    public string GetProjectName(ISymbol symbol) => _locations.GetProjectName(symbol);
 
-        foreach (var type in FindNamedTypes(typeName))
-        {
-            results.AddRange(type.GetMembers(eventName).OfType<IEventSymbol>());
-        }
-
-        return results;
-    }
-
-    public static IEnumerable<INamedTypeSymbol> GetAllTypes(INamespaceSymbol ns)
-    {
-        return ns.GetTypeMembers().SelectMany(GetAllNestedTypes)
-            .Concat(ns.GetNamespaceMembers().SelectMany(GetAllTypes));
-    }
-
-    private static IEnumerable<INamedTypeSymbol> GetAllNestedTypes(INamedTypeSymbol type)
-    {
-        return new[] { type }
-            .Concat(type.GetTypeMembers().SelectMany(GetAllNestedTypes));
-    }
-
-    public static Location? GetLocation(ISymbol symbol)
-    {
-        return symbol.Locations.FirstOrDefault(l => l.IsInSource);
-    }
-
-    public (string File, int Line) GetFileAndLine(ISymbol symbol)
-    {
-        var location = GetLocation(symbol);
-        if (location == null) return ("", 0);
-
-        var lineSpan = location.GetLineSpan();
-        return (lineSpan.Path, lineSpan.StartLinePosition.Line + 1);
-    }
-
-    public string GetProjectName(ISymbol symbol)
-    {
-        var location = GetLocation(symbol);
-        if (location?.SourceTree == null) return "";
-
-        return _fileToProjectName.TryGetValue(location.SourceTree.FilePath, out var name)
-            ? name
-            : "";
-    }
-
-    public string GetProjectName(ProjectId projectId)
-    {
-        return _projectIdToName.TryGetValue(projectId, out var name) ? name : "";
-    }
-
-    public IReadOnlyList<ISymbol> FindMembers(string symbol)
-    {
-        var results = new List<ISymbol>();
-        var parts = symbol.Split('.');
-        if (parts.Length < 2) return results;
-
-        var typeName = string.Join('.', parts[..^1]);
-        var memberName = parts[^1];
-
-        foreach (var type in FindNamedTypes(typeName))
-        {
-            foreach (var m in type.GetMembers(memberName))
-                results.Add(m);
-        }
-
-        return results;
-    }
-
-    public IReadOnlyList<ISymbol> FindSymbols(string symbol)
-    {
-        // Try as type first
-        var types = FindNamedTypes(symbol);
-        if (types.Count > 0)
-            return types.Cast<ISymbol>().ToList();
-
-        // Try as Type.Member (methods, properties, fields, events)
-        var members = FindMembers(symbol);
-        if (members.Count > 0)
-            return members;
-
-        return [];
-    }
-
-    public IReadOnlyDictionary<string, List<INamedTypeSymbol>> TypesBySimpleName => _typesBySimpleName;
-    public IReadOnlyDictionary<string, List<ISymbol>> MembersBySimpleName => _membersBySimpleName;
-    public IReadOnlyDictionary<string, List<(ISymbol Symbol, AttributeData Attribute)>> AttributeIndex => _attributeIndex;
+    public string GetProjectName(ProjectId projectId) => _locations.GetProjectName(projectId);
 
     /// <summary>
     /// Returns all types that implement the given interface, using pre-built index.
     /// </summary>
-    public IReadOnlyList<INamedTypeSymbol> GetInterfaceImplementors(INamedTypeSymbol iface)
-    {
-        return _interfaceImplementors.TryGetValue(iface, out var list) ? list : [];
-    }
+    public IReadOnlyList<INamedTypeSymbol> GetInterfaceImplementors(INamedTypeSymbol iface) =>
+        _types.GetInterfaceImplementors(iface);
 
     /// <summary>
     /// Returns all types that derive from the given type (directly or transitively), using pre-built index.
     /// </summary>
-    public IReadOnlyList<INamedTypeSymbol> GetDerivedTypes(INamedTypeSymbol baseType)
-    {
-        return _derivedTypes.TryGetValue(baseType, out var list) ? list : [];
-    }
+    public IReadOnlyList<INamedTypeSymbol> GetDerivedTypes(INamedTypeSymbol baseType) =>
+        _types.GetDerivedTypes(baseType);
 
-    /// <summary>
-    /// The markup file (.razor/.cshtml) a generated document was produced from, or null when the
-    /// file is not generator output from markup. Lets results that necessarily point into obj/
-    /// name the file the user can actually edit.
-    /// </summary>
-    public string? GetMarkupSource(string? filePath) =>
-        filePath is not null && _generatedToMarkup.TryGetValue(filePath, out var markup) ? markup : null;
+    public string? GetMarkupSource(string? filePath) => _locations.GetMarkupSource(filePath);
 
-    public bool IsGenerated(string? filePath)
-    {
-        if (string.IsNullOrEmpty(filePath))
-            return true;
-        if (_generatedFilePaths.Contains(filePath))
-            return true;
-        return IsGeneratedPath(filePath);
-    }
-
-    private static bool IsGeneratedPath(string? path)
-    {
-        if (string.IsNullOrEmpty(path))
-            return true;
-        return path.Contains("/obj/", StringComparison.Ordinal)
-            || path.Contains("\\obj\\", StringComparison.Ordinal);
-    }
+    public bool IsGenerated(string? filePath) => _locations.IsGenerated(filePath);
 }
