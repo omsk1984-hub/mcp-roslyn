@@ -146,7 +146,10 @@ public class SolutionLoader
             // no longer marshals to the UI thread, which is what this headless server wants.
             // Console-only by design: diagnostics must NOT feed LoadDiagnostics, see
             // FindProjectsWithDroppedReferences.
-            workspace.RegisterWorkspaceFailedHandler(e =>
+            // The returned subscription is IDisposable and lives exactly as long as this
+            // workspace (disposed with it at the end of every branch), so it is tied to a
+            // using-scope rather than leaked.
+            using var workspaceFailedSubscription = workspace.RegisterWorkspaceFailedHandler(e =>
                 Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}"));
 
             Solution? solution;
@@ -369,7 +372,8 @@ public class SolutionLoader
                     using var ws = MSBuildWorkspace.Create();
                     // Stage 0 / item 1: same obsolete-event replacement as the solution-level
                     // load above. Console-only — see FindProjectsWithDroppedReferences.
-                    ws.RegisterWorkspaceFailedHandler(e =>
+                    // Subscription is IDisposable and scoped to this workspace's lifetime.
+                    using var wsFailedSubscription = ws.RegisterWorkspaceFailedHandler(e =>
                         Console.Error.WriteLine($"[roslyn-codelens] Warning: {e.Diagnostic.Message}"));
 
                     Project? loaded;
