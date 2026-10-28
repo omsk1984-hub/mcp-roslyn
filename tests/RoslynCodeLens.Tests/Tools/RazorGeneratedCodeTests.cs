@@ -49,10 +49,11 @@ public class RazorGeneratedCodeTests
     /// safe to delete".
     /// </summary>
     [Fact]
-    public void FindReferences_FindsAComponentUsedOnlyFromMarkup()
+    public async Task FindReferences_FindsAComponentUsedOnlyFromMarkup()
     {
-        var references = FindReferencesLogic.Execute(
-            _fixture.Loaded, _fixture.Resolver, _fixture.Metadata, "RazorLib.Components.NavMenu");
+        var references = await FindReferencesLogic.ExecuteAsync(
+            _fixture.Loaded, _fixture.Resolver, _fixture.Metadata,
+            "RazorLib.Components.NavMenu", CancellationToken.None);
 
         Assert.NotEmpty(references);
         Assert.Contains(references, r => r.File.Contains("MainLayout", StringComparison.OrdinalIgnoreCase));
@@ -93,10 +94,11 @@ public class RazorGeneratedCodeTests
     /// authored line to point at.
     /// </summary>
     [Fact]
-    public void FindReferences_AttributesGeneratedHitsToTheMarkupTheyCameFrom()
+    public async Task FindReferences_AttributesGeneratedHitsToTheMarkupTheyCameFrom()
     {
-        var references = FindReferencesLogic.Execute(
-            _fixture.Loaded, _fixture.Resolver, _fixture.Metadata, "RazorLib.Components.NavMenu");
+        var references = await FindReferencesLogic.ExecuteAsync(
+            _fixture.Loaded, _fixture.Resolver, _fixture.Metadata,
+            "RazorLib.Components.NavMenu", CancellationToken.None);
 
         var hit = Assert.Single(references);
         Assert.True(hit.IsGenerated);

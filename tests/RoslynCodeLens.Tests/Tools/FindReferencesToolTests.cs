@@ -21,49 +21,53 @@ public class FindReferencesToolTests
     }
 
     [Fact]
-    public void FindReferences_ForInterface_ReturnsUsages()
+    public async Task FindReferences_ForInterface_ReturnsUsages()
     {
-        var results = FindReferencesLogic.Execute(_loaded, _resolver, _metadata, "IGreeter");
+        var results = await FindReferencesLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "IGreeter", CancellationToken.None);
 
         Assert.NotEmpty(results);
         Assert.Contains(results, r => r.File.Contains("GreeterConsumer", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void FindReferences_ForMethod_ReturnsCallSites()
+    public async Task FindReferences_ForMethod_ReturnsCallSites()
     {
-        var results = FindReferencesLogic.Execute(_loaded, _resolver, _metadata, "IGreeter.Greet");
+        var results = await FindReferencesLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "IGreeter.Greet", CancellationToken.None);
 
         Assert.NotEmpty(results);
         Assert.Contains(results, r => r.File.Contains("GreeterConsumer", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void FindReferences_UnknownSymbol_ReturnsEmpty()
+    public async Task FindReferences_UnknownSymbol_ReturnsEmpty()
     {
-        var results = FindReferencesLogic.Execute(_loaded, _resolver, _metadata, "NonExistent");
+        var results = await FindReferencesLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "NonExistent", CancellationToken.None);
 
         Assert.Empty(results);
     }
 
     [Fact]
-    public void FindReferences_MetadataInterface_FindsSourceUsages()
+    public async Task FindReferences_MetadataInterface_FindsSourceUsages()
     {
-        var results = FindReferencesLogic.Execute(
+        var results = await FindReferencesLogic.ExecuteAsync(
             _loaded, _resolver, _metadata,
-            "Microsoft.Extensions.DependencyInjection.IServiceCollection");
+            "Microsoft.Extensions.DependencyInjection.IServiceCollection", CancellationToken.None);
 
         Assert.NotEmpty(results);
         Assert.All(results, r => Assert.True(!string.IsNullOrEmpty(r.File)));
     }
 
     [Fact]
-    public void FindReferences_ForInterface_FindsUsagesInReferencingProject()
+    public async Task FindReferences_ForInterface_FindsUsagesInReferencingProject()
     {
         // IGreeter is defined in TestLib; GreeterConsumer and CrossProjectGreeter in TestLib2 reference it.
         // Without cross-compilation symbol normalisation, cross-project usages are missed
         // because the target set is built with reference-equality symbols from one compilation.
-        var results = FindReferencesLogic.Execute(_loaded, _resolver, _metadata, "IGreeter");
+        var results = await FindReferencesLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "IGreeter", CancellationToken.None);
 
         Assert.Contains(results, r => r.File.Contains("TestLib2", StringComparison.OrdinalIgnoreCase));
     }

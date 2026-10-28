@@ -8,9 +8,20 @@ namespace RoslynCodeLens.Tools;
 
 public static class FindCallersLogic
 {
-    public static IReadOnlyList<CallerInfo> Execute(
-        LoadedSolution loaded, SymbolResolver source, MetadataSymbolResolver metadata, string symbol)
+    /// <summary>
+    /// Stage 4/B: async-first entry point. <see cref="SymbolFinder.FindCallersAsync"/> is awaited
+    /// instead of parked on, so a caller scan no longer occupies the calling thread while Roslyn
+    /// resolves cross-compilation identity and virtual-dispatch cascades.
+    /// </summary>
+    public static async Task<IReadOnlyList<CallerInfo>> ExecuteAsync(
+        LoadedSolution loaded,
+        SymbolResolver source,
+        MetadataSymbolResolver metadata,
+        string symbol,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var targetMethods = source.FindMethods(symbol);
         if (targetMethods.Count == 0)
         {
@@ -33,10 +44,12 @@ public static class FindCallersLogic
 
         foreach (var target in targetMethods)
         {
+            ct.ThrowIfCancellationRequested();
+
             // Roslyn's SymbolFinder.FindCallersAsync handles cross-compilation symbol
             // identity, virtual-dispatch cascading, and interface→implementation matching.
-            var callerInfos = SymbolFinder.FindCallersAsync(target, loaded.Solution)
-                .GetAwaiter().GetResult();
+            var callerInfos = await SymbolFinder.FindCallersAsync(target, loaded.Solution, ct)
+                .ConfigureAwait(false);
 
             foreach (var callerInfo in callerInfos)
             {

@@ -156,7 +156,8 @@ public static class ValidateEditLogic
             targets = [meta.Symbol];
         }
 
-        var refs = FindReferencesLogic.Execute(loaded, resolver, metadata, symbol);
+        var refs = await FindReferencesLogic.ExecuteAsync(loaded, resolver, metadata, symbol, ct)
+            .ConfigureAwait(false);
         var byKind = refs
             .GroupBy(r => r.ReferenceKind, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);

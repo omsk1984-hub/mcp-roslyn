@@ -20,9 +20,10 @@ public class AnalyzeChangeImpactToolTests
     }
 
     [Fact]
-    public void Execute_ForInterfaceMethod_ReturnsImpact()
+    public async Task Execute_ForInterfaceMethod_ReturnsImpact()
     {
-        var result = AnalyzeChangeImpactLogic.Execute(_loaded, _resolver, _metadata, "IGreeter.Greet");
+        var result = await AnalyzeChangeImpactLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "IGreeter.Greet", CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.True(result.DirectReferenceCount > 0 || result.CallerCount > 0);
@@ -31,9 +32,10 @@ public class AnalyzeChangeImpactToolTests
     }
 
     [Fact]
-    public void Execute_ForUnknownSymbol_ReturnsNull()
+    public async Task Execute_ForUnknownSymbol_ReturnsNull()
     {
-        var result = AnalyzeChangeImpactLogic.Execute(_loaded, _resolver, _metadata, "NonExistentClass.NoMethod");
+        var result = await AnalyzeChangeImpactLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "NonExistentClass.NoMethod", CancellationToken.None);
 
         Assert.Null(result);
     }

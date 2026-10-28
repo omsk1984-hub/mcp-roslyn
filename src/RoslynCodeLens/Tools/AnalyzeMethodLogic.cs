@@ -7,7 +7,12 @@ namespace RoslynCodeLens.Tools;
 
 public static class AnalyzeMethodLogic
 {
-    public static MethodAnalysis Execute(LoadedSolution loaded, SymbolResolver resolver, MetadataSymbolResolver metadata, string symbol)
+    public static async Task<MethodAnalysis> ExecuteAsync(
+        LoadedSolution loaded,
+        SymbolResolver resolver,
+        MetadataSymbolResolver metadata,
+        string symbol,
+        CancellationToken ct = default)
     {
         var methods = resolver.FindMethods(symbol);
         if (methods.Count == 0)
@@ -18,7 +23,8 @@ public static class AnalyzeMethodLogic
         var projectName = resolver.GetProjectName(target);
         var signature = target.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
-        var callers = FindCallersLogic.Execute(loaded, resolver, metadata, symbol);
+        var callers = await FindCallersLogic.ExecuteAsync(loaded, resolver, metadata, symbol, ct)
+            .ConfigureAwait(false);
         var outgoing = FindOutgoingCalls(loaded, target);
 
         return new MethodAnalysis(symbol, file, line, projectName, signature, callers, outgoing);

@@ -11,12 +11,14 @@ public static class AnalyzeMethodTool
      Description("Get a comprehensive analysis of a method in one call: signature, location, all callers, " +
                  "and all outgoing calls (methods this method invokes). " +
                  "More efficient than calling find_callers separately.")]
-    public static MethodAnalysis Execute(
+    public static Task<MethodAnalysis> ExecuteAsync(
         MultiSolutionManager manager,
-        [Description("Method symbol (e.g. 'Greeter.Greet' or 'MyNamespace.MyClass.MyMethod')")] string symbol)
+        [Description("Method symbol (e.g. 'Greeter.Greet' or 'MyNamespace.MyClass.MyMethod')")] string symbol,
+        CancellationToken cancellationToken = default)
     {
         manager.EnsureLoaded();
         var context = manager.GetAnalysisContext();
-        return AnalyzeMethodLogic.Execute(context.Loaded, context.Resolver, context.Metadata, symbol);
+        return AnalyzeMethodLogic.ExecuteAsync(
+            context.Loaded, context.Resolver, context.Metadata, symbol, cancellationToken);
     }
 }

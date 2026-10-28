@@ -34,7 +34,7 @@ public class IncrementalRebuildTests
         try
         {
             manager = await CreateHealthyManagerAsync().ConfigureAwait(false);
-            var before = CountReferences(manager, "ICrossProjectOnly");
+            var before = await CountReferencesAsync(manager, "ICrossProjectOnly").ConfigureAwait(false);
 
             // Add a second implementation of the cross-project interface — one extra reference.
             await File.WriteAllTextAsync(consumerPath, original +
@@ -42,7 +42,7 @@ public class IncrementalRebuildTests
                 .ConfigureAwait(false);
             manager.SimulateFileChangeForTest(consumerPath);
 
-            var after = CountReferences(manager, "ICrossProjectOnly");
+            var after = await CountReferencesAsync(manager, "ICrossProjectOnly").ConfigureAwait(false);
             Assert.True(after > before,
                 $"find_references for ICrossProjectOnly should reflect the new usage after an incremental " +
                 $"rebuild (before={before}, after={after}). A count of 0 is the #282 silent-empty bug.");
@@ -67,7 +67,7 @@ public class IncrementalRebuildTests
         try
         {
             manager = await CreateHealthyManagerAsync().ConfigureAwait(false);
-            var before = CountCallers(manager, "IGreeter.Greet");
+            var before = await CountCallersAsync(manager, "IGreeter.Greet").ConfigureAwait(false);
             Assert.True(before > 0, "expected an existing cross-project caller of IGreeter.Greet");
 
             // Insert a second method that calls _greeter.Greet, before the class's closing brace.
@@ -76,7 +76,7 @@ public class IncrementalRebuildTests
             await File.WriteAllTextAsync(consumerPath, edited).ConfigureAwait(false);
             manager.SimulateFileChangeForTest(consumerPath);
 
-            var after = CountCallers(manager, "IGreeter.Greet");
+            var after = await CountCallersAsync(manager, "IGreeter.Greet").ConfigureAwait(false);
             Assert.True(after > before,
                 $"find_callers for IGreeter.Greet should reflect the new call site (before={before}, after={after}).");
         }
@@ -101,14 +101,14 @@ public class IncrementalRebuildTests
         try
         {
             manager = await CreateHealthyManagerAsync().ConfigureAwait(false);
-            var baseline = References(manager, "ICrossProjectOnly");
+            var baseline = await ReferencesAsync(manager, "ICrossProjectOnly").ConfigureAwait(false);
             Assert.Contains(baseline, r => r.File.Contains("CrossProjectGreeter", StringComparison.Ordinal));
 
             // Trivial semantic-preserving edit (append a comment) forces TestLib + dependents to recompile.
             await File.WriteAllTextAsync(defPath, original + "\n// touch 1\n").ConfigureAwait(false);
             manager.SimulateFileChangeForTest(defPath);
 
-            var afterFirst = References(manager, "ICrossProjectOnly");
+            var afterFirst = await ReferencesAsync(manager, "ICrossProjectOnly").ConfigureAwait(false);
             Assert.Contains(afterFirst, r => r.File.Contains("CrossProjectGreeter", StringComparison.Ordinal));
             Assert.Equal(baseline.Count, afterFirst.Count);
 
@@ -116,7 +116,7 @@ public class IncrementalRebuildTests
             await File.WriteAllTextAsync(defPath, original + "\n// touch 1\n// touch 2\n").ConfigureAwait(false);
             manager.SimulateFileChangeForTest(defPath);
 
-            var afterSecond = References(manager, "ICrossProjectOnly");
+            var afterSecond = await ReferencesAsync(manager, "ICrossProjectOnly").ConfigureAwait(false);
             Assert.Contains(afterSecond, r => r.File.Contains("CrossProjectGreeter", StringComparison.Ordinal));
             Assert.Equal(baseline.Count, afterSecond.Count);
         }
@@ -149,14 +149,14 @@ public class IncrementalRebuildTests
             var minRefs = int.MaxValue;
 
             // Reader thread: hammer auto-rebuilds (mark stale) + queries while the reloads run.
-            var reader = Task.Run(() =>
+            var reader = Task.Run(async () =>
             {
                 try
                 {
                     while (!Volatile.Read(ref stop))
                     {
                         mgr.SimulateFileChangeForTest(consumerPath);
-                        var refs = CountReferences(mgr, "ICrossProjectOnly");
+                        var refs = await CountReferencesAsync(mgr, "ICrossProjectOnly").ConfigureAwait(false);
                         minRefs = Math.Min(minRefs, refs);
                     }
                 }
@@ -179,18 +179,24 @@ public class IncrementalRebuildTests
         }
     }
 
-    private static IReadOnlyList<SymbolReference> References(SolutionManager manager, string symbol)
+    private static async Task<IReadOnlyList<SymbolReference>> ReferencesAsync(
+        SolutionManager manager, string symbol)
     {
         var (loaded, resolver, metadata) = manager.GetAnalysisContext();
-        return FindReferencesLogic.Execute(loaded, resolver, metadata, symbol);
+        return await FindReferencesLogic
+            .ExecuteAsync(loaded, resolver, metadata, symbol, CancellationToken.None)
+            .ConfigureAwait(false);
     }
 
-    private static int CountReferences(SolutionManager manager, string symbol) => References(manager, symbol).Count;
+    private static async Task<int> CountReferencesAsync(SolutionManager manager, string symbol)
+        => (await ReferencesAsync(manager, symbol).ConfigureAwait(false)).Count;
 
-    private static int CountCallers(SolutionManager manager, string symbol)
+    private static async Task<int> CountCallersAsync(SolutionManager manager, string symbol)
     {
         var (loaded, resolver, metadata) = manager.GetAnalysisContext();
-        return FindCallersLogic.Execute(loaded, resolver, metadata, symbol).Count;
+        return (await FindCallersLogic
+            .ExecuteAsync(loaded, resolver, metadata, symbol, CancellationToken.None)
+            .ConfigureAwait(false)).Count;
     }
 
     /// <summary>
@@ -208,7 +214,9 @@ public class IncrementalRebuildTests
 
             var (loaded, resolver, metadata) = manager.GetAnalysisContext();
             if (!loaded.Degraded &&
-                FindReferencesLogic.Execute(loaded, resolver, metadata, "ICrossProjectOnly").Count > 0)
+                (await FindReferencesLogic
+                    .ExecuteAsync(loaded, resolver, metadata, "ICrossProjectOnly", CancellationToken.None)
+                    .ConfigureAwait(false)).Count > 0)
             {
                 return manager;
             }

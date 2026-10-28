@@ -21,30 +21,33 @@ public class FindCallersToolTests
     }
 
     [Fact]
-    public void FindCallers_ForMethod_ReturnsCallSites()
+    public async Task FindCallers_ForMethod_ReturnsCallSites()
     {
-        var results = FindCallersLogic.Execute(_loaded, _resolver, _metadata, "IGreeter.Greet");
+        var results = await FindCallersLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "IGreeter.Greet", CancellationToken.None);
 
         Assert.Contains(results, r => r.Caller.Contains("GreeterConsumer", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void FindCallers_MetadataExtensionMethod_FindsSourceInvocations()
+    public async Task FindCallers_MetadataExtensionMethod_FindsSourceInvocations()
     {
-        var results = FindCallersLogic.Execute(
+        var results = await FindCallersLogic.ExecuteAsync(
             _loaded, _resolver, _metadata,
-            "Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddScoped");
+            "Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddScoped",
+            CancellationToken.None);
 
         Assert.NotEmpty(results);
     }
 
     [Fact]
-    public void FindCallers_InterfaceMethod_FindsCallersInReferencingProject()
+    public async Task FindCallers_InterfaceMethod_FindsCallersInReferencingProject()
     {
         // IGreeter.Greet is defined in TestLib; GreeterConsumer in TestLib2 calls it via the interface.
         // Without cross-compilation symbol normalisation, the interface dispatch check uses
         // reference-equality symbols, missing callers from other projects.
-        var results = FindCallersLogic.Execute(_loaded, _resolver, _metadata, "IGreeter.Greet");
+        var results = await FindCallersLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "IGreeter.Greet", CancellationToken.None);
 
         Assert.Contains(results, r => r.File.Contains("TestLib2", StringComparison.OrdinalIgnoreCase));
     }

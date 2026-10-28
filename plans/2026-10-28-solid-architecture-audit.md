@@ -405,11 +405,35 @@ flowchart TD
   (остались сайты 3–5 порции B); `get_diagnostics` 0/0; `dotnet test` — **1252 passed, 0 failed**
   (база 1249 + 3 новых).
 
-**Порция B — `FindReferencesLogic` + `FindCallersLogic` (сайты 3–5).**
+**Порция B — `FindReferencesLogic` + `FindCallersLogic` (сайты 3–5).** ✅ **Выполнено 2026-10-28.**
 `Execute` → `ExecuteAsync(..., ct)`; внутренние синхронные `SymbolFinder`-вызовы и
 `GetSemanticModelAsync` — на `await`. Затем перевести 6 прод-вызывающих и 16 тест/бенч-сайтов.
 ⚠️ Порядок: сначала async-версия рядом со старой, перевести вызывающих, потом удалить старую.
 Не совмещать с `SolutionManager` — разные причины падений (Roslyn API против жизненного цикла).
+
+**Итог порции B:**
+- `FindReferencesLogic.ExecuteAsync` / `FindCallersLogic.ExecuteAsync` с `CancellationToken`;
+  `SymbolFinder.FindReferencesAsync` / `FindCallersAsync` и `Document.GetSemanticModelAsync`
+  ожидаются через `await` (`ConfigureAwait(false)`), `ct.ThrowIfCancellationRequested()` перед
+  каждым `SymbolFinder`-вызовом. Синхронные `Execute` **удалены** (`find_references` = 0).
+- `ReferenceClassifier` не тронут (чистый, синхронный). Модель по-прежнему строится лениво:
+  `await GetModelAsync(...)` выполняется **только** для узлов с родителем `ArgumentSyntax`
+  (единственная ветка, которой нужен семантика), затем передаётся в `Classify` готовой —
+  так поведение и стоимость сканирования не изменились.
+- Каскад второго порядка: `AnalyzeChangeImpactLogic`, `AnalyzeMethodLogic` →
+  `ExecuteAsync`; `AnalyzeChangeImpactTool`, `AnalyzeMethodTool` → `Task<T>` (как `GetCallGraphTool`);
+  `ValidateEditLogic` уже был `async`, переведён только его внутренний вызов.
+  `FindReferencesTool` / `FindCallersTool` возвращают `Task<ToolListResult<T>>`.
+- Тесты: 5 методов `FindReferencesLogicTests` + 5 `FindReferencesToolTests` + 3 `FindCallersToolTests`
+  + 2 `AnalyzeChangeImpactToolTests` + 3 `AnalyzeMethodToolTests` + 2 `RazorGeneratedCodeTests`
+  → `async Task`; `IncrementalRebuildTests` — хелперы `*Async` (чтение через `Task.Run(async …)`);
+  4 бенч-метода → `Task<T>`.
+- Новые тесты (`FindReferencesLogicTests`): `ExecuteAsync_DoesNotBlockCallingThread`
+  (`pending.IsCompleted == false` сразу после вызова) и
+  `ExecuteAsync_CancelledToken_ThrowsInsteadOfHanging` (pre-cancelled `ct` →
+  `OperationCanceledException`, ограниченный `Task.WhenAny` — зависание уронило бы тест).
+- Проверка: `find_async_violations` по решению — **0** (было 3); `get_diagnostics` **0 errors,
+  0 warnings**; `dotnet test RoslynCodeLens.slnx` — **1254 passed, 0 failed** (база 1252 + 2).
 
 **Порция C — инструменты.**
 Перевести оставшиеся синхронные `Execute` у 40+ `*Tool` на `ExecuteAsync`, использующие

@@ -21,9 +21,10 @@ public class AnalyzeMethodToolTests
     }
 
     [Fact]
-    public void Execute_ForGreeterGreet_ReturnsAnalysis()
+    public async Task Execute_ForGreeterGreet_ReturnsAnalysis()
     {
-        var result = AnalyzeMethodLogic.Execute(_loaded, _resolver, _metadata, "Greeter.Greet");
+        var result = await AnalyzeMethodLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "Greeter.Greet", CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Signature);
@@ -32,9 +33,10 @@ public class AnalyzeMethodToolTests
     }
 
     [Fact]
-    public void Execute_ForGreeterGreet_HasCallers()
+    public async Task Execute_ForGreeterGreet_HasCallers()
     {
-        var result = AnalyzeMethodLogic.Execute(_loaded, _resolver, _metadata, "Greeter.Greet");
+        var result = await AnalyzeMethodLogic.ExecuteAsync(
+            _loaded, _resolver, _metadata, "Greeter.Greet", CancellationToken.None);
 
         Assert.NotNull(result);
         // Greet is called from GreeterConsumer.SayHello
@@ -42,10 +44,11 @@ public class AnalyzeMethodToolTests
     }
 
     [Fact]
-    public void Execute_ForUnknownMethod_ThrowsSymbolNotFound()
+    public async Task Execute_ForUnknownMethod_ThrowsSymbolNotFound()
     {
-        var ex = Assert.Throws<McpToolException>(() =>
-            AnalyzeMethodLogic.Execute(_loaded, _resolver, _metadata, "NoSuchClass.NoSuchMethod"));
+        var ex = await Assert.ThrowsAsync<McpToolException>(() =>
+            AnalyzeMethodLogic.ExecuteAsync(
+                _loaded, _resolver, _metadata, "NoSuchClass.NoSuchMethod", CancellationToken.None));
 
         Assert.Equal(ToolErrorCode.SymbolNotFound, ex.Code);
     }

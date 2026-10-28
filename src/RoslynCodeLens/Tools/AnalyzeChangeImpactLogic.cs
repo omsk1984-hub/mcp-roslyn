@@ -5,10 +5,17 @@ namespace RoslynCodeLens.Tools;
 
 public static class AnalyzeChangeImpactLogic
 {
-    public static ChangeImpact? Execute(LoadedSolution loaded, SymbolResolver resolver, MetadataSymbolResolver metadata, string symbol)
+    public static async Task<ChangeImpact?> ExecuteAsync(
+        LoadedSolution loaded,
+        SymbolResolver resolver,
+        MetadataSymbolResolver metadata,
+        string symbol,
+        CancellationToken ct = default)
     {
-        var references = FindReferencesLogic.Execute(loaded, resolver, metadata, symbol);
-        var callers = FindCallersLogic.Execute(loaded, resolver, metadata, symbol);
+        var references = await FindReferencesLogic.ExecuteAsync(loaded, resolver, metadata, symbol, ct)
+            .ConfigureAwait(false);
+        var callers = await FindCallersLogic.ExecuteAsync(loaded, resolver, metadata, symbol, ct)
+            .ConfigureAwait(false);
 
         // If neither found anything, symbol doesn't exist
         if (references.Count == 0 && callers.Count == 0)

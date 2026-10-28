@@ -12,15 +12,18 @@ public static class FindCallersTool
     [McpServerTool(Name = "find_callers"),
      Description("Find every call site for a method. " +
                  "Returns an envelope with items, totalCount, truncated, limit, and a byProject summary.")]
-    public static ToolListResult<CallerInfo> Execute(
+    public static async Task<ToolListResult<CallerInfo>> ExecuteAsync(
         MultiSolutionManager manager,
         [Description("Method name as Type.Method (simple or fully qualified)")] string symbol,
         [Description("Maximum number of items to return (default: 500). Items are sorted by file, then line.")]
-            int? limit = null)
+            int? limit = null,
+        CancellationToken cancellationToken = default)
     {
         manager.EnsureLoaded();
         var context = manager.GetAnalysisContext();
-        var raw = FindCallersLogic.Execute(context.Loaded, context.Resolver, context.Metadata, symbol);
+        var raw = await FindCallersLogic
+            .ExecuteAsync(context.Loaded, context.Resolver, context.Metadata, symbol, cancellationToken)
+            .ConfigureAwait(false);
 
         var sorted = Sort(raw);
         var summary = BuildSummary(raw);

@@ -24,21 +24,24 @@ public static class FindReferencesTool
                  "(rare fallback). Pass `kinds` to return " +
                  "only some (e.g. `[\"write\",\"readwrite\"]` for mutation sites). Envelope adds a `byKind` " +
                  "summary. Multiple references on one line are reported separately with a `column`.")]
-    public static ToolListResult<SymbolReference> Execute(
+    public static async Task<ToolListResult<SymbolReference>> ExecuteAsync(
         MultiSolutionManager manager,
         [Description("Symbol name: simple type (`MyClass`), fully qualified (`Namespace.MyClass`), or member (`MyClass.MyProperty`)")]
             string symbol,
         [Description("Optional kind filter - only references of these kinds are returned (see the kind list above)")]
             string[]? kinds = null,
         [Description("Maximum number of items to return (default: 500). Items are sorted by file, line, column.")]
-            int? limit = null)
+            int? limit = null,
+        CancellationToken cancellationToken = default)
     {
         // Before EnsureLoaded: a typo should not pay for a cold solution load first.
         ValidateKinds(kinds);
 
         manager.EnsureLoaded();
         var context = manager.GetAnalysisContext();
-        var raw = FindReferencesLogic.Execute(context.Loaded, context.Resolver, context.Metadata, symbol);
+        var raw = await FindReferencesLogic
+            .ExecuteAsync(context.Loaded, context.Resolver, context.Metadata, symbol, cancellationToken)
+            .ConfigureAwait(false);
 
         return BuildResult(raw, kinds, limit ?? DefaultLimit);
     }

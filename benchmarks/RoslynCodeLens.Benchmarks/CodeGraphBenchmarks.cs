@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using Microsoft.Build.Locator;
 using RoslynCodeLens;
+using RoslynCodeLens.Models;
 using RoslynCodeLens.Symbols;
 using RoslynCodeLens.Tools;
 using RoslynCodeLens.Metadata;
@@ -90,9 +91,9 @@ public class CodeGraphBenchmarks
     }
 
     [Benchmark(Description = "find_callers: IGreeter.Greet")]
-    public object FindCallers()
+    public Task<IReadOnlyList<CallerInfo>> FindCallers()
     {
-        return FindCallersLogic.Execute(_loaded, _resolver, _metadata, "IGreeter.Greet");
+        return FindCallersLogic.ExecuteAsync(_loaded, _resolver, _metadata, "IGreeter.Greet", default);
     }
 
     [Benchmark(Description = "find_event_subscribers: Clicked")]
@@ -153,9 +154,9 @@ public class CodeGraphBenchmarks
     }
 
     [Benchmark(Description = "find_references: IGreeter")]
-    public object FindReferences()
+    public Task<IReadOnlyList<SymbolReference>> FindReferences()
     {
-        return FindReferencesLogic.Execute(_loaded, _resolver, _metadata, "IGreeter");
+        return FindReferencesLogic.ExecuteAsync(_loaded, _resolver, _metadata, "IGreeter", default);
     }
 
     [Benchmark(Description = "go_to_definition: Greeter")]
@@ -325,9 +326,9 @@ public class CodeGraphBenchmarks
     }
 
     [Benchmark(Description = "analyze_change_impact: IGreeter.Greet")]
-    public object? AnalyzeChangeImpact()
+    public Task<ChangeImpact?> AnalyzeChangeImpact()
     {
-        return AnalyzeChangeImpactLogic.Execute(_loaded, _resolver, _metadata, "IGreeter.Greet");
+        return AnalyzeChangeImpactLogic.ExecuteAsync(_loaded, _resolver, _metadata, "IGreeter.Greet", default);
     }
 
     [Benchmark(Description = "get_type_overview: Greeter")]
@@ -337,9 +338,9 @@ public class CodeGraphBenchmarks
     }
 
     [Benchmark(Description = "analyze_method: Greeter.Greet")]
-    public object? AnalyzeMethod()
+    public Task<MethodAnalysis> AnalyzeMethod()
     {
-        return AnalyzeMethodLogic.Execute(_loaded, _resolver, _metadata, "Greeter.Greet");
+        return AnalyzeMethodLogic.ExecuteAsync(_loaded, _resolver, _metadata, "Greeter.Greet", default);
     }
 
     [Benchmark(Description = "get_overloads: System.Console.WriteLine")]
