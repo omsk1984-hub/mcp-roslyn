@@ -2,8 +2,8 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
-using Microsoft.CodeAnalysis.Text;
 using RoslynCodeLens.Analyzers;
+using RoslynCodeLens.Loading;
 
 namespace RoslynCodeLens;
 
@@ -431,7 +431,7 @@ public class SolutionLoader
                             continue;
                         if (captured.ContainsKey(p.FilePath))
                             continue;
-                        var info = await ToDetachedInfoAsync(p, analyzerLoader).ConfigureAwait(false);
+                        var info = await DetachedProjectFactory.ToDetachedInfoAsync(p, analyzerLoader).ConfigureAwait(false);
                         captured.TryAdd(p.FilePath, info);
                     }
                 }
@@ -513,63 +513,6 @@ public class SolutionLoader
             .OrderByDescending(t => ClosureSize(t.Path))
             .ThenBy(t => t.Name, StringComparer.Ordinal)
             .ToList();
-    }
-
-    /// <summary>
-    /// Detaches a workspace-loaded <see cref="Project"/> into a self-contained
-    /// <see cref="ProjectInfo"/> with document text materialised in memory and all
-    /// ProjectReferences stripped, so it survives disposal of its source workspace
-    /// and can be re-stitched into a fresh workspace. The project keeps its own
-    /// (globally-unique) id and document ids.
-    /// </summary>
-    private static async Task<ProjectInfo> ToDetachedInfoAsync(Project project, ShadowCopyAnalyzerAssemblyLoader? loader)
-    {
-        var documents = new List<DocumentInfo>();
-        foreach (var d in project.Documents)
-            documents.Add(await ToDocumentInfoAsync(d, d.SourceCodeKind).ConfigureAwait(false));
-
-        var additional = new List<DocumentInfo>();
-        foreach (var d in project.AdditionalDocuments)
-            additional.Add(await ToDocumentInfoAsync(d, SourceCodeKind.Regular).ConfigureAwait(false));
-
-        var analyzerConfig = new List<DocumentInfo>();
-        foreach (var d in project.AnalyzerConfigDocuments)
-            analyzerConfig.Add(await ToDocumentInfoAsync(d, SourceCodeKind.Regular).ConfigureAwait(false));
-
-        return ProjectInfo.Create(
-                project.Id,
-                VersionStamp.Create(),
-                project.Name,
-                project.AssemblyName,
-                project.Language,
-                filePath: project.FilePath,
-                outputFilePath: project.OutputFilePath,
-                compilationOptions: project.CompilationOptions,
-                parseOptions: project.ParseOptions,
-                documents: documents,
-                projectReferences: Array.Empty<ProjectReference>(),
-                metadataReferences: project.MetadataReferences,
-                analyzerReferences: loader is null
-                    ? project.AnalyzerReferences
-                    : AnalyzerReferenceRemapper.Remap(project.AnalyzerReferences, loader),
-                additionalDocuments: additional)
-            .WithAnalyzerConfigDocuments(analyzerConfig)
-            .WithDefaultNamespace(project.DefaultNamespace);
-    }
-
-    private static async Task<DocumentInfo> ToDocumentInfoAsync(TextDocument document, SourceCodeKind kind)
-    {
-        var text = await document.GetTextAsync().ConfigureAwait(false);
-        var loader = TextLoader.From(
-            TextAndVersion.Create(text, VersionStamp.Create(), document.FilePath ?? document.Name));
-
-        return DocumentInfo.Create(
-            document.Id,
-            document.Name,
-            folders: document.Folders,
-            sourceCodeKind: kind,
-            loader: loader,
-            filePath: document.FilePath);
     }
 
     private static async Task<SolutionOpen> OpenFilteredAsync(
