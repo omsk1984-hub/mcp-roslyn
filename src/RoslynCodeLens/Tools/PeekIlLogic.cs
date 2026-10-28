@@ -222,6 +222,9 @@ public static class PeekIlLogic
     /// </summary>
     private static int? MetadataTokenFromPE(PEFileCache cache, string assemblyPath, IMethodSymbol method)
     {
+        // Stage 0 / item 4: ownership contract — PEFileCache owns the PEFile (see
+        // IlDisassemblerAdapter.DisassembleMethod). No `using` here on purpose: the instance
+        // stays live in the cache and is reused by later lookups.
         var pe = cache.Get(assemblyPath);
         var reader = pe.Metadata;
 
