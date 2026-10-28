@@ -10,11 +10,16 @@ namespace RoslynCodeLens;
 
 public sealed class SolutionManager : IDisposable
 {
-    private LoadedSolution _loaded;
-    private SymbolResolver _resolver;
-    private MetadataSymbolResolver _metadataResolver;
+    // The analysis snapshot (LoadedSolution + both resolvers) and the lock that makes reading it
+    // atomic live in SolutionSnapshotStore (stage 5.2). _lock below still guards the
+    // workspace/analyzer-loader lifecycle, which is a different concern with the same lock ordering.
+    private readonly SolutionSnapshotStore _snapshot;
     private readonly string? _solutionPath;
     private FileChangeTracker? _tracker;
+
+    // Guards the disposable lifecycle state (_workspace, _analyzerLoader, _disposed). The snapshot
+    // triple has its own lock inside SolutionSnapshotStore; neither lock is ever held across an
+    // await, and this one is never taken while calling into the store.
     private readonly Lock _lock = new();
 
     // Journal of .cs document paths changed since the last explicit reset (stage 5.2: extracted
@@ -50,19 +55,19 @@ public sealed class SolutionManager : IDisposable
 
     private SolutionManager(LoadedSolution loaded, string? solutionPath)
     {
-        _loaded = loaded;
         _solutionPath = solutionPath;
-        _resolver = new SymbolResolver(loaded);
-        _metadataResolver = new MetadataSymbolResolver(loaded, _resolver);
+        var resolver = new SymbolResolver(loaded);
+        _snapshot = new SolutionSnapshotStore(
+            loaded, resolver, new MetadataSymbolResolver(loaded, resolver));
         _ilAdapter = new IlDisassemblerAdapter(_peCache);
     }
 
     private SolutionManager(string solutionPath, Exception loadException)
     {
-        _loaded = LoadedSolution.Empty;
         _solutionPath = solutionPath;
-        _resolver = new SymbolResolver(_loaded);
-        _metadataResolver = new MetadataSymbolResolver(_loaded, _resolver);
+        var resolver = new SymbolResolver(LoadedSolution.Empty);
+        _snapshot = new SolutionSnapshotStore(
+            LoadedSolution.Empty, resolver, new MetadataSymbolResolver(LoadedSolution.Empty, resolver));
         _ilAdapter = new IlDisassemblerAdapter(_peCache);
         _loadException = loadException;
         _loadFailureMessage = SolutionLoadFailure.Describe(solutionPath, loadException);
@@ -126,17 +131,12 @@ public sealed class SolutionManager : IDisposable
             var newResolver = new SymbolResolver(newLoaded);
             var newMetadataResolver = new MetadataSymbolResolver(newLoaded, newResolver);
 
-            lock (_lock)
-            {
-                _loaded = newLoaded;
-                _resolver = newResolver;
-                _metadataResolver = newMetadataResolver;
+            _snapshot.Swap(newLoaded, newResolver, newMetadataResolver);
 
-                if (_solutionPath != null)
-                {
-                    _tracker = new FileChangeTracker(newLoaded, _solutionPath);
-                    _tracker.OnDllChanged = path => _peCache.Invalidate(path);
-                }
+            if (_solutionPath != null)
+            {
+                _tracker = new FileChangeTracker(newLoaded, _solutionPath);
+                _tracker.OnDllChanged = path => _peCache.Invalidate(path);
             }
 
             await Console.Error.WriteLineAsync($"[roslyn-codelens] Background compilation complete. {compilations.Count} project(s) compiled.").ConfigureAwait(false);
@@ -243,7 +243,7 @@ public sealed class SolutionManager : IDisposable
     public LoadedSolution GetLoadedSolution()
     {
         EnsureReady();
-        return _loaded;
+        return _snapshot.Snapshot().Loaded;
     }
 
     // GetResolver / GetMetadataResolver were removed (stage 3, item 4). Their only production
@@ -274,9 +274,10 @@ public sealed class SolutionManager : IDisposable
     public void EnsureLoaded()
     {
         EnsureReady();
-        if (_loaded.IsEmpty)
+        var loaded = _snapshot.Snapshot().Loaded;
+        if (loaded.IsEmpty)
             throw new InvalidOperationException(
-                DescribeEmptyWorkspace(_solutionPath, _loaded.SkippedProjects));
+                DescribeEmptyWorkspace(_solutionPath, loaded.SkippedProjects));
     }
 
     /// <summary>
@@ -493,7 +494,7 @@ public sealed class SolutionManager : IDisposable
     private async Task<bool> TryRebuildIncrementalAsync(
         IReadOnlySet<ProjectId> staleIds, IReadOnlyList<string> changedDocumentPaths)
     {
-        var solution = _loaded.Solution;
+        var solution = _snapshot.Snapshot().Loaded.Solution;
 
         foreach (var path in changedDocumentPaths)
         {
@@ -538,7 +539,7 @@ public sealed class SolutionManager : IDisposable
         await _rebuildGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var solution = _loaded.Solution;
+            var solution = _snapshot.Snapshot().Loaded.Solution;
             var changedProjects = new HashSet<ProjectId>();
             foreach (var (docId, text) in documents)
             {
@@ -574,13 +575,15 @@ public sealed class SolutionManager : IDisposable
     /// <summary>
     /// Shared tail of the in-place update paths (#282 pattern): recompiles the stale projects of
     /// an already-updated solution fork (unchanged projects keep their carried-over compilations,
-    /// preserving symbol identity), swaps in the new LoadedSolution + resolvers under
-    /// <see cref="_lock"/>, and re-maps the tracker so future edits resolve against the new
-    /// authoritative snapshot. Callers must hold <see cref="_rebuildGate"/>.
+    /// preserving symbol identity), swaps in the new LoadedSolution + resolvers through
+    /// <see cref="SolutionSnapshotStore.Swap"/> (one lock, all three parts — invariant #282), and
+    /// re-maps the tracker so future edits resolve against the new authoritative snapshot.
+    /// Callers must hold <see cref="_rebuildGate"/>.
     /// </summary>
     private async Task RecompileAndSwapAsync(Solution solution, IReadOnlySet<ProjectId> staleIds)
     {
-        var compilations = new ConcurrentDictionary<ProjectId, Compilation>(_loaded.Compilations);
+        var previous = _snapshot.Snapshot().Loaded;
+        var compilations = new ConcurrentDictionary<ProjectId, Compilation>(previous.Compilations);
         var staleProjects = solution.Projects.Where(p => staleIds.Contains(p.Id)).ToList();
         var tasks = staleProjects.Select(async project =>
         {
@@ -591,22 +594,12 @@ public sealed class SolutionManager : IDisposable
         });
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
-        var newLoaded = new LoadedSolution
-        {
-            Solution = solution,
-            Compilations = compilations,
-            SkippedProjects = _loaded.SkippedProjects,
-            LoadDiagnostics = _loaded.LoadDiagnostics
-        };
+        var newLoaded = SolutionSnapshotStore.CreateLoadedSolution(
+            solution, compilations, previous.SkippedProjects, previous.LoadDiagnostics);
         var newResolver = new SymbolResolver(newLoaded);
         var newMetadataResolver = new MetadataSymbolResolver(newLoaded, newResolver);
 
-        lock (_lock)
-        {
-            _loaded = newLoaded;
-            _resolver = newResolver;
-            _metadataResolver = newMetadataResolver;
-        }
+        _snapshot.Swap(newLoaded, newResolver, newMetadataResolver);
 
         // Re-map file->project/document lookups against the new snapshot. Ids are preserved,
         // but a fresh snapshot instance is now authoritative and future edits resolve against it.
@@ -636,22 +629,19 @@ public sealed class SolutionManager : IDisposable
         var workspace = open.Workspace;
         var compilations = await solutionLoader.CompileAllParallelAsync(solution).ConfigureAwait(false);
 
-        var newLoaded = new LoadedSolution
-        {
-            Solution = solution,
-            Compilations = compilations,
-            SkippedProjects = open.Skipped,
-            LoadDiagnostics = open.LoadDiagnostics
-        };
+        var newLoaded = SolutionSnapshotStore.CreateLoadedSolution(
+            solution, compilations, open.Skipped, open.LoadDiagnostics);
         var newResolver = new SymbolResolver(newLoaded);
         var newMetadataResolver = new MetadataSymbolResolver(newLoaded, newResolver);
 
+        // Swap the snapshot and the workspace inside one critical section. The two live under
+        // different locks (the store's and this one), so taking _lock first keeps the original
+        // ordering: no reader can see the new workspace paired with the old snapshot. _lock is
+        // never taken while holding the store's lock, so this cannot deadlock.
         Workspace? oldWorkspace;
         lock (_lock)
         {
-            _loaded = newLoaded;
-            _resolver = newResolver;
-            _metadataResolver = newMetadataResolver;
+            _snapshot.Swap(newLoaded, newResolver, newMetadataResolver);
             oldWorkspace = _workspace;
             _workspace = workspace;
         }
@@ -717,8 +707,7 @@ public sealed class SolutionManager : IDisposable
     public async Task<SolutionAnalysisContext> GetAnalysisContextAsync(CancellationToken ct)
     {
         await EnsureReadyAsync(ct).ConfigureAwait(false);
-        lock (_lock)
-            return new SolutionAnalysisContext(_loaded, _resolver, _metadataResolver);
+        return _snapshot.Snapshot();
     }
 
     /// <summary>
@@ -826,23 +815,18 @@ public sealed class SolutionManager : IDisposable
         var workspace = open.Workspace;
         var compilations = await solutionLoader.CompileAllParallelAsync(solution).ConfigureAwait(false);
 
-        var newLoaded = new LoadedSolution
-        {
-            Solution = solution,
-            Compilations = compilations,
-            SkippedProjects = open.Skipped,
-            LoadDiagnostics = open.LoadDiagnostics
-        };
+        var newLoaded = SolutionSnapshotStore.CreateLoadedSolution(
+            solution, compilations, open.Skipped, open.LoadDiagnostics);
         var newResolver = new SymbolResolver(newLoaded);
         var newMetadataResolver = new MetadataSymbolResolver(newLoaded, newResolver);
 
+        // Snapshot, analyzer loader and workspace all swap in one critical section, exactly as
+        // before the extraction — a reader must not see the new workspace with the old snapshot.
         ShadowCopyAnalyzerAssemblyLoader? oldLoader;
         Workspace? oldWorkspace;
         lock (_lock)
         {
-            _loaded = newLoaded;
-            _resolver = newResolver;
-            _metadataResolver = newMetadataResolver;
+            _snapshot.Swap(newLoaded, newResolver, newMetadataResolver);
             oldLoader = _analyzerLoader;
             oldWorkspace = _workspace;
             _analyzerLoader = analyzerLoader;

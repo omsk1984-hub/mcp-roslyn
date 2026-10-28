@@ -1,4 +1,6 @@
+using Microsoft.CodeAnalysis;
 using RoslynCodeLens.SolutionLifecycle;
+using RoslynCodeLens.Symbols;
 
 namespace RoslynCodeLens.Tests;
 
@@ -100,5 +102,126 @@ public class SolutionManagerDecompositionTests
         })));
 
         Assert.Equal(writers * perWriter, journal.Snapshot().Count);
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // SolutionSnapshotStore — the core of invariant #282.
+    //
+    // The store holds the swappable triple (loaded solution + both resolvers) behind one lock.
+    // #282 was a silent-empty bug: a caller could pair a Solution with a resolver built from a
+    // DIFFERENT snapshot, so SymbolFinder returned nothing. The guarantee is that a reader never
+    // observes a solution and a resolver from different swaps. These tests pin that directly.
+    // ---------------------------------------------------------------------------------------
+
+    private static (LoadedSolution Loaded, SymbolResolver Resolver, MetadataSymbolResolver Metadata)
+        MakeSnapshot()
+    {
+        var loaded = SolutionSnapshotStore.CreateLoadedSolution(
+            new AdhocWorkspace().CurrentSolution);
+        var resolver = new SymbolResolver(loaded);
+        return (loaded, resolver, new MetadataSymbolResolver(loaded, resolver));
+    }
+
+    [Fact]
+    public void SolutionSnapshotStore_ReturnsTheInitialSnapshot()
+    {
+        var (loaded, resolver, metadata) = MakeSnapshot();
+        var store = new SolutionSnapshotStore(loaded, resolver, metadata);
+
+        var snapshot = store.Snapshot();
+
+        Assert.Same(loaded, snapshot.Loaded);
+        Assert.Same(resolver, snapshot.Resolver);
+        Assert.Same(metadata, snapshot.Metadata);
+    }
+
+    /// <summary>
+    /// After a swap the store must hand out the NEW triple — all three parts replaced together,
+    /// never a mix of old and new. This is the #282 regression guard.
+    /// </summary>
+    [Fact]
+    public void SolutionSnapshotStore_SwapReplacesAllThreeParts()
+    {
+        var (firstLoaded, firstResolver, firstMetadata) = MakeSnapshot();
+        var store = new SolutionSnapshotStore(firstLoaded, firstResolver, firstMetadata);
+
+        var (secondLoaded, secondResolver, secondMetadata) = MakeSnapshot();
+        store.Swap(secondLoaded, secondResolver, secondMetadata);
+
+        var snapshot = store.Snapshot();
+        Assert.Same(secondLoaded, snapshot.Loaded);
+        Assert.Same(secondResolver, snapshot.Resolver);
+        Assert.Same(secondMetadata, snapshot.Metadata);
+    }
+
+    /// <summary>
+    /// The actual #282 invariant under concurrency: a reader running while a writer swaps must
+    /// only ever see a COMPLETE old triple or a COMPLETE new triple — never a solution from one
+    /// swap paired with a resolver from the other. Each snapshot is self-identifying through the
+    /// resolver's own <c>Loaded</c> reference, so a mismatch is detectable without any hooks.
+    /// </summary>
+    [Fact]
+    public async Task SolutionSnapshotStore_ConcurrentSnapshotDuringSwap_NeverTears()
+    {
+        var (loadedA, resolverA, metadataA) = MakeSnapshot();
+        var (loadedB, resolverB, metadataB) = MakeSnapshot();
+
+        var store = new SolutionSnapshotStore(loadedA, resolverA, metadataA);
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+        var tearing = new List<string>();
+        var writer = Task.Run(() =>
+        {
+            var useB = true;
+            while (!stop.IsCancellationRequested)
+            {
+                if (useB)
+                    store.Swap(loadedB, resolverB, metadataB);
+                else
+                    store.Swap(loadedA, resolverA, metadataA);
+                useB = !useB;
+            }
+        });
+
+        var readers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                var snapshot = store.Snapshot();
+                // A torn read would mix parts of A with parts of B. All three must agree on
+                // which snapshot they came from.
+                var loadedIsA = ReferenceEquals(snapshot.Loaded, loadedA);
+                var resolverIsA = ReferenceEquals(snapshot.Resolver, resolverA);
+                var metadataIsA = ReferenceEquals(snapshot.Metadata, metadataA);
+                if (loadedIsA != resolverIsA || resolverIsA != metadataIsA)
+                {
+                    lock (tearing)
+                        tearing.Add("torn snapshot observed");
+                }
+            }
+        })).ToArray();
+
+        await Task.WhenAll(readers.Append(writer));
+        Assert.True(tearing.Count == 0, $"Observed {tearing.Count} torn snapshot(s) — #282 regressed.");
+    }
+
+    /// <summary>
+    /// <c>CreateLoadedSolution</c> is the one place that builds an EMPTY (pre-warmup) snapshot with
+    /// no compilations. It must preserve the solution/skips/diagnostics it is handed, because
+    /// <c>SolutionManager.CreateAsync</c> relies on it to publish a queryable-but-unwarmed state.
+    /// </summary>
+    [Fact]
+    public void SolutionSnapshotStore_CreateLoadedSolution_CarriesSkipsAndDiagnostics()
+    {
+        var solution = new AdhocWorkspace().CurrentSolution;
+        var skipped = new[] { new SkippedProject("C:/code/A.csproj", "A", "Legacy", "non-SDK") };
+        var diagnostics = new[] { "dropped reference to X" };
+
+        var loaded = SolutionSnapshotStore.CreateLoadedSolution(solution, skipped, diagnostics);
+
+        Assert.Same(solution, loaded.Solution);
+        Assert.Empty(loaded.Compilations);
+        Assert.Same(skipped, loaded.SkippedProjects);
+        Assert.Same(diagnostics, loaded.LoadDiagnostics);
     }
 }
