@@ -195,6 +195,24 @@ public sealed class SolutionManager : IDisposable
     // keeping single-value getters that each run the protocol independently is exactly the
     // redundancy this stage removes. Callers that want the resolver get it from the snapshot.
 
+    /// <summary>
+    /// The one deliberate exception to <see cref="EnsureReady"/> (stage 3, item 5).
+    ///
+    /// <para>
+    /// <see cref="IlDisassemblerAdapter"/> reads NO loaded-solution state: it is constructed
+    /// from the <see cref="PEFileCache"/> alone and disassembles by assembly path + metadata
+    /// token, so it works identically before load, during warmup and after a failed load.
+    /// Routing it through the readiness protocol would buy no correctness and would instead
+    /// REJECT a supported case — <c>peek_il</c> on a closed-source assembly, which is exactly
+    /// the situation where there may be nothing to load at all.
+    /// </para>
+    ///
+    /// <para>
+    /// Consequently this accessor neither throws on a failed load nor waits for warmup. That
+    /// asymmetry is pinned by <c>GetIlDisassembler_OnLoadFailure_DoesNotThrow</c> and is the
+    /// documented reason it stays outside the protocol rather than an oversight.
+    /// </para>
+    /// </summary>
     public IlDisassemblerAdapter GetIlDisassembler() => _ilAdapter;
 
     public void EnsureLoaded()

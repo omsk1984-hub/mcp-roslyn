@@ -228,24 +228,28 @@ public class SolutionManagerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Scenario (a), second half — the documented EXCEPTION to the protocol:
+    /// Scenario (a), second half — the documented, DELIBERATE exception to the protocol:
     /// <see cref="SolutionManager.GetIlDisassembler"/> neither throws on a failed load nor
     /// waits for warmup. Its body is `=> _ilAdapter`, a field initialised in both
     /// constructors, so it is reachable even when nothing loaded.
     ///
-    /// This is pinned as DEFECT D3-new, NOT as desirable behaviour: an accessor that hands
-    /// out state without the readiness protocol lets a caller observe a not-ready manager
-    /// as if it were ready. Stage 3 item 5 decides whether to fold it into the protocol;
-    /// until then the test documents what the code actually does.
+    /// <para>
+    /// Stage 3 item 5 resolved this by inspection: <see cref="RoslynCodeLens.Metadata.IlDisassemblerAdapter"/>
+    /// reads no loaded-solution state (it holds only a <c>PEFileCache</c> and disassembles by
+    /// assembly path + metadata token), so the readiness protocol would add nothing while
+    /// breaking <c>peek_il</c> for closed-source assemblies. It therefore stays outside
+    /// <c>EnsureReady()</c> on purpose — see the doc comment on the accessor itself — and this
+    /// test keeps that asymmetry from silently becoming an oversight.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task GetIlDisassembler_OnLoadFailure_DoesNotThrow_DefectD3New()
+    public async Task GetIlDisassembler_OnLoadFailure_DoesNotThrow()
     {
         using var manager = await CreateLoadFailureManagerAsync();
         Assert.True(manager.HasLoadFailure);
 
-        // DEFECT D3-new: no ThrowIfLoadFailed(), no warmup wait — contrast with the other
-        // accessors above, which all throw here.
+        // Deliberate: no ThrowIfLoadFailed(), no warmup wait — contrast with the accessors
+        // above, which all throw here. Valid only because the adapter touches no solution state.
         var adapter = manager.GetIlDisassembler();
         Assert.NotNull(adapter);
     }
