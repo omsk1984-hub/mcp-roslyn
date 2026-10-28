@@ -150,33 +150,55 @@ public sealed class SolutionManager : IDisposable
         return _warmupTask ?? Task.CompletedTask;
     }
 
-    public LoadedSolution GetLoadedSolution()
+    /// <summary>
+    /// The single snapshot-access protocol (stage 3, de-duplicating D1/D3/D4/D6): fail loudly
+    /// if the load failed, block until the background warmup finished, surface a warmup
+    /// failure, then bring the snapshot up to date. Every accessor returns state only after
+    /// this, so no caller can observe a not-ready manager as if it were ready.
+    ///
+    /// <para>
+    /// Called OUTSIDE <see cref="_lock"/> on purpose: warmup and the stale rebuild both take
+    /// that lock internally, so holding it here would deadlock. Callers that need several
+    /// pieces from the same swap must therefore re-acquire the lock around their read — see
+    /// <see cref="GetAnalysisContext"/>, which is the reason this split exists at all.
+    /// </para>
+    ///
+    /// <para>
+    /// Note this deliberately does NOT create a fresh <see cref="_resolver"/>: with no stale
+    /// projects it must keep returning the cached instance.
+    /// </para>
+    /// </summary>
+    private void EnsureReady()
     {
         ThrowIfLoadFailed();
+
+        // Blocking wait, but only on first access: CreateAsync starts warmup in the background
+        // and returns immediately (pinned by CreateAsync_ReturnsBeforeCompilationCompletes), so
+        // moving the wait into CreateAsync would regress server startup.
         _warmupTask?.GetAwaiter().GetResult();
         if (_warmupException != null)
-            throw new InvalidOperationException("Solution warmup failed.", _warmupException);
+            throw new InvalidOperationException(WarmupFailedMessage, _warmupException);
+
         RebuildIfStale();
+    }
+
+    private const string WarmupFailedMessage = "Solution warmup failed.";
+
+    public LoadedSolution GetLoadedSolution()
+    {
+        EnsureReady();
         return _loaded;
     }
 
     public SymbolResolver GetResolver()
     {
-        ThrowIfLoadFailed();
-        _warmupTask?.GetAwaiter().GetResult();
-        if (_warmupException != null)
-            throw new InvalidOperationException("Solution warmup failed.", _warmupException);
-        RebuildIfStale();
+        EnsureReady();
         return _resolver;
     }
 
     public MetadataSymbolResolver GetMetadataResolver()
     {
-        ThrowIfLoadFailed();
-        _warmupTask?.GetAwaiter().GetResult();
-        if (_warmupException != null)
-            throw new InvalidOperationException("Solution warmup failed.", _warmupException);
-        RebuildIfStale();
+        EnsureReady();
         return _metadataResolver;
     }
 
@@ -184,10 +206,7 @@ public sealed class SolutionManager : IDisposable
 
     public void EnsureLoaded()
     {
-        ThrowIfLoadFailed();
-        _warmupTask?.GetAwaiter().GetResult();
-        if (_warmupException != null)
-            throw new InvalidOperationException("Solution warmup failed.", _warmupException);
+        EnsureReady();
         if (_loaded.IsEmpty)
             throw new InvalidOperationException(
                 DescribeEmptyWorkspace(_solutionPath, _loaded.SkippedProjects));
@@ -506,14 +525,17 @@ public sealed class SolutionManager : IDisposable
     /// watcher-driven rebuild racing between two getter calls could otherwise pair a solution with
     /// a resolver built from a different snapshot — the same identity mismatch behind #282, just in
     /// a narrow window.
+    ///
+    /// <para>
+    /// <see cref="EnsureReady"/> runs BEFORE the lock is taken, never inside it: warmup and the
+    /// stale rebuild both acquire <see cref="_lock"/> themselves, so locking first would deadlock.
+    /// The lock then pins the three fields against a concurrent swap, which is the atomicity the
+    /// single-snapshot guarantee depends on.
+    /// </para>
     /// </summary>
     public SolutionAnalysisContext GetAnalysisContext()
     {
-        ThrowIfLoadFailed();
-        _warmupTask?.GetAwaiter().GetResult();
-        if (_warmupException != null)
-            throw new InvalidOperationException("Solution warmup failed.", _warmupException);
-        RebuildIfStale();
+        EnsureReady();
         lock (_lock)
             return new SolutionAnalysisContext(_loaded, _resolver, _metadataResolver);
     }
