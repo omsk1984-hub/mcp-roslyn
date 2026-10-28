@@ -364,4 +364,138 @@ public class SolutionManagerTests : IAsyncLifetime
             manager?.Dispose();
         }
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Stage 4, portion A — async-first snapshot access. The synchronous protocol (EnsureReady →
+    // RebuildIfStale) blocks the calling thread for the whole multi-second rebuild. These tests
+    // pin the async replacement: the caller is released while the rebuild runs, cancellation is
+    // honoured WITHOUT losing the drained stale snapshot, and the async path returns the same
+    // snapshot the synchronous one does.
+    // ---------------------------------------------------------------------------------------------
+
+    private static string ConsumerPath => Path.GetFullPath(Path.Combine(
+        AppContext.BaseDirectory, "..", "..", "..",
+        "Fixtures", "TestSolution", "TestLib2", "GreeterConsumer.cs"));
+
+    /// <summary>
+    /// Stage 4/A: <see cref="SolutionManager.GetAnalysisContextAsync"/> must not occupy the calling
+    /// thread for the duration of a stale rebuild. The rebuild is deliberately slowed by the
+    /// internal seam, so a synchronous implementation is still busy when the assertion runs while
+    /// an awaiting one has already yielded.
+    /// </summary>
+    [Fact]
+    public async Task GetAnalysisContextAsync_WhileRebuilding_DoesNotBlockCallingThread()
+    {
+        var consumerPath = ConsumerPath;
+        var original = await File.ReadAllTextAsync(consumerPath);
+
+        SolutionManager? manager = null;
+        try
+        {
+            manager = await SolutionManager.CreateAsync(_solutionPath);
+            await manager.WaitForWarmupAsync();
+
+            await File.WriteAllTextAsync(
+                consumerPath, original + "\n\npublic class AsyncProbe { }\n");
+            manager.SimulateFileChangeForTest(consumerPath);
+            Assert.True(manager.HasStaleProjectsForTest);
+
+            // Slow the rebuild enough that a blocking implementation is still inside it when we
+            // inspect the calling thread below.
+            manager.SetRebuildDelayForTest(TimeSpan.FromMilliseconds(1500));
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var pending = manager.GetAnalysisContextAsync(CancellationToken.None);
+
+            // A blocking implementation would not return here until the rebuild finished, so the
+            // elapsed time alone separates the two behaviours.
+            var elapsed = sw.Elapsed;
+
+            // Give the rebuild time to start (it is a background continuation, not the caller).
+            await Task.Delay(200);
+
+            Assert.False(pending.IsCompleted,
+                "GetAnalysisContextAsync returned synchronously — the stale rebuild is still blocking the calling thread.");
+            Assert.True(elapsed < TimeSpan.FromMilliseconds(700),
+                $"GetAnalysisContextAsync blocked the caller for {elapsed.TotalMilliseconds:F0} ms.");
+
+            var context = await pending;
+            Assert.NotEmpty(context.Resolver.FindSymbols("AsyncProbe"));
+        }
+        finally
+        {
+            await File.WriteAllTextAsync(consumerPath, original);
+            manager?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Stage 4/A: cancelling before the rebuild runs must surface
+    /// <see cref="OperationCanceledException"/> while leaving the drained stale state armed on the
+    /// tracker, so the next access retries the rebuild instead of silently serving a stale snapshot
+    /// forever (the "snapshot drained but never restored" leak this stage guards against).
+    /// </summary>
+    [Fact]
+    public async Task GetAnalysisContextAsync_CancelledBeforeRebuild_ThrowsAndKeepsStaleState()
+    {
+        var consumerPath = ConsumerPath;
+        var original = await File.ReadAllTextAsync(consumerPath);
+
+        SolutionManager? manager = null;
+        try
+        {
+            manager = await SolutionManager.CreateAsync(_solutionPath);
+            await manager.WaitForWarmupAsync();
+
+            Assert.False(manager.HasStaleProjectsForTest);
+
+            await File.WriteAllTextAsync(
+                consumerPath, original + "\n\npublic class CancelProbe { }\n");
+            manager.SimulateFileChangeForTest(consumerPath);
+            Assert.True(manager.HasStaleProjectsForTest);
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => manager.GetAnalysisContextAsync(cts.Token));
+
+            // The cancelled rebuild must not have consumed the stale snapshot: the work is still
+            // pending, so a subsequent query can pick it up.
+            Assert.True(manager.HasStaleProjectsForTest,
+                "Cancellation dropped the drained stale snapshot — the tracker lost the pending rebuild.");
+        }
+        finally
+        {
+            await File.WriteAllTextAsync(consumerPath, original);
+            manager?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Stage 4/A parity: on the same manager state the async and synchronous paths must hand out
+    /// the very same snapshot — identical <see cref="LoadedSolution.Solution"/> and the identical
+    /// resolver instance. The async path must not rebuild the resolver on the warm path.
+    /// </summary>
+    [Fact]
+    public async Task GetAnalysisContextAsync_MatchesSyncPath_OnSameSnapshot()
+    {
+        SolutionManager? manager = null;
+        try
+        {
+            manager = await SolutionManager.CreateAsync(_solutionPath);
+            await manager.WaitForWarmupAsync();
+
+            var sync = manager.GetAnalysisContext();
+            var asyncContext = await manager.GetAnalysisContextAsync(CancellationToken.None);
+
+            Assert.Same(sync.Resolver, asyncContext.Resolver);
+            Assert.Same(sync.Metadata, asyncContext.Metadata);
+            Assert.Same(sync.Loaded.Solution, asyncContext.Loaded.Solution);
+        }
+        finally
+        {
+            manager?.Dispose();
+        }
+    }
 }

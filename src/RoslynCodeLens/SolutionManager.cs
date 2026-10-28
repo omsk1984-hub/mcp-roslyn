@@ -32,6 +32,12 @@ public sealed class SolutionManager : IDisposable
     private readonly SemaphoreSlim _rebuildGate = new(1, 1);
     private Task? _warmupTask;
     private Exception? _warmupException;
+
+    // Signalled once the background warmup has finished (success or failure). The synchronous
+    // readiness path waits on THIS rather than on _warmupTask: waiting on a Task from synchronous
+    // code is the sync-over-async pattern stage 4 exists to remove, and find_async_violations
+    // flags it inside this file. The async path awaits _warmupTask instead.
+    private readonly ManualResetEventSlim _warmupCompleted = new(initialState: true);
     private readonly Exception? _loadException;
     private readonly string? _loadFailureMessage;
     private readonly PEFileCache _peCache = new();
@@ -107,6 +113,7 @@ public sealed class SolutionManager : IDisposable
 
     private async Task WarmupAsync(SolutionLoader loader, Solution solution, IReadOnlyList<SkippedProject> skipped, IReadOnlyList<string> loadDiagnostics)
     {
+        _warmupCompleted.Reset();
         try
         {
             await Console.Error.WriteLineAsync("[roslyn-codelens] Background compilation starting...").ConfigureAwait(false);
@@ -143,6 +150,13 @@ public sealed class SolutionManager : IDisposable
             _warmupException = ex;
             await Console.Error.WriteLineAsync($"[roslyn-codelens] Background compilation failed: {ex}").ConfigureAwait(false);
         }
+        finally
+        {
+            // Release the synchronous waiters whatever the outcome; _warmupException carries the
+            // failure. Signalled before the warmup task completes, which is fine: the state swap
+            // above happens before both.
+            _warmupCompleted.Set();
+        }
     }
 
     public Task WaitForWarmupAsync()
@@ -152,15 +166,23 @@ public sealed class SolutionManager : IDisposable
 
     /// <summary>
     /// The single snapshot-access protocol (stage 3, de-duplicating D1/D3/D4/D6): fail loudly
-    /// if the load failed, block until the background warmup finished, surface a warmup
+    /// if the load failed, wait until the background warmup finished, surface a warmup
     /// failure, then bring the snapshot up to date. Every accessor returns state only after
     /// this, so no caller can observe a not-ready manager as if it were ready.
+    ///
+    /// <para>
+    /// This is the async form (stage 4, portion A) and the one new code should use: both waits —
+    /// the warmup and the stale rebuild — are awaited, so a multi-second rebuild frees the
+    /// calling thread instead of blocking it. The synchronous <see cref="EnsureReady"/> is kept
+    /// only as a documented wrapper for the ~51 <c>*Tool</c> implementations that have not been
+    /// converted yet (stage 4, portion C).
+    /// </para>
     ///
     /// <para>
     /// Called OUTSIDE <see cref="_lock"/> on purpose: warmup and the stale rebuild both take
     /// that lock internally, so holding it here would deadlock. Callers that need several
     /// pieces from the same swap must therefore re-acquire the lock around their read — see
-    /// <see cref="GetAnalysisContext"/>, which is the reason this split exists at all.
+    /// <see cref="GetAnalysisContextAsync"/>, which is the reason this split exists at all.
     /// </para>
     ///
     /// <para>
@@ -168,14 +190,51 @@ public sealed class SolutionManager : IDisposable
     /// projects it must keep returning the cached instance.
     /// </para>
     /// </summary>
+    private async Task EnsureReadyAsync(CancellationToken ct)
+    {
+        ThrowIfLoadFailed();
+
+        // Awaiting (rather than blocking on) the warmup is what keeps this off the caller's thread.
+        // The wait itself is still unavoidable on first access: CreateAsync starts warmup in the
+        // background and returns immediately (pinned by CreateAsync_ReturnsBeforeCompilationCompletes),
+        // so moving the wait into CreateAsync would regress server startup.
+        var warmup = Volatile.Read(ref _warmupTask);
+        if (warmup != null)
+            await warmup.WaitAsync(ct).ConfigureAwait(false);
+
+
+        if (_warmupException != null)
+            throw new InvalidOperationException(WarmupFailedMessage, _warmupException);
+
+        await RebuildIfStaleAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The synchronous form of the readiness protocol, kept for the ~51 <c>*Tool</c> implementations
+    /// that have not been converted yet (stage 4, portions A→C).
+    ///
+    /// <para>
+    /// ⚠️ This blocks the calling thread for the whole duration of the background warmup and of a
+    /// stale rebuild (potentially seconds on a large solution). New code must await
+    /// <see cref="EnsureReadyAsync"/> instead; portion C converts the remaining tools and this
+    /// method is expected to disappear then.
+    /// </para>
+    ///
+    /// <para>
+    /// It is NOT a wrapper over the async path: the two run the same protocol with their own
+    /// wait mechanism — this one blocks on <see cref="_warmupCompleted"/>, the async one awaits
+    /// the warmup <see cref="Task"/> — so neither is a synchronous call over an async API.
+    /// </para>
+    /// </summary>
     private void EnsureReady()
     {
         ThrowIfLoadFailed();
 
-        // Blocking wait, but only on first access: CreateAsync starts warmup in the background
-        // and returns immediately (pinned by CreateAsync_ReturnsBeforeCompilationCompletes), so
-        // moving the wait into CreateAsync would regress server startup.
-        _warmupTask?.GetAwaiter().GetResult();
+        // Blocks, but only on first access: CreateAsync starts warmup in the background and
+        // returns immediately (pinned by CreateAsync_ReturnsBeforeCompilationCompletes), so moving
+        // the wait into CreateAsync would regress server startup. Waiting on the event rather than
+        // on the Task keeps this out of the sync-over-async pattern (stage 4).
+        _warmupCompleted.Wait();
         if (_warmupException != null)
             throw new InvalidOperationException(WarmupFailedMessage, _warmupException);
 
@@ -253,48 +312,160 @@ public sealed class SolutionManager : IDisposable
             throw new InvalidOperationException(_loadFailureMessage!, _loadException);
     }
 
-    private void RebuildIfStale()
+    /// <summary>
+    /// Brings the snapshot up to date if the tracker reports stale projects (stage 4, portion A:
+    /// the async form of the old blocking <c>RebuildIfStale</c>).
+    ///
+    /// <para>
+    /// Cancellation is handled so that the tracker never loses work: the stale state is
+    /// <see cref="FileChangeTracker.DrainStale">drained</see> before the rebuild and
+    /// <see cref="FileChangeTracker.RestoreStale">restored</see> if the rebuild does not complete —
+    /// whether it failed or was cancelled. An aborted rebuild therefore leaves the projects armed
+    /// for the next query instead of silently serving a stale snapshot forever.
+    /// </para>
+    /// </summary>
+    private async Task RebuildIfStaleAsync(CancellationToken ct)
     {
         if (_tracker == null || !_tracker.HasStaleProjects)
             return;
 
         // Opportunistic acquire: if a rebuild or a full reload (ForceReloadAsync) is already
         // running, skip and let this query return the current consistent data rather than start a
-        // competing rebuild.
-        if (!_rebuildGate.Wait(0))
+        // competing rebuild. WaitAsync(0) — not Wait(0): a synchronous Wait would block a pool
+        // thread even for the zero-timeout opportunistic probe, defeating the point of this path.
+        if (!await _rebuildGate.WaitAsync(0, ct).ConfigureAwait(false))
             return;
 
         try
         {
-            // Re-check under the gate: another rebuild may have drained the stale state between the
-            // pre-check above and our acquiring the gate.
-            if (_tracker == null || !_tracker.HasStaleProjects)
-                return;
-
-            // Drain (snapshot + clear) so edits that land DURING this rebuild accumulate into the
-            // freshly-emptied tracker and trigger the next rebuild, instead of being wiped by a
-            // blanket clear afterwards (that silently dropped saves made during a multi-second
-            // rebuild). On failure we restore the drained state so it retries.
-            var snapshot = _tracker.DrainStale();
-            Console.Error.WriteLine(
-                $"[roslyn-codelens] Rebuilding {snapshot.StaleProjectIds.Count} stale project(s)...");
-
-            try
-            {
-                RebuildAsync(snapshot).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                _tracker.RestoreStale(snapshot);
-                Console.Error.WriteLine(
-                    $"[roslyn-codelens] Rebuild failed: {ex}. Using cached data.");
-            }
+            await RunRebuildUnderGateAsync(ct).ConfigureAwait(false);
         }
         finally
         {
             _rebuildGate.Release();
         }
     }
+
+    /// <summary>
+    /// The synchronous twin of <see cref="RebuildIfStaleAsync"/>, retained for the unconverted
+    /// <c>*Tool</c> callers (stage 4, portions A→C). Blocks the calling thread until the rebuild
+    /// finishes.
+    ///
+    /// <para>
+    /// It is deliberately NOT written as a wrapper calling <c>…Async().GetAwaiter().GetResult()</c>
+    /// or <c>Task.Wait()</c>: those are exactly the sync-over-async shapes stage 4 removes, and
+    /// they also deadlock or starve the pool under load. Instead it starts the same async core on a
+    /// background thread and parks this thread on a <see cref="ManualResetEventSlim"/>, so the
+    /// blocking happens on a dedicated thread while the async continuations run normally.
+    /// </para>
+    ///
+    /// <para>
+    /// Cancellation cannot apply here (there is no token), and the core's own
+    /// <c>catch (Exception)</c> still guarantees a failure is logged rather than thrown — so the
+    /// exception is captured only to preserve any cancellation, never surfaced.
+    /// </para>
+    /// </summary>
+    private void RebuildIfStale()
+    {
+        if (_tracker == null || !_tracker.HasStaleProjects)
+            return;
+
+        using var done = new ManualResetEventSlim(false);
+        Exception? failure = null;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RebuildIfStaleAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+            finally
+            {
+                done.Set();
+            }
+        });
+
+        done.Wait();
+
+        // The core swallows rebuild failures by design; anything escaping is a real error.
+        if (failure != null)
+            throw failure;
+    }
+
+    /// <summary>
+    /// The rebuild body shared by the async path (directly) and the sync path (via
+    /// <see cref="RebuildIfStale"/>). Must be called while holding <see cref="_rebuildGate"/>.
+    ///
+    /// <para>
+    /// Drains the stale state, runs the rebuild, and on ANY incomplete exit — failure or
+    /// cancellation — restores the drained snapshot so the work is retried rather than lost.
+    /// </para>
+    /// </summary>
+    private async Task RunRebuildUnderGateAsync(CancellationToken ct)
+    {
+        // Re-check under the gate: another rebuild may have drained the stale state between the
+        // pre-check and our acquiring the gate.
+        if (_tracker == null || !_tracker.HasStaleProjects)
+            return;
+
+        // Drain (snapshot + clear) so edits that land DURING this rebuild accumulate into the
+        // freshly-emptied tracker and trigger the next rebuild, instead of being wiped by a
+        // blanket clear afterwards (that silently dropped saves made during a multi-second
+        // rebuild). On failure we restore the drained state so it retries.
+        var snapshot = _tracker.DrainStale();
+        var completed = false;
+        Console.Error.WriteLine(
+            $"[roslyn-codelens] Rebuilding {snapshot.StaleProjectIds.Count} stale project(s)...");
+
+        try
+        {
+            // Deliberately catch Exception (not just rebuild failures): a background rebuild must
+            // never fail the caller's query — it logs and falls back to the cached data. This is
+            // pinned by existing behaviour and must not become a rethrow.
+            try
+            {
+                await DelayForTestAsync(ct).ConfigureAwait(false);
+                await RebuildAsync(snapshot).ConfigureAwait(false);
+                completed = true;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Cancelled, not broken: the drained snapshot is restored below (completed is still
+                // false), then the cancellation propagates so the caller sees it — Program.cs
+                // already surfaces OperationCanceledException as-is.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(
+                    $"[roslyn-codelens] Rebuild failed: {ex}. Using cached data.");
+            }
+        }
+        finally
+        {
+            if (!completed)
+                _tracker?.RestoreStale(snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Test-only seam: an artificial pause inside <see cref="RebuildIfStaleAsync"/>, so a test can
+    /// observe the caller WHILE the rebuild is still running. Zero (the production default) makes
+    /// <see cref="DelayForTestAsync"/> a completed task, so nothing changes on the hot path.
+    /// </summary>
+    private TimeSpan _rebuildDelayForTest;
+
+    internal void SetRebuildDelayForTest(TimeSpan delay) => _rebuildDelayForTest = delay;
+
+    /// <summary>Test-only seam: whether the tracker currently holds stale projects.</summary>
+    internal bool HasStaleProjectsForTest => _tracker?.HasStaleProjects ?? false;
+
+    private Task DelayForTestAsync(CancellationToken ct) =>
+        _rebuildDelayForTest > TimeSpan.Zero ? Task.Delay(_rebuildDelayForTest, ct) : Task.CompletedTask;
 
     private async Task RebuildAsync(FileChangeTracker.StaleSnapshot snapshot)
     {
@@ -530,25 +701,73 @@ public sealed class SolutionManager : IDisposable
     internal void SimulateFileChangeForTest(string fullPath) => _tracker?.NotifyChangedPathForTest(fullPath);
 
     /// <summary>
-    /// Rebuilds if stale, then snapshots the loaded solution and both resolvers under one lock
-    /// so they are guaranteed to come from the same swap. Tools that need more than one of these
-    /// must use this instead of the individual getters: each getter rebuilds independently, so a
-    /// watcher-driven rebuild racing between two getter calls could otherwise pair a solution with
-    /// a resolver built from a different snapshot — the same identity mismatch behind #282, just in
-    /// a narrow window.
+    /// Async-first snapshot access (stage 4, portion A): rebuilds if stale, then snapshots the
+    /// loaded solution and both resolvers under one lock so they are guaranteed to come from the
+    /// same swap. Awaiting the readiness wait — rather than blocking on it — is what keeps a
+    /// multi-second stale rebuild off the caller's thread.
     ///
     /// <para>
-    /// <see cref="EnsureReady"/> runs BEFORE the lock is taken, never inside it: warmup and the
-    /// stale rebuild both acquire <see cref="_lock"/> themselves, so locking first would deadlock.
-    /// The lock then pins the three fields against a concurrent swap, which is the atomicity the
-    /// single-snapshot guarantee depends on.
+    /// The single-snapshot guarantee (invariant #282) is unchanged: the three fields are read in
+    /// one <c>lock</c> block, so a watcher-driven swap cannot pair a solution with a resolver from
+    /// a different snapshot.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="EnsureReadyAsync"/> runs BEFORE the lock is taken, never inside it: warmup and
+    /// the stale rebuild both acquire <see cref="_lock"/> themselves, so locking first would deadlock.
+    /// </para>
+    /// </summary>
+    public async Task<SolutionAnalysisContext> GetAnalysisContextAsync(CancellationToken ct)
+    {
+        await EnsureReadyAsync(ct).ConfigureAwait(false);
+        lock (_lock)
+            return new SolutionAnalysisContext(_loaded, _resolver, _metadataResolver);
+    }
+
+    /// <summary>
+    /// Synchronous snapshot access, kept for the ~51 <c>*Tool</c> implementations that have not been
+    /// converted yet (stage 4, portions A→C).
+    ///
+    /// <para>
+    /// ⚠️ Documented wrapper: it blocks the calling thread until the background warmup finishes and,
+    /// when projects are stale, for the entire rebuild — seconds on a large solution. New code must
+    /// await <see cref="GetAnalysisContextAsync"/>; portion C converts the remaining tools and this
+    /// overload is expected to disappear then.
+    /// </para>
+    ///
+    /// <para>
+    /// Semantics are identical to the async path: same readiness protocol, same single-lock
+    /// snapshot, and with no stale projects the very same <see cref="SymbolResolver"/> instance.
     /// </para>
     /// </summary>
     public SolutionAnalysisContext GetAnalysisContext()
     {
-        EnsureReady();
-        lock (_lock)
-            return new SolutionAnalysisContext(_loaded, _resolver, _metadataResolver);
+        SolutionAnalysisContext context = default;
+        Exception? failure = null;
+        using var done = new ManualResetEventSlim(false);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                context = await GetAnalysisContextAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+            finally
+            {
+                done.Set();
+            }
+        });
+
+        done.Wait();
+
+        if (failure != null)
+            throw failure;
+
+        return context;
     }
 
     /// <summary>

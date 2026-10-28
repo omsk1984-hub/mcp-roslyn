@@ -348,6 +348,73 @@ flowchart TD
 в `src/`; перестройка отменяется по `CancellationToken`; инструменты возвращают
 `OperationCanceledException` наружу без изменений (как сейчас задумано в
 [`Program.cs:66-68`](../src/RoslynCodeLens/Program.cs:66)).
+
+#### 4.1. Уточнённые факты (перепроверено 2026-10-28 после этапа 3)
+
+> ⚠️ **Исходный аудит занизил масштаб.** В разделе 1.2 числилось 5 сайтов sync-over-async,
+> все в `SolutionManager`. Фактический `find_async_violations` даёт **5 нарушений, из них
+> только 2 в `SolutionManager`**: этап 3 свёл четыре копии в `EnsureReady()`, поэтому счётчик
+> по файлу уменьшился, но обнажил три ранее не зафиксированных сайта в слое логики.
+
+| Сайт | Файл | Комментарий |
+|---|---|---|
+| 1 | [`SolutionManager.cs:178`](../src/RoslynCodeLens/SolutionManager.cs:178) — `EnsureReady()` | ожидание warmup; **единственная** точка после этапа 3 |
+| 2 | [`SolutionManager.cs:284`](../src/RoslynCodeLens/SolutionManager.cs:284) — `RebuildIfStale()` | блокирующая перестройка |
+| 3 | [`FindReferencesLogic.cs:43`](../src/RoslynCodeLens/Tools/FindReferencesLogic.cs:43) | `SymbolFinder.FindReferencesAsync(...).GetAwaiter().GetResult()` |
+| 4 | [`FindReferencesLogic.cs:92`](../src/RoslynCodeLens/Tools/FindReferencesLogic.cs:92) | `document.GetSemanticModelAsync().GetAwaiter().GetResult()` |
+| 5 | [`FindCallersLogic.cs:38`](../src/RoslynCodeLens/Tools/FindCallersLogic.cs:38) | `SymbolFinder.FindCallersAsync(...).GetAwaiter().GetResult()` |
+
+**Следствие:** цель «0 sync-over-async» недостижима правкой только `SolutionManager`.
+Сайты 3–5 требуют сделать асинхронными сами `*Logic`, а это каскад вызовов:
+
+| Метод | Прод-вызовы | Тест/бенч-вызовы | Всего |
+|---|---|---|---|
+| `FindReferencesLogic.Execute` | 3 ([`AnalyzeChangeImpactLogic.cs:10`](../src/RoslynCodeLens/Tools/AnalyzeChangeImpactLogic.cs:10), [`FindReferencesTool.cs:41`](../src/RoslynCodeLens/Tools/FindReferencesTool.cs:41), [`ValidateEditLogic.cs:159`](../src/RoslynCodeLens/Tools/ValidateEditLogic.cs:159)) | **11** | 14 |
+| `FindCallersLogic.Execute` | 3 ([`AnalyzeChangeImpactLogic.cs:11`](../src/RoslynCodeLens/Tools/AnalyzeChangeImpactLogic.cs:11), [`AnalyzeMethodLogic.cs:21`](../src/RoslynCodeLens/Tools/AnalyzeMethodLogic.cs:21), [`FindCallersTool.cs:23`](../src/RoslynCodeLens/Tools/FindCallersTool.cs:23)) | **5** | 8 |
+
+Каскад второго порядка: `AnalyzeChangeImpactLogic`, `AnalyzeMethodLogic` и `ValidateEditLogic`
+становятся `async` → их `*Tool` тоже → их тесты (десятки сайтов).
+
+#### 4.2. Уточнённый порядок — три изолированные порции
+
+Порции независимы по файлам и коммитятся отдельно; каждая завершается полным прогоном тестов.
+
+**Порция A — `SolutionManager` (сайты 1–2).** ✅ **Выполнено 2026-10-28.**
+`EnsureReadyAsync()` + `RebuildIfStaleAsync()`. Синхронные обёртки **не удалять сразу**:
+их используют 51 `*Tool`; на этой порции добавляется async-вариант
+`GetAnalysisContextAsync(ct)`, а синхронный остаётся для ещё не переведённых вызовов.
+⚠️ Учитывать: `_rebuildGate.Wait(0)` (opportunistic acquire) — при async-переписывании
+заменить на `WaitAsync(0)`, иначе блокируется поток пула. Ловушка `catch (Exception ex)` вокруг
+`RebuildAsync` сохраняется (перестройка не должна ронять запрос), только `await` вместо `.GetResult()`.
+
+**Итог порции A:**
+- Добавлены `EnsureReadyAsync(ct)`, `RebuildIfStaleAsync(ct)`, `GetAnalysisContextAsync(ct)`;
+  `_rebuildGate.WaitAsync(0, ct)` вместо синхронного `Wait(0)`.
+- Синхронный путь сохранён как документированный (для 51 `*Tool`, порция C):
+  `EnsureReady()` ждёт `_warmupCompleted` (`ManualResetEventSlim`), `RebuildIfStale()` и
+  `GetAnalysisContext()` паркуют вызывающий поток на событие вокруг *той же* async-реализации —
+  поэтому в файле **нет** `Task.Wait()` / `.GetAwaiter().GetResult()` вообще.
+- Отмена: `OperationCanceledException` отдаёт drained-снимок обратно в трекер (`RestoreStale`
+  в `finally` при `completed == false`), затем пробрасывается наружу. `catch (Exception)`
+  вокруг перестройки сохранён — перестройка по-прежнему не роняет запрос, только логирует.
+- Инвариант #282 сохранён: снимок берётся одним `lock (_lock)` в обеих ветках.
+- Тесты (`SolutionManagerTests`): `GetAnalysisContextAsync_WhileRebuilding_DoesNotBlockCallingThread`,
+  `GetAnalysisContextAsync_CancelledBeforeRebuild_ThrowsAndKeepsStaleState`,
+  `GetAnalysisContextAsync_MatchesSyncPath_OnSameSnapshot`.
+- Проверка: `find_async_violations` в `SolutionManager.cs` — **0** (было 2), по решению **3**
+  (остались сайты 3–5 порции B); `get_diagnostics` 0/0; `dotnet test` — **1252 passed, 0 failed**
+  (база 1249 + 3 новых).
+
+**Порция B — `FindReferencesLogic` + `FindCallersLogic` (сайты 3–5).**
+`Execute` → `ExecuteAsync(..., ct)`; внутренние синхронные `SymbolFinder`-вызовы и
+`GetSemanticModelAsync` — на `await`. Затем перевести 6 прод-вызывающих и 16 тест/бенч-сайтов.
+⚠️ Порядок: сначала async-версия рядом со старой, перевести вызывающих, потом удалить старую.
+Не совмещать с `SolutionManager` — разные причины падений (Roslyn API против жизненного цикла).
+
+**Порция C — инструменты.**
+Перевести оставшиеся синхронные `Execute` у 40+ `*Tool` на `ExecuteAsync`, использующие
+`GetAnalysisContextAsync`. Здесь же — единственная проверка, что MCP-хост корректно
+поддерживает `Task<T>`-возврат инструмента (он уже используется у `GetCallGraphTool`).
 **Влияние на поведение:** при протухшем решении вызов больше не занимает поток;
 латентность ответа не меняется (перестройка всё равно нужна), меняется масштабируемость.
 **Риски:** **высокие.** 40+ сигнатур, MCP-хост ожидает либо `T`, либо `Task<T>` —
