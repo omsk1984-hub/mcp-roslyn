@@ -672,29 +672,6 @@ public class SolutionLoader
         };
     }
 
-    public static string? FindSolutionFile(string startDirectory)
-    {
-        var dir = new DirectoryInfo(startDirectory);
-        while (dir != null)
-        {
-            FileInfo? shortest = null;
-            foreach (var f in dir.GetFiles("*.sln"))
-            {
-                if (shortest == null || f.FullName.Length < shortest.FullName.Length)
-                    shortest = f;
-            }
-            foreach (var f in dir.GetFiles("*.slnx"))
-            {
-                if (shortest == null || f.FullName.Length < shortest.FullName.Length)
-                    shortest = f;
-            }
-            if (shortest != null)
-                return shortest.FullName;
-            dir = dir.Parent;
-        }
-        return null;
-    }
-
     /// <summary>
     /// Returns projects grouped by dependency level (leaves first).
     /// Level 0 = no project dependencies, Level 1 = depends only on level 0, etc.

@@ -7,6 +7,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynCodeLens;
 using RoslynCodeLens.BackgroundTasks;
+using RoslynCodeLens.Loading;
 using RoslynCodeLens.Security;
 
 CliOptions options;
@@ -29,7 +30,7 @@ MultiSolutionManager multiManager;
 
 var solutionPaths = options.SolutionPaths.Count > 0
     ? options.SolutionPaths.ToList()
-    : SolutionLoader.FindSolutionFile(Directory.GetCurrentDirectory()) is { } found
+    : SolutionFileLocator.Find(Directory.GetCurrentDirectory()) is { } found
         ? [found]
         : [];
 
