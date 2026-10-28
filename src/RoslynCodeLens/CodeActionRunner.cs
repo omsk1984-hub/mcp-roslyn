@@ -80,6 +80,81 @@ public static class CodeActionRunner
         }
     }
 
+    /// <summary>
+    /// Applies a READY <see cref="CodeAction"/> (no title lookup) through the shared write gate
+    /// (<see cref="SolutionChangeSafety.PreviewOrApplyAsync"/>): preview/apply, conflict detection,
+    /// freshness, and in-memory commit. Extracted from <see cref="ApplyActionAsync"/> so that
+    /// apply_fix (which already holds the CodeAction for a specific diagnostic) and
+    /// extract_method (which selects a nested action) can apply without re-searching by title.
+    /// </summary>
+    public static async Task<SolutionChangeSafety.SolutionChangeOutcome> ApplyOperationsAsync(
+        LoadedSolution loaded, Project project, CodeAction action,
+        bool preview, bool force,
+        CommitWrittenDocuments? commitToMemory, CancellationToken ct)
+    {
+        var operations = await action.GetOperationsAsync(ct).ConfigureAwait(false);
+        var applyOp = operations.OfType<ApplyChangesOperation>().FirstOrDefault();
+        if (applyOp == null)
+        {
+            return new SolutionChangeSafety.SolutionChangeOutcome(false, false, [], 0, [],
+                "Action did not produce any applicable changes");
+        }
+
+        var edits = await SolutionChangeWriter.ExtractTextEditsAsync(
+            applyOp.ChangedSolution, project.Solution, ct).ConfigureAwait(false);
+
+        // Degraded guard: a load with dropped references can make the conflict scan
+        // unreliable; refuse to write in that state unless forced (previews warn).
+        var degradedRefusal = preview
+            ? null
+            : SolutionChangeSafety.DegradedApplyRefusal(loaded, force, "code action");
+        if (degradedRefusal != null)
+        {
+            return new SolutionChangeSafety.SolutionChangeOutcome(false, false, edits, 0, [], degradedRefusal);
+        }
+
+        return await SolutionChangeSafety.PreviewOrApplyAsync(
+            loaded, applyOp.ChangedSolution, "code action", preview, force,
+            _ => $"Applied '{action.Title}'.",
+            commitToMemory, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Collects the built-in code-fix <see cref="CodeAction"/>s for a single diagnostic
+    /// (the same provider set <see cref="GetActionsAsync"/> uses for its code-fix half).
+    /// apply_fix uses this to obtain the actual CodeAction for a diagnostic — the
+    /// analyzer-reference path (CodeFixRunner) only covers analyzer-provided fixes, while
+    /// compiler fixes such as the CS0246 "using" fix live in the built-in providers.
+    /// </summary>
+    public static async Task<IReadOnlyList<CodeAction>> GetCodeFixActionsAsync(
+        Project project, Document document, Compilation compilation,
+        Diagnostic diagnostic, CancellationToken ct)
+    {
+        var actions = new List<CodeAction>();
+
+        foreach (var provider in s_codeFixProviders.Value)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!provider.FixableDiagnosticIds.Contains(diagnostic.Id, StringComparer.OrdinalIgnoreCase))
+                continue;
+
+            try
+            {
+                var context = new CodeFixContext(document, diagnostic,
+                    (action, _) => actions.Add(action), ct);
+                await provider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                await Console.Error.WriteLineAsync(
+                    $"[roslyn-codelens] CodeFix provider failed ({provider.GetType().Name}): {ex.Message}")
+                    .ConfigureAwait(false);
+            }
+        }
+
+        return actions;
+    }
+
     private static async Task<(List<CodeAction> Actions, HashSet<string> CodeFixTitles)> CollectRawActionsAsync(
         Project project, Document document, Compilation compilation,
         int line, int column, int? endLine, int? endColumn, CancellationToken ct)
