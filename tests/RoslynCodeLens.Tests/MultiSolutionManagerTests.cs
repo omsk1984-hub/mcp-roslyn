@@ -41,7 +41,7 @@ public class MultiSolutionManagerTests : IAsyncLifetime
     {
         var multi = await MultiSolutionManager.CreateAsync([_solutionPath]);
         await multi.WaitForWarmupAsync();
-        Assert.NotNull(multi.GetResolver());
+        Assert.NotNull(multi.GetAnalysisContext().Resolver);
         multi.Dispose();
     }
 
@@ -180,7 +180,7 @@ public class MultiSolutionManagerTests : IAsyncLifetime
         await multi.WaitForWarmupAsync();
 
         // The resolver should work against the dynamically loaded solution
-        var resolver = multi.GetResolver();
+        var resolver = multi.GetAnalysisContext().Resolver;
         Assert.NotNull(resolver);
 
         var solution = multi.GetLoadedSolution();

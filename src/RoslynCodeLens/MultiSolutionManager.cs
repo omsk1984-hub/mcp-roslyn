@@ -72,16 +72,21 @@ public sealed class MultiSolutionManager : IDisposable
     }
 
     public void EnsureLoaded() => Active.EnsureLoaded();
-    public LoadedSolution GetLoadedSolution() => Active.GetLoadedSolution();
-    public SymbolResolver GetResolver() => Active.GetResolver();
-    public MetadataSymbolResolver GetMetadataResolver() => Active.GetMetadataResolver();
 
     /// <summary>
     /// An internally-consistent (solution, resolver, metadata) snapshot from the active solution.
-    /// Tools needing more than one of these must use this rather than the individual getters,
+    /// Tools needing more than one of these must use this rather than any single-value accessor,
     /// which each rebuild independently and can diverge if a rebuild races between two calls.
+    ///
+    /// <para>
+    /// This is the single snapshot channel: the two single-value getters below are thin
+    /// projections of it, so there is exactly one place where readiness is established and
+    /// exactly one place where a swap can be observed. Stage 3 item 4.
+    /// </para>
     /// </summary>
     public SolutionAnalysisContext GetAnalysisContext() => Active.GetAnalysisContext();
+
+    public LoadedSolution GetLoadedSolution() => GetAnalysisContext().Loaded;
     public IlDisassemblerAdapter GetIlDisassembler() => Active.GetIlDisassembler();
     public Task WaitForWarmupAsync() => Active.WaitForWarmupAsync();
     public Task<(int ProjectCount, TimeSpan Elapsed)> ForceReloadAsync() => Active.ForceReloadAsync();

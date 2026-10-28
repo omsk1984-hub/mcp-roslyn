@@ -17,6 +17,6 @@ public static class InspectExternalAssemblyTool
     {
         manager.EnsureLoaded();
         return InspectExternalAssemblyLogic.Execute(
-            manager.GetMetadataResolver(), assemblyName, mode, namespaceFilter);
+            manager.GetAnalysisContext().Metadata, assemblyName, mode, namespaceFilter);
     }
 }

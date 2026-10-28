@@ -22,7 +22,7 @@ public class SolutionManagerTests : IAsyncLifetime
 
         Assert.NotNull(manager.GetLoadedSolution());
         Assert.False(manager.GetLoadedSolution().IsEmpty);
-        Assert.NotNull(manager.GetResolver());
+        Assert.NotNull(manager.GetAnalysisContext().Resolver);
         manager.Dispose();
     }
 
@@ -30,8 +30,8 @@ public class SolutionManagerTests : IAsyncLifetime
     public async Task GetResolver_ReturnsCachedInstance_WhenNotStale()
     {
         var manager = await SolutionManager.CreateAsync(_solutionPath);
-        var resolver1 = manager.GetResolver();
-        var resolver2 = manager.GetResolver();
+        var resolver1 = manager.GetAnalysisContext().Resolver;
+        var resolver2 = manager.GetAnalysisContext().Resolver;
 
         Assert.Same(resolver1, resolver2);
         manager.Dispose();
@@ -104,7 +104,7 @@ public class SolutionManagerTests : IAsyncLifetime
 
         // After warmup, resolver should have data
         await manager.WaitForWarmupAsync();
-        var resolver = manager.GetResolver();
+        var resolver = manager.GetAnalysisContext().Resolver;
 
         Assert.True(resolver.AllTypes.Count > 0);
         manager.Dispose();
@@ -178,8 +178,8 @@ public class SolutionManagerTests : IAsyncLifetime
     {
         var manager = await SolutionManager.CreateAsync(_solutionPath);
 
-        // GetResolver should block until warmup is done and return valid resolver
-        var resolver = manager.GetResolver();
+        // The snapshot accessor should block until warmup is done and return valid resolver
+        var resolver = manager.GetAnalysisContext().Resolver;
         Assert.True(resolver.AllTypes.Count > 0);
         manager.Dispose();
     }
@@ -218,8 +218,6 @@ public class SolutionManagerTests : IAsyncLifetime
         var thrown = new List<Exception>
         {
             Assert.Throws<InvalidOperationException>(() => manager.GetLoadedSolution()),
-            Assert.Throws<InvalidOperationException>(() => manager.GetResolver()),
-            Assert.Throws<InvalidOperationException>(() => manager.GetMetadataResolver()),
             Assert.Throws<InvalidOperationException>(() => manager.GetAnalysisContext()),
             Assert.Throws<InvalidOperationException>(() => manager.EnsureLoaded()),
         };
@@ -292,10 +290,13 @@ public class SolutionManagerTests : IAsyncLifetime
             manager = await SolutionManager.CreateAsync(_solutionPath);
             await manager.WaitForWarmupAsync();
 
-            // Nothing named StaleProbe exists yet, as seen through each accessor.
-            Assert.Empty(manager.GetResolver().FindSymbols("StaleProbe"));
-            Assert.Null(manager.GetMetadataResolver().Resolve("StaleProbe"));
+            // Nothing named StaleProbe exists yet, as seen through each surviving accessor:
+            // the snapshot (resolver + metadata) and the loaded solution.
             Assert.Empty(manager.GetAnalysisContext().Resolver.FindSymbols("StaleProbe"));
+            Assert.Null(manager.GetAnalysisContext().Metadata.Resolve("StaleProbe"));
+            Assert.Empty(manager.GetLoadedSolution().Solution.Projects
+                .SelectMany(p => p.Documents)
+                .Where(d => d.Name.Contains("StaleProbe", StringComparison.Ordinal)));
 
             await File.WriteAllTextAsync(
                 consumerPath,
@@ -304,9 +305,12 @@ public class SolutionManagerTests : IAsyncLifetime
 
             // Each accessor rebuilds the stale project before answering, so the type appears
             // on the very next call — no explicit reload, no second accessor needed.
-            Assert.NotEmpty(manager.GetResolver().FindSymbols("StaleProbe"));
-            Assert.NotNull(manager.GetMetadataResolver().Resolve("StaleProbe"));
             Assert.NotEmpty(manager.GetAnalysisContext().Resolver.FindSymbols("StaleProbe"));
+            Assert.NotNull(manager.GetAnalysisContext().Metadata.Resolve("StaleProbe"));
+            var staleDoc = manager.GetLoadedSolution().Solution.Projects
+                .SelectMany(p => p.Documents)
+                .First(d => string.Equals(d.FilePath, consumerPath, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains("StaleProbe", (await staleDoc.GetTextAsync()).ToString(), StringComparison.Ordinal);
         }
         finally
         {

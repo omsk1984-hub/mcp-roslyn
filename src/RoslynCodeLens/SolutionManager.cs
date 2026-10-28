@@ -190,17 +190,10 @@ public sealed class SolutionManager : IDisposable
         return _loaded;
     }
 
-    public SymbolResolver GetResolver()
-    {
-        EnsureReady();
-        return _resolver;
-    }
-
-    public MetadataSymbolResolver GetMetadataResolver()
-    {
-        EnsureReady();
-        return _metadataResolver;
-    }
+    // GetResolver / GetMetadataResolver were removed (stage 3, item 4). Their only production
+    // consumer was MultiSolutionManager, which now reads the pair from GetAnalysisContext();
+    // keeping single-value getters that each run the protocol independently is exactly the
+    // redundancy this stage removes. Callers that want the resolver get it from the snapshot.
 
     public IlDisassemblerAdapter GetIlDisassembler() => _ilAdapter;
 
