@@ -524,7 +524,7 @@ flowchart TD
 | [x] `SymbolResolver` (414 LOC, 45 членов, 6 входящих namespace) → `SymbolIndex` (поиск по имени) + `TypeIndex` (иерархии, реализации) + `LocationIndex` (файл/строка/project) | [`SymbolResolver.cs:7`](../src/RoslynCodeLens/SymbolResolver.cs:7) |
 | `FindAsyncViolationsLogic.Execute` (CC 27 / cognitive 66): выделить детектор на каждый из 6 шаблонов; метод верхнего уровня только собирает результаты | [`FindAsyncViolationsLogic.cs:14`](../src/RoslynCodeLens/Tools/FindAsyncViolationsLogic.cs:14) |
 | `FindObsoleteUsageLogic.Execute` (CC 24 / cognitive 61): отделить обход от группировки | [`FindObsoleteUsageLogic.cs:11`](../src/RoslynCodeLens/Tools/FindObsoleteUsageLogic.cs:11) |
-| `SolutionLoader.OpenPerProjectAsync` (CC 23 / cognitive 50): разбить на «открыть проект», «применить фильтр», «скомпилировать пачкой» | [`SolutionLoader.cs:278`](../src/RoslynCodeLens/SolutionLoader.cs:278) |
+| [x] `SolutionLoader.OpenPerProjectAsync` (CC 23 / cognitive 50): разбить на «открыть проект», «применить фильтр», «скомпилировать пачкой» | [`SolutionLoader.cs:278`](../src/RoslynCodeLens/SolutionLoader.cs:278) |
 | `CheckArchitectureLogic.ExecuteCore` (CC 22 / cognitive 55): по одному методу на `forbid` и `allowOnly` | [`CheckArchitectureLogic.cs:56`](../src/RoslynCodeLens/Tools/CheckArchitectureLogic.cs:56) |
 | `GenerateTestSkeletonLogic` (530 LOC): выделить `TestSkeletonRenderer` (генерация текста) и `TestSkeletonPlanner` (что генерировать) | [`GenerateTestSkeletonLogic.cs:10`](../src/RoslynCodeLens/Tools/GenerateTestSkeletonLogic.cs:10) |
 | `GetCallGraphLogic.EnumerateOutgoingCalls` (CC 25): выделить обработку внешних узлов | [`GetCallGraphLogic.cs:179`](../src/RoslynCodeLens/Tools/GetCallGraphLogic.cs:179) |
@@ -699,6 +699,81 @@ flowchart TD
 
 Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1276 passed, 0 failed**.
 Подробности — [`decision/2026-10-28T22-40-stage5-2-solutionmanager-decomposition.md`](../decision/2026-10-28T22-40-stage5-2-solutionmanager-decomposition.md).
+
+#### 5.3. `SolutionLoader` — выполнено 2026-10-28
+
+Исходное состояние: **751 LOC, 22 члена**, `OpenPerProjectAsync` **CC 23 / cognitive 50** —
+второй худший метод решения после `FindAsyncViolationsLogic.Execute`.
+
+Две задачи выполнены раздельно, четыре коммита (перенос + извлечение, поведение не менялось,
+тесты загрузчика не правились):
+
+| Метрика | До | После |
+|---|---|---|
+| `OpenPerProjectAsync` — CC | **23** | **14** |
+| `OpenPerProjectAsync` — cognitive | **50** | **26** |
+| `SolutionLoader` — LOC | **751** | **670** |
+| `SolutionLoader` — членов | 22 | **19** |
+| Методов `SolutionLoader*` с CC > 15 | 1 | **0** |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| `dotnet test RoslynCodeLens.slnx` | 1276 passed | **1286 passed, 0 failed** |
+| Тесты загрузчика | 46 | 46 **без правок** + 10 новых |
+
+**Задача 1 — сложность.** `OpenPerProjectAsync` разбит по плану на «построить граф»,
+«открыть проект», остальное осталось оркестрацией ре-ститча:
+
+| Метод (новый) | Вид | Ответственность |
+|---|---|---|
+| `BuildTargetGraph` → [`TargetProjectGraph.Build`](../src/RoslynCodeLens/Loading/TargetProjectGraph.cs) | перенос | граф `ProjectReference`, ограниченный target-набором |
+| `OrderRootsFirst` → [`TargetProjectGraph.OrderRootsFirst`](../src/RoslynCodeLens/Loading/TargetProjectGraph.cs) | перенос | порядок корней по убыванию замыкания |
+| [`LoadProjectIntoCaptureAsync`](../src/RoslynCodeLens/SolutionLoader.cs:426) | извлечение | открытие проекта под `s_buildHostGate`, capture, `Failed`/`Timeout` reasons |
+
+Извлечения выполнены инструментом (Roslyn extract-method + `rename_symbol` с `preview: true`),
+а не вручную; сигнатура `bool` → `async Task<bool>` исправлена после извлечения
+(провайдер не помечает извлечённый метод `async`, хотя тело содержит `await`).
+
+**Контракт `Skipped` не изменился** — это главный риск пункта. Сохранено дословно:
+пользовательская отмена (`ct`) пробрасывается и **никогда** не становится skip; прочие
+исключения → kind `Failed`, reason `"{ExceptionType}: {Message}"`; таймаут (`null` из
+`RunWithTimeoutAsync`) → kind `Timeout`; `legacy/missing/unknown` → kind из `ProjectKind`
+с `entry.Reason ?? "Unsupported project format."`. Подписка `RegisterWorkspaceFailedHandler`
+осталась в том же `using`-скоупе относительно своего workspace.
+
+**Задача 2 — LOC по ответственностям.** Три типа в новом namespace `RoslynCodeLens.Loading`,
+по одному за коммит:
+
+| Тип | LOC | Членов | Ответственность |
+|---|---|---|---|
+| [`DetachedProjectFactory`](../src/RoslynCodeLens/Loading/DetachedProjectFactory.cs) | 76 | 2 | workspace-`Project` → detached `ProjectInfo` (текст в память, refs срезаны) |
+| [`SolutionFileLocator`](../src/RoslynCodeLens/Loading/SolutionFileLocator.cs) | 39 | 1 | поиск `.sln`/`.slnx` вверх по дереву |
+| [`TargetProjectGraph`](../src/RoslynCodeLens/Loading/TargetProjectGraph.cs) | 84 | 2 | граф target-набора + порядок корней (+ `TargetGraph` record) |
+
+Ни один новый тип не превышает пороги `find_large_classes(300, 15)`.
+
+⚠️ **Остаток:** `SolutionLoader` — **670 LOC, 19 членов**, то есть всё ещё выше порога 300 LOC.
+Что осталось и почему это не дробится так же легко, как предыдущее:
+
+- `OpenAsync` (CC 13) — протокол retry-по-снижению-деградации: 3 попытки, выбор лучшей,
+  `AnalyzerSkew`, fallback на per-project. Это одна связная политика, а не набор шагов.
+- `OpenPerProjectAsync` (CC 14) — оркестрация параллельных воркеров + ре-ститч снимка;
+  оставшееся после извлечений — сами `await`/локи, а не ветвления.
+- `CompileAllParallelAsync` + `GetCompilationLevels` — фаза компиляции (третья ответственность
+  из плана, отдельная от открытия).
+- `SolutionOpen` record + `RunWithTimeoutAsync` + хелперы диагностик загрузки.
+
+Следующий шаг по этому классу (если потребуется) — `SolutionCompiler` для фазы компиляции,
+но это уже не декомпозиция `OpenPerProjectAsync`, а отдельный вопрос; в рамках 5.3 не делалось,
+чтобы не смешивать пункты.
+
+**Урок:** `rename_symbol` с `renameInComments: true` переписал XML-doc в
+[`ExtractMethodLogic.cs`](../src/RoslynCodeLens/Tools/ExtractMethodLogic.cs) — там `NewMethod`
+означало имя, которое генерирует сама Roslyn, а не наш метод. Правка откатана. При переименовании
+общих имён (`NewMethod`, `Helper`, `Process`) preview правильнее читать по **всем** файлам из `edits`,
+а не только по целевому.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1286 passed, 0 failed**
+(1276 + 5 `SolutionFileLocatorTests` + 5 `TargetProjectGraphTests`).
+Подробности — [`decision/2026-10-28T23-30-stage5-3-solutionloader-decomposition.md`](../decision/2026-10-28T23-30-stage5-3-solutionloader-decomposition.md).
 
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
