@@ -278,10 +278,10 @@ flowchart TD
 
 | Изменение | Файл |
 |---|---|
-| Характеристические тесты: `GetLoadedSolution`/`GetResolver`/`GetMetadataResolver`/`GetAnalysisContext` при (а) неудачной загрузке, (б) упавшем warmup, (в) протухшем решении — одинаковое ли поведение? | `tests/RoslynCodeLens.Tests/SolutionManagerTests.cs` |
-| Свернуть 4 копии префикса в один приватный `EnsureReady()` | [`SolutionManager.cs:153`](../src/RoslynCodeLens/SolutionManager.cs:153), [`:163`](../src/RoslynCodeLens/SolutionManager.cs:163), [`:173`](../src/RoslynCodeLens/SolutionManager.cs:173), [`:510`](../src/RoslynCodeLens/SolutionManager.cs:510) |
-| Единое сообщение «warmup failed» — константа, а не 4 строковых литерала | там же |
-| Решить, остаются ли индивидуальные геттеры публичными; при отсутствии внешних потребителей — сделать `internal` (проверено: единственный потребитель — `MultiSolutionManager`, см. D1) | [`MultiSolutionManager.cs:74-86`](../src/RoslynCodeLens/MultiSolutionManager.cs:74) |
+| [x] Характеристические тесты: `GetLoadedSolution`/`GetResolver`/`GetMetadataResolver`/`GetAnalysisContext` при (а) неудачной загрузке, (б) упавшем warmup, (в) протухшем решении — одинаковое ли поведение? | `tests/RoslynCodeLens.Tests/SolutionManagerTests.cs` |
+| [x] Свернуть 4 копии префикса в один приватный `EnsureReady()` (сведено 5 — плюс `EnsureLoaded`) | [`SolutionManager.cs:153`](../src/RoslynCodeLens/SolutionManager.cs:153), [`:163`](../src/RoslynCodeLens/SolutionManager.cs:163), [`:173`](../src/RoslynCodeLens/SolutionManager.cs:173), [`:510`](../src/RoslynCodeLens/SolutionManager.cs:510) |
+| [x] Единое сообщение «warmup failed» — константа, а не 4 строковых литерала | там же |
+| [x] Решить, остаются ли индивидуальные геттеры публичными; при отсутствии внешних потребителей — сделать `internal` (проверено: единственный потребитель — `MultiSolutionManager`, см. D1). **Решение:** не сужать, а удалить `GetResolver`/`GetMetadataResolver` — потребителей не осталось | [`MultiSolutionManager.cs:74-86`](../src/RoslynCodeLens/MultiSolutionManager.cs:74) |
 
 **Затронутые области:** `SolutionManager`, `MultiSolutionManager`, тесты решения.
 **Критерий готовности:** протокол доступа к снапшоту существует в одном экземпляре;
@@ -290,6 +290,47 @@ flowchart TD
 что копии уже разошлись, и это отдельный дефект — зафиксировать.
 **Риски:** среднее. Геттеры вызываются из `MultiSolutionManager` (4 сайта) и тестов (3 сайта);
 `find_references` по каждому перед сужением видимости.
+
+**Результат:** протокол свёрнут в единственный `EnsureReady()`; `GetAnalysisContext()` =
+протокол + `lock (_lock)`; `GetResolver`/`GetMetadataResolver` удалены
+(`find_references` = 0); `GetIlDisassembler()` оставлен осознанным исключением
+(адаптер не читает состояние решения). `get_diagnostics` 0/0,
+`dotnet test RoslynCodeLens.slnx` — 1249 passed / 0 failed.
+Сценарий (б) «упавший warmup» тестом не покрыт — нет детерминированной тест-симы.
+Подробности — [`decision/2026-10-28T18-43-stage3-snapshot-access-protocol.md`](../decision/2026-10-28T18-43-stage3-snapshot-access-protocol.md).
+
+**Статус: этап 3 завершён 2026-10-28**
+
+#### 3.1. Уточнённые факты (проверено 2026-10-28 после этапа 0)
+
+Перепроверено `find_references` и чтением тестов — уточняет форму рефакторинга:
+
+| Факт | Следствие |
+|---|---|
+| `GetLoadedSolution`: 4 прод-сайта (все в `MultiSolutionManager`) + 3 тест-сайта | Сужение до `internal` невозможно без `InternalsVisibleTo`; проще оставить `public` и свести тело |
+| `GetResolver`: **1** прод-сайт ([`MultiSolutionManager.cs:76`](../src/RoslynCodeLens/MultiSolutionManager.cs:76)) + **5** тест-сайтов | Кандидат на удаление после перевода `MultiSolutionManager` на `GetAnalysisContext()` |
+| `GetMetadataResolver`: **1** прод-сайт ([`MultiSolutionManager.cs:77`](../src/RoslynCodeLens/MultiSolutionManager.cs:77)), тестов нет | Однозначный кандидат на удаление |
+| **`GetIlDisassembler()` ([`SolutionManager.cs:183`](../src/RoslynCodeLens/SolutionManager.cs:183)) — тело `=> _ilAdapter` без блокировки и без проверки загрузки — контраст с остальными аксессорами** | Пятый, «недоделанный» случай той же ответственности: доступа к снапшоту без протокола готовности |
+| ⚠️ **`WaitForWarmupAsync()` возвращает `_warmupTask` «как есть»** ([`SolutionManager.cs:148`](../src/RoslynCodeLens/SolutionManager.cs:148)), а `CreateAsync` стартует warmup в фоне ([`SolutionManager.cs:99`](../src/RoslynCodeLens/SolutionManager.cs:99)) | **Жёсткое ограничение:** `CreateAsync` обязан оставаться неблокирующим — это закреплено тестом [`SolutionManagerTests.cs:101`](../tests/RoslynCodeLens.Tests/SolutionManagerTests.cs:101) `CreateAsync_ReturnsBeforeCompilationCompletes`. Поэтому warmup **нельзя** переносить в `CreateAsync`; `EnsureReady()` должен блокирующе ждать warmup только при **первом доступе**, как сейчас |
+| Тест [`GetResolver_ReturnsCachedInstance_WhenNotStale`](../tests/RoslynCodeLens.Tests/SolutionManagerTests.cs:30) фиксирует «без stale → тот же экземпляр» | Инвариант идентичности резолвера обязателен: `EnsureReady()` не должен пересоздавать `_resolver` при отсутствии stale-проектов |
+
+#### 3.2. Уточнённый порядок пунктов
+
+1. **Характеристические тесты** (без правки прода): зафиксировать текущее поведение пяти
+   аксессоров по трём сценариям — (а) `HasLoadFailure` → исключение с исходным сообщением,
+   (б) упавший warmup → `InvalidOperationException("Solution warmup failed.")`,
+   (в) stale-проекты → перестройка перед отдачей значения. Плюс отдельно текущее поведение
+   `GetIlDisassembler()` (не бросает и не ждёт — зафиксировать как **дефект D3-новый**,
+   а не как норму).
+2. **Свернуть 4 копии в один приватный `EnsureReady()`**; сообщение — в `const string`.
+3. **`GetAnalysisContext()` переписать на `EnsureReady()` + `lock (_lock)`** (сохранить
+   атомарность снимка — инвариант из комментария о #282).
+4. **`MultiSolutionManager`: перевести 4 геттера на `GetAnalysisContext()`**, затем удалить
+   `GetResolver` и `GetMetadataResolver` из `SolutionManager` (после чего `find_references` = 0).
+5. **`GetIlDisassembler()`** — либо включить в общий протокол (если адаптер зависит от
+   загруженного решения), либо оставить осознанным исключением с комментарием-обоснованием.
+   Решение принимать по факту: посмотреть, читает ли `IlDisassemblerAdapter` состояние решения.
+6. **Перенацелить тест-сайты** `GetResolver()` → `GetAnalysisContext().Resolver`.
 
 ### Этап 4 — async-first доступ к контексту (устранение sync-over-async)
 
