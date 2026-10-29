@@ -54,19 +54,19 @@ public sealed class CliOptions
                 case "--port":
                     var portValue = inlineValue ?? NextValue(args, ref i, name);
                     if (!int.TryParse(portValue, CultureInfo.InvariantCulture, out port) || port is < 1 or > 65535)
-                        throw new ArgumentException($"Invalid value for --port: '{portValue}'. Expected an integer between 1 and 65535.", "port");
+                        throw new ArgumentException($"Invalid value for --port: '{portValue}'. Expected an integer between 1 and 65535.", nameof(args));
                     break;
 
                 case "--host":
                     httpHost = inlineValue ?? NextValue(args, ref i, name);
                     if (string.IsNullOrWhiteSpace(httpHost))
-                        throw new ArgumentException("Invalid value for --host: value is empty.", "host");
+                        throw new ArgumentException("Invalid value for --host: value is empty.", nameof(args));
                     break;
 
                 default:
                     throw new ArgumentException(
                         $"Unknown option '{arg}'. Supported options: --http, --port <1-65535>, --host <address>. " +
-                        "Positional arguments are .sln/.slnx paths.", "arg");
+                        "Positional arguments are .sln/.slnx paths.", nameof(args));
             }
         }
 
