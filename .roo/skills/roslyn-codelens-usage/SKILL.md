@@ -300,8 +300,10 @@ description: Инструкция по работе с MCP-сервером rosl
 - Причина: `CodeAction.Title` локализован, `CodeAction.EquivalenceKey` — нет.
 - Обход: `extract_method` и `apply_fix` матчат по `EquivalenceKey`
   (`Extract_method` и т. п.), а не по заголовку. Для ручного пути
-  (`get_code_actions` → `apply_code_action`) заголовок надо брать из фактического
-  ответа `get_code_actions`, а не печатать по памяти.
+  (`get_code_actions` → `apply_code_action`) действие идентифицировать по
+  полю `equivalenceKey` в ответе `get_code_actions` (возвращается вместе с
+  `title` с 2026-10-29), а заголовок для `apply_code_action` брать из
+  фактического ответа, а не печатать по памяти.
 
 ### Нюанс 11: `extract_method` и имя метода
 

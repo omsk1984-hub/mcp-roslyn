@@ -13,6 +13,9 @@ public static class GetCodeActionsTool
      Description("List available code actions (refactorings and fixes) at a position in a C# file. " +
                  "Optionally specify endLine/endColumn to select a range for extract-method style refactorings. " +
                  "Returns action titles that can be passed to apply_code_action. " +
+                 "Each item also carries the locale-independent equivalenceKey (CodeAction.EquivalenceKey) — " +
+                 "use it to identify actions across cultures; titles are localized. " +
+                 "Nested actions (when a provider exposes them) are included recursively. " +
                  "Returns an envelope with items sorted by kind then title, totalCount, truncated, and limit (default 100).")]
     public static async Task<ToolListResult<CodeActionInfo>> Execute(
         MultiSolutionManager manager,

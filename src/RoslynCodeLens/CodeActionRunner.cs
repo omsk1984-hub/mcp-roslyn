@@ -309,7 +309,9 @@ public static class CodeActionRunner
             ? null
             : (IReadOnlyList<CodeActionInfo>)action.NestedActions.Select(a => ToCodeActionInfo(a, codeFixTitles)).ToList();
 
-        return new CodeActionInfo(action.Title, kind, nestedActions);
+        // EquivalenceKey is locale-independent (unlike Title) — the stable identity an
+        // agent should match on when picking an action to apply.
+        return new CodeActionInfo(action.Title, kind, action.EquivalenceKey, nestedActions);
     }
 
     private static ImmutableArray<CodeRefactoringProvider> LoadBuiltInRefactoringProviders()

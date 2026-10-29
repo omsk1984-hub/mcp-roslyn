@@ -61,6 +61,20 @@
 
 - Менять C#-символы вслепую текстовым search/replace, не вызвав
   `find_references` / `analyze_change_impact`.
+- **Гадать об API Roslyn-типов** (`CodeAction`, `TextLine`, `SyntaxNode` и т. п.):
+  прежде чем писать код, опираясь на свойства/члены такого типа, — вызов
+  `get_type_overview` или `get_symbol_context`.
+- **Гадать о сигнатурах методов**: прежде чем писать вызов метода
+  (особенно Roslyn/BCL) — `get_method_source` / `get_overloads` для точной
+  сигнатуры (типы параметров, возвращаемый тип).
+- **Писать тесты на поведение Roslyn-провайдера по догадке**: прежде чем
+  закладывать ожидаемый результат в тест — `apply_code_action` /
+  `extract_method` / `apply_fix` с `preview: true` на фикстуре, чтобы увидеть
+  фактический результат правки.
+- **Матчить code actions по локализованному заголовку** (`title`): заголовки
+  зависят от культуры (ru-RU — «Извлечь метод»). Идентификация — по
+  `equivalenceKey` (поле `get_code_actions`, `CodeAction.EquivalenceKey`),
+  например `Extract_method`.
 - Применять `rename_symbol` / `change_signature` с `preview: false` без
   проверки `conflicts` и без чистого дерева git.
 - Удалять «неиспользуемый» код по одному лишь `find_unused_symbols` без

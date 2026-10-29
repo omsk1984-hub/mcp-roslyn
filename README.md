@@ -71,7 +71,7 @@ A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/marcel
 - **get_generated_code** — Inspect generated source code from source generators
 - **inspect_external_assembly** — Browse types, members, and XML docs from closed-source NuGet packages and referenced assemblies
 - **peek_il** — Decompile any method to ilasm-style IL bytecode from closed-source or generated assemblies
-- **get_code_actions** — Discover available refactorings and fixes at any position (extract method, rename, inline variable, and more)
+- **get_code_actions** — Discover available refactorings and fixes at any position (extract method, rename, inline variable, and more); each action carries its locale-independent `equivalenceKey` alongside the (localized) title, so actions can be matched across cultures
 - **apply_code_action** — Execute any Roslyn refactoring by title, with preview mode (returns a diff before writing to disk)
 - **apply_fix** — Apply the code fix for a specific diagnostic (id + file + line) in one call, preview-first, refusing to write when the fix would introduce new compiler errors
 - **extract_method** — Extract a line range into a new method with a name you choose: a facade over Roslyn's own provider, so parameters and return type are inferred from the captured locals; locale-independent action matching, preview-first

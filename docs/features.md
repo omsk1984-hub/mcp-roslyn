@@ -146,7 +146,7 @@ All previously identified gaps have been closed. See Section 4 for phase status.
 
 ### 3.1 Refactoring via Roslyn Code Actions ✅ Done
 
-Load `CodeRefactoringProvider` and `CodeFixProvider` from `Microsoft.CodeAnalysis.CSharp.Features` via reflection. Two generic tools (`get_code_actions` + `apply_code_action`) cover all built-in Roslyn refactorings (inline, encapsulate field, add member, move member, etc.) without implementing each one individually. Preview mode returns a diff before writing.
+Load `CodeRefactoringProvider` and `CodeFixProvider` from `Microsoft.CodeAnalysis.CSharp.Features` via reflection. Two generic tools (`get_code_actions` + `apply_code_action`) cover all built-in Roslyn refactorings (inline, encapsulate field, add member, move member, etc.) without implementing each one individually. Preview mode returns a diff before writing. `get_code_actions` reports each action's locale-independent `equivalenceKey` alongside its (localized) title, so actions can be identified across cultures — matching on the key, not the title.
 
 On top of the generic engine, five purpose-built write-tools add ergonomics the generic path cannot:
 
