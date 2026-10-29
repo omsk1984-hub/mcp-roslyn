@@ -534,8 +534,8 @@ flowchart TD
 | Изменение | Файл |
 |---|---|
 | [x] `SymbolResolver` (414 LOC, 45 членов, 6 входящих namespace) → `SymbolIndex` (поиск по имени) + `TypeIndex` (иерархии, реализации) + `LocationIndex` (файл/строка/project) | [`SymbolResolver.cs:7`](../src/RoslynCodeLens/SymbolResolver.cs:7) |
-| `FindAsyncViolationsLogic.Execute` (CC 27 / cognitive 66): выделить детектор на каждый из 6 шаблонов; метод верхнего уровня только собирает результаты | [`FindAsyncViolationsLogic.cs:14`](../src/RoslynCodeLens/Tools/FindAsyncViolationsLogic.cs:14) |
-| `FindObsoleteUsageLogic.Execute` (CC 24 / cognitive 61): отделить обход от группировки | [`FindObsoleteUsageLogic.cs:11`](../src/RoslynCodeLens/Tools/FindObsoleteUsageLogic.cs:11) |
+| [x] `FindAsyncViolationsLogic.Execute` (CC 27 / cognitive 66): детектор на каждый из 6 шаблонов; метод верхнего уровня только собирает результаты | [`FindAsyncViolationsLogic.cs:14`](../src/RoslynCodeLens/Tools/FindAsyncViolationsLogic.cs:14) |
+| [x] `FindObsoleteUsageLogic.Execute` (CC 24 / cognitive 61): отделить обход от группировки | [`FindObsoleteUsageLogic.cs:11`](../src/RoslynCodeLens/Tools/FindObsoleteUsageLogic.cs:11) |
 | [x] `SolutionLoader.OpenPerProjectAsync` (CC 23 / cognitive 50): разбить на «открыть проект», «применить фильтр», «скомпилировать пачкой» | [`SolutionLoader.cs:278`](../src/RoslynCodeLens/SolutionLoader.cs:278) |
 | `CheckArchitectureLogic.ExecuteCore` (CC 22 / cognitive 55): по одному методу на `forbid` и `allowOnly` | [`CheckArchitectureLogic.cs:56`](../src/RoslynCodeLens/Tools/CheckArchitectureLogic.cs:56) |
 | `GenerateTestSkeletonLogic` (530 LOC): выделить `TestSkeletonRenderer` (генерация текста) и `TestSkeletonPlanner` (что генерировать) | [`GenerateTestSkeletonLogic.cs:10`](../src/RoslynCodeLens/Tools/GenerateTestSkeletonLogic.cs:10) |
@@ -786,6 +786,86 @@ flowchart TD
 Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1286 passed, 0 failed**
 (1276 + 5 `SolutionFileLocatorTests` + 5 `TargetProjectGraphTests`).
 Подробности — [`decision/2026-10-28T23-30-stage5-3-solutionloader-decomposition.md`](../decision/2026-10-28T23-30-stage5-3-solutionloader-decomposition.md).
+
+#### 5.4. Сложность методов слоя логики — два худших метода, выполнено 2026-10-28
+
+Пункт закрывал два первых места в рейтинге `get_complexity_metrics`: методы, которые вместо
+одной ответственности выполняли шесть (async) или четыре (obsolete). Подход — тот же, что в
+5.1–5.3: поведение не меняется, тесты-контракт **не правятся**, декомпозиция подтверждается
+динамикой метрик и зелёным набором находок.
+
+| Метод | CC до | CC после | Cognitive до | Cognitive после | Вложенность до |
+|---|---|---|---|---|---|
+| `FindAsyncViolationsLogic.Execute` | **27** | **1** | **66** | **0** | 5 |
+| `FindObsoleteUsageLogic.Execute` | **24** | **2** | **61** | **1** | 4 |
+
+`Execute` async-инструмента после декомпозиции не содержит ни одного ветвления: три оператора
+(`DetectAll`, `SortBySeverityThenLocation`, `new FindAsyncViolationsResult`) — CC 1 / cognitive 0.
+У obsolete-версии остался один `if` (ранний выход при пустом наборе `[Obsolete]`-символов).
+
+**`FindAsyncViolationsLogic` — детектор на каждый класс нарушения.** Обход и все шесть
+шаблонов уехали в новый [`AsyncViolationDetector`](../src/RoslynCodeLens/Analysis/AsyncViolationDetector.cs)
+(`internal static`, namespace `Analysis` — рядом с `SolutionScanner`, которым пользуется):
+
+| Детектор | Шаблон | CC |
+|---|---|---|
+| `DetectSyncOverAsyncResultInMethod` | `.Result` у `Task`/`Task<T>`/`ValueTask<T>` | 4 |
+| `DetectSyncOverAsyncWaitInMethod` | `Task.Wait`/`WaitAll`/`WaitAny` | 2 |
+| `DetectSyncOverAsyncGetAwaiterGetResultInMethod` | `GetAwaiter().GetResult()` и configured-варианты | 2 |
+| `DetectAsyncVoidInMethod` | `async void` вне обработчика события | 3 |
+| `DetectMissingAwaitInMethod` | неawait'нутый вызов в `async`-методе | 1 |
+| `DetectFireAndForgetInMethod` | неawait'нутый вызов в синхронном методе | 1 |
+
+Все шесть ниже порога `CC > 15` с большим запасом; самый крупный — `DetectAll` (CC ~6, обход
+деревьев и два фильтра проектов), и он тоже в норме.
+
+Периодические сведения о методе (`Declaration`, `MethodSymbol`, `SemanticModel`, `TaskSymbols`,
+`ProjectName`, `ContainingMethodName`, `IsAsync`, `Body`) собраны в
+[`AsyncMethodScan`](../src/RoslynCodeLens/Analysis/AsyncViolationDetector.cs) — чтобы каждый
+детектор принимал один параметр, а не восемь. `DetectAll` отвечает только за обход
+(`SolutionScanner` + два фильтра проектов, комментарии о dedupe сохранены дословно),
+`DetectInMethod` — только за вызов шести детекторов, `FindAsyncViolationsLogic.Execute` — только
+за сортировку и summary.
+
+**`FindObsoleteUsageLogic` — обход отделён от группировки.** Всё, что знает про синтаксические
+деревья, спаны и `AttributeData`, уехало в
+[`ObsoleteUsageCollector`](../src/RoslynCodeLens/Tools/ObsoleteUsageCollector.cs):
+`CollectObsoleteSymbols` (сбор `[Obsolete]` по индексу атрибутов), `Collect` (обход
+production-деревьев с двумя фильтрами и dedupe по `(file, span)`), `IsWrappedByOuterRelevantNode`
+(правило «один вызов — одна находка», все шесть случаев сохранены) и `GetCallerName`.
+`Execute` получает готовый словарь и только фильтрует по `errorOnly`, собирает группы и
+сортирует; `ObsoleteAttributeData` стал `internal readonly record struct` с фабрикой
+`FromAttribute`.
+
+**Набор находок не изменился — главное доказательство корректности.** Тесты
+`FindAsyncViolationsToolTests`, `FindAsyncViolationsMissingCorelibTests`,
+`FindObsoleteUsageToolTests` зелёные **без единой правки** (20 и 19 соответственно, включая
+linked-file dedupe, event-handler исключение, conditional access, qualified `new`, сортировки).
+
+**Новые тесты — паритет «детектор ↔ агрегат»** (10 штук):
+- [`AsyncViolationDetectorTests`](../tests/RoslynCodeLens.Tests/Tools/AsyncViolationDetectorTests.cs) — 7:
+  для каждого шаблона `DetectOnly` возвращает ровно подмножество находок `Execute` (сверка
+  FilePath/Line/ContainingMethod/Project), плюс тест «объединение шести детекторов == весь набор».
+- [`ObsoleteUsageCollectorTests`](../tests/RoslynCodeLens.Tests/Tools/ObsoleteUsageCollectorTests.cs) — 3:
+  коллектор собирает ровно те использования, что попадают в группы `Execute`; символы без
+  использований отбрасываются; фильтр проекта сужает обход.
+
+`FindDisposableMisuseLogic` не трогался: `find_disposable_misuse` — **13** находок, ровно как
+в базовой линии, ни одной новой в файлах этого пункта.
+
+| Метрика | До | После |
+|---|---|---|
+| Методов с CC > 15 в `src/` | 22 | **19** |
+| Методов с cognitive > 25 | 4 худших сверху | два худших ушли, максимум — `EnumerateCandidates` (57) |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| `dotnet test RoslynCodeLens.slnx` | 1286 passed | **1296 passed, 0 failed** |
+
+⚠️ **Остаток:** `FindObsoleteUsageLogic` всё ещё держит `IsWrappedByOuterRelevantNode` (CC 15) —
+ровно на пороге, декомпозиция не требуется, но это следующий кандидат, если порог ужесточат.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1296 passed, 0 failed**
+(1286 + 7 + 3).
+Подробности — [`decision/2026-10-28T23-59-stage5-4-logic-complexity.md`](../decision/2026-10-28T23-59-stage5-4-logic-complexity.md).
 
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
