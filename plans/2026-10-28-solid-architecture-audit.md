@@ -1074,14 +1074,102 @@ linked-file dedupe, event-handler исключение, conditional access, qual
 (15, сознательно не тронут в этом заходе: вне списка пункта), `FindGodObjectsLogic.Execute` (15),
 `ObsoleteUsageCollector.IsWrappedByOuterRelevantNode` (15) — следующие заходы.
 
+#### 5.7. Финальная группа из 11 методов + закрытие этапа 5 — выполнено 2026-10-29
+
+Финальный заход этапа 5: 11 оставшихся методов с CC ≥ 15, включая три
+контракт-критичных. Подход тот же: извлечение **по ответственностям**,
+тесты-контракт **не правятся**, неизменность поведения доказывается зелёными
+существующими тестами.
+
+**Контракт-критичные методы** (семантика расчёта не меняется — все пороги аудита
+построены на них; значения на тех же входах обязаны совпадать):
+
+| Метод | CC до | CC после | Cognitive до | Cognitive после | Примечание |
+|---|---|---|---|---|---|
+| `CognitiveComplexityCalculator.Walker.Visit` | 21 | **4** | 5 | 3 | наборы кейсов и правила вложенности сохранены по построению; `CognitiveComplexityCalculatorTests` 18/18 без правок |
+| `ComplexityCalculator.Calculate` | 16 | **1** (выражение-композиция) | 6 | 0 | `1 + CountDecisionNodes + CountShortCircuitTokens`; `ComplexityCalculatorTests` 28/28 без правок |
+| `ReferenceClassifier.ClassifyTypeContext` | 15 | **4** | 5 | 5 | `switch`-выражение `ContextKindOf` (12 веток); **остаётся синхронным и чистым** (контракт kinds `find_references`, журнал 4B) |
+
+**Остальные 8 методов:**
+
+| Метод | CC до | CC после | Cognitive до | Cognitive после |
+|---|---|---|---|---|
+| `ChangeSignatureBridge.Members.Resolve` | 21 | **3** | 18 | 1 | `Types` record + 4 резолвера по видам членов |
+| `DeadCodeFilters.Classify` | 17 | **8** | 18 | 7 | лестница приоритетов: `AttributeOnSelfOrType` / `IsTestMethod` / `IsInTestContainer` / `IsInterop` |
+| `FindUnusedSymbolsLogic.ShouldSkipMember` | 16 | **4** | 24 | 1 | 4 предиката-помощника |
+| `GetTestSummaryLogic.IsExcludedNamespace` | 16 | **2** | 15 | 2 | таблица `ExcludedNamespaceRoots` + `IsRootOrDeeper` |
+| `FindGodObjectsLogic.Execute` | 15 | **2** | 22 | 1 | `Thresholds` record + 3 прохода + помощники |
+| `ApplyFixLogic.ExecuteAsync` | 16 | **3** | 10 | 4 | 6 фазовых методов |
+| `ExtractMethodLogic.ExecuteAsync` | 16 | **5** | 14 | 4 | 6 фазовых методов |
+| `ObsoleteUsageCollector.IsWrappedByOuterRelevantNode` | 15 | **5** | 14 | 4 | `IsDirectlyWrappedByOuterNode` `switch`-выражение |
+
+**Метрики после 5.7:**
+
+| Метрика | До 5.7 | После 5.7 |
+|---|---|---|
+| Методов `src/` в `get_complexity_metrics(threshold=15)` | 11 | **0** |
+| Максимальный CC в решении | 21 | **14** |
+| Максимальный CC среди 11 методов пункта | 21 | **8** (`DeadCodeFilters.Classify`) |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| `dotnet test RoslynCodeLens.slnx` | 1296 passed | **1296 passed, 0 failed** |
+
+**Поведение не изменилось — доказательство.** Тесты-контракт зелёные **без единой
+правки**: `CognitiveComplexityCalculatorTests` 18/18, `ComplexityCalculatorTests` 28/28,
+`ReferenceClassifierTests`, `ChangeSignatureBridgeTests`, `DeadCodeFiltersTests`,
+`FindUnusedSymbolsToolTests`, `GetTestSummaryToolTests`, `FindGodObjectsToolTests`,
+`ApplyFixLogicTests`, `ExtractMethodLogicTests`, `FindObsoleteUsageToolTests`.
+Новых тестов не добавлялось: пункт — чистый перенос, и именно неизменность
+значений метрик и наборов находок является доказательством.
+
+**Инструменты:** извлечение выполнено **вручную** (`apply_diff`), Roslyn-рефакторинги
+не вызывались — на диск через MCP ничего не писалось. Обоснование то же, что в 5.4–5.6:
+`extract_method` вырезает один связный диапазон строк, а здесь требовалась
+предварительная переформулировка тела в именованную цепочку / `switch` / композицию.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1296 passed, 0 failed** (8 m 32 s).
+Подробности — [`decision/2026-10-29T04-10-stage5-7-final-methods-and-closure.md`](../decision/2026-10-29T04-10-stage5-7-final-methods-and-closure.md).
+
+**Статус этапа 5: завершён с явно перечисленным остатком.**
+
+Критерий сложности закрыт полностью: `get_complexity_metrics(threshold=15)` — **0 методов**
+(было 11), максимальный CC в решении — **14**. Критерий крупных типов
+(`find_large_classes(maxLines=300, maxMembers=15)` — 0 типов в `src/`) **не закрыт**:
+после 5.7 в `src/` остаётся **18 типов** > 300 LOC. По решению (задача 5.7) они
+**не дробятся механически** в этом заходе — это декомпозиция типа, а не метода,
+отдельный заход. Остаток зафиксирован ниже с обоснованием «почему допустим».
+
+| Тип | LOC | Члены | Обоснование остатка |
+|---|---|---|---|
+| `SolutionLoader` | 670 | 19 | единственное место, знающее «открыть проект + применить фильтр + скомпилировать пачкой»; разнесение требует отдельного захода с тестами загрузчика |
+| `CheckArchitectureLogic` | 592 | 28 | широкий публичный контракт (2 вида правил × несколько фаз); методы уже ≤ 14 CC |
+| `ChangeSignatureBridge` | 576 | 15 | мост к закрытому API Roslyn через рефлексию; `Members` (326/74) — таблица хэндлов, разнесение не снижает риск |
+| `GenerateTestSkeletonLogic` | 530 | 18 | декомпозиция типа (`TestSkeletonRenderer` + `TestSkeletonPlanner`) — отдельный заход (строка 541 таблицы этапа 5) |
+| `ChangeSignatureLogic` | 507 | 16 | широкий публичный контракт (add/remove/reorder + валидация); методы уже ≤ 9 CC |
+| `GetInstantiationOptionsLogic` | 493 | 22 | композиция: конструкторы + фабрики + DI; методы уже ≤ 12 CC |
+| `CodeActionRunner` | 441 | 15 | обёртка над `CodeAction` API Roslyn; методы уже ≤ 11 CC |
+| `GetExtensionMethodsLogic` | 431 | 20 | композиция: резолвинг приёмника + сборка результатов; методы уже ≤ 10 CC |
+| `GetCallGraphLogic` | 379 | 16 | обход графа (callees/callers) с ограничением глубины; методы уже ≤ 8 CC |
+| `StackTraceParser` | 361 | 16 | парсер нескольких форматов кадра; методы уже ≤ 14 CC |
+| `AsyncViolationDetector` | 347 | 24 | 6 детекторов шаблонов; методы уже ≤ 6 CC |
+| `StaleRebuildCoordinator` | 337 | 17 | координация перестройки под gate; методы уже ≤ 6 CC |
+| `SolutionManager` | 334 | 49 | фасад с 17 публичными членами контракта + композиция (обосновано в 5.2.1) |
+| `ChangeSignatureBridge.Members` | 326 | 74 | таблица рефлективных хэндлов (74 поля); разнесение не снижает риск |
+| `MultiSolutionManager` | 321 | 24 | менеджер N workspace; методы уже ≤ 9 CC |
+| `FindUncoveredSymbolsLogic` | 321 | 17 | обход + классификация; методы уже ≤ 12 CC |
+| `FindGodObjectsLogic` | 310 | 16 | 3 прохода + сортировка; методы уже ≤ 12 CC |
+| `SolutionChangeWriter` | 309 | 10 | запись изменений с откатом; методы уже ≤ 13 CC |
+
+⚠️ **Остаток этапа 5 (явно перечислен):** 18 типов > 300 LOC в `src/` (таблица выше)
++ декомпозиция `GenerateTestSkeletonLogic` (строка 541). Это **декомпозиция типов**,
+а не методов — отдельный заход. Критерий сложности (CC ≥ 15) закрыт полностью.
+
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
-**Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
-`find_large_classes(maxLines=300, maxMembers=15)` — 0 типов в `src/`;
-`find_god_objects` — пусто; поведение подтверждено существующими тестами.
+**Критерий готовности (факт после 5.7):** `get_complexity_metrics(threshold=15)` — **0 методов** ✅;
+`find_large_classes(maxLines=300, maxMembers=15)` — **18 типов в `src/`** (остаток, см. 5.7);
+`find_god_objects` — недействителен (поправка A1); поведение подтверждено существующими тестами ✅.
 **Влияние на поведение:** нулевое (перенос кода).
-**Риски:** высокие по объёму. Каждый класс декомпозировать отдельным коммитом;
-`SymbolResolver` — начать с `find_references` по каждому публичному члену, чтобы
-не потерять вызывающих при разнесении по трём типам.
+**Статус этапа 5:** **завершён с явно перечисленным остатком** (18 типов > 300 LOC +
+декомпозиция `GenerateTestSkeletonLogic`) — см. 5.7.
 
 ### Этап 6 — тестируемость и покрытие
 
