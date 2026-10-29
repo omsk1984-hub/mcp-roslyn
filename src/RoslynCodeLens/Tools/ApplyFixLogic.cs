@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
 using RoslynCodeLens.Models;
 
 namespace RoslynCodeLens.Tools;
@@ -22,46 +23,11 @@ public static class ApplyFixLogic
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!DocumentLocator.TryFind(loaded, filePath, out var targetProject, out var targetDocument))
-        {
-            throw new McpToolException(ToolErrorCode.FileNotFound,
-                $"File not found in solution: {filePath}", new { filePath });
-        }
+        var (targetProject, targetDocument, compilation) = ResolveTarget(loaded, filePath);
+        EnsureTrusted(loaded, trustStore);
 
-        if (!loaded.Compilations.TryGetValue(targetProject.Id, out var compilation))
-        {
-            throw new McpToolException(ToolErrorCode.InvalidArgument,
-                $"No compilation available for project: {targetProject.Name}",
-                new { targetProject.Name });
-        }
-
-        // Trust gate — same requirement and message as get_code_fixes (word for word),
-        // because apply_fix loads the same code-fix providers as in-process code.
-        var solutionPath = loaded.Solution.FilePath;
-        if (solutionPath is null || !trustStore.IsTrusted(solutionPath))
-        {
-            throw new McpToolException(
-                ToolErrorCode.SolutionNotTrusted,
-                $"Solution '{solutionPath ?? "<unknown>"}' is not trusted for analyzer execution. " +
-                $"'get_code_fixes' loads analyzer DLLs to discover available fixes — these run as in-process code. " +
-                $"Ask the user, then call the 'trust_solution' tool with this path.",
-                new { solutionPath });
-        }
-
-        var normalizedPath = Path.GetFullPath(filePath);
-
-        // Find the target diagnostic: compiler diagnostics plus analyzer diagnostics
-        // (the same union get_code_fixes inspects), filtered by id + file + line.
-        var allDiagnostics = compilation.GetDiagnostics()
-            .Concat(await AnalyzerRunner.RunAnalyzersAsync(targetProject, compilation, allowlist, ct).ConfigureAwait(false));
-
-        var matchingDiagnostics = allDiagnostics
-            .Where(d => string.Equals(d.Id, diagnosticId, StringComparison.Ordinal) &&
-                        d.Location.IsInSource &&
-                        d.Location.SourceTree?.FilePath != null &&
-                        d.Location.SourceTree.FilePath.Equals(normalizedPath, StringComparison.OrdinalIgnoreCase) &&
-                        d.Location.GetLineSpan().StartLinePosition.Line + 1 == line)
-            .ToList();
+        var matchingDiagnostics = await FindMatchingDiagnosticsAsync(
+            targetProject, compilation, allowlist, filePath, line, diagnosticId, ct).ConfigureAwait(false);
 
         if (matchingDiagnostics.Count == 0)
         {
@@ -70,12 +36,7 @@ public static class ApplyFixLogic
                 "Run get_diagnostics to see the diagnostics in this file.");
         }
 
-        // When a column is given, prefer the diagnostic at that column; otherwise the first.
-        var diagnostic = column is { } col
-            ? matchingDiagnostics.FirstOrDefault(d =>
-                d.Location.GetLineSpan().StartLinePosition.Character + 1 == col)
-              ?? matchingDiagnostics[0]
-            : matchingDiagnostics[0];
+        var diagnostic = PickDiagnostic(matchingDiagnostics, column);
 
         // Collect the actual CodeActions for this diagnostic from the built-in providers.
         var actions = await CodeActionRunner.GetCodeFixActionsAsync(
@@ -87,15 +48,7 @@ public static class ApplyFixLogic
                 $"No code fix available for {diagnosticId} at {filePath}:{line}.");
         }
 
-        if (fixIndex < 0 || fixIndex >= actions.Count)
-        {
-            throw new McpToolException(ToolErrorCode.InvalidArgument,
-                $"fixIndex {fixIndex} is out of range: {actions.Count} fix(es) available for " +
-                $"{diagnosticId} at {filePath}:{line} (valid range 0..{actions.Count - 1}).",
-                new { fixIndex, available = actions.Count });
-        }
-
-        var action = actions[fixIndex];
+        var action = SelectAction(actions, fixIndex, diagnosticId, filePath, line);
 
         var outcome = await CodeActionRunner.ApplyOperationsAsync(
             loaded, targetProject, action, preview, force,
@@ -104,5 +57,101 @@ public static class ApplyFixLogic
         return new ApplyFixResult(
             outcome.Success, diagnosticId, action.Title, outcome.Applied,
             outcome.Edits, outcome.Conflicts, outcome.Message);
+    }
+
+    /// <summary>The document, its project, and that project's compilation — the precondition for everything else.</summary>
+    private static (Project Project, Document Document, Compilation Compilation) ResolveTarget(
+        LoadedSolution loaded, string filePath)
+    {
+        if (!DocumentLocator.TryFind(loaded, filePath, out var project, out var document))
+        {
+            throw new McpToolException(ToolErrorCode.FileNotFound,
+                $"File not found in solution: {filePath}", new { filePath });
+        }
+
+        if (!loaded.Compilations.TryGetValue(project.Id, out var compilation))
+        {
+            throw new McpToolException(ToolErrorCode.InvalidArgument,
+                $"No compilation available for project: {project.Name}",
+                new { project.Name });
+        }
+
+        return (project, document, compilation);
+    }
+
+    /// <summary>
+    /// Trust gate — same requirement and message as get_code_fixes (word for word), because
+    /// apply_fix loads the same code-fix providers as in-process code.
+    /// </summary>
+    private static void EnsureTrusted(LoadedSolution loaded, Security.TrustStore trustStore)
+    {
+        var solutionPath = loaded.Solution.FilePath;
+        if (solutionPath is not null && trustStore.IsTrusted(solutionPath))
+            return;
+
+        throw new McpToolException(
+            ToolErrorCode.SolutionNotTrusted,
+            $"Solution '{solutionPath ?? "<unknown>"}' is not trusted for analyzer execution. " +
+            $"'get_code_fixes' loads analyzer DLLs to discover available fixes — these run as in-process code. " +
+            $"Ask the user, then call the 'trust_solution' tool with this path.",
+            new { solutionPath });
+    }
+
+    /// <summary>
+    /// The target diagnostic: compiler diagnostics plus analyzer diagnostics (the same union
+    /// get_code_fixes inspects), filtered by id + file + line.
+    /// </summary>
+    private static async Task<List<Diagnostic>> FindMatchingDiagnosticsAsync(
+        Project project,
+        Compilation compilation,
+        Security.AnalyzerAllowlist allowlist,
+        string filePath,
+        int line,
+        string diagnosticId,
+        CancellationToken ct)
+    {
+        var analyzerDiagnostics = await AnalyzerRunner
+            .RunAnalyzersAsync(project, compilation, allowlist, ct)
+            .ConfigureAwait(false);
+
+        return compilation.GetDiagnostics()
+            .Concat(analyzerDiagnostics)
+            .Where(d => MatchesLocation(d, diagnosticId, filePath, line))
+            .ToList();
+    }
+
+    private static bool MatchesLocation(Diagnostic d, string diagnosticId, string filePath, int line)
+    {
+        // Comparing against the normalised path keeps `/` and `\` spellings equivalent.
+        var normalizedPath = Path.GetFullPath(filePath);
+
+        return string.Equals(d.Id, diagnosticId, StringComparison.Ordinal)
+            && d.Location.IsInSource
+            && d.Location.SourceTree?.FilePath is { } treePath
+            && treePath.Equals(normalizedPath, StringComparison.OrdinalIgnoreCase)
+            && d.Location.GetLineSpan().StartLinePosition.Line + 1 == line;
+    }
+
+    /// <summary>When a column is given, prefer the diagnostic at that column; otherwise the first.</summary>
+    private static Diagnostic PickDiagnostic(List<Diagnostic> matching, int? column)
+    {
+        if (column is not { } col)
+            return matching[0];
+
+        return matching.FirstOrDefault(d =>
+                   d.Location.GetLineSpan().StartLinePosition.Character + 1 == col)
+               ?? matching[0];
+    }
+
+    private static CodeAction SelectAction(
+        IReadOnlyList<CodeAction> actions, int fixIndex, string diagnosticId, string filePath, int line)
+    {
+        if (fixIndex >= 0 && fixIndex < actions.Count)
+            return actions[fixIndex];
+
+        throw new McpToolException(ToolErrorCode.InvalidArgument,
+            $"fixIndex {fixIndex} is out of range: {actions.Count} fix(es) available for " +
+            $"{diagnosticId} at {filePath}:{line} (valid range 0..{actions.Count - 1}).",
+            new { fixIndex, available = actions.Count });
     }
 }

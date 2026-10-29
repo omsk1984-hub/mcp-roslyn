@@ -58,21 +58,8 @@ public static class ReferenceClassifier
     {
         foreach (var ancestor in name.AncestorsAndSelf())
         {
-            switch (ancestor)
-            {
-                case TypeArgumentListSyntax: return "type_argument";
-                case AttributeSyntax: return "attribute";
-                case BaseObjectCreationExpressionSyntax: return "object_creation";
-                case CastExpressionSyntax: return "cast";
-                case BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression): return "cast";
-                case BinaryExpressionSyntax b when b.IsKind(SyntaxKind.IsExpression): return "type_check";
-                case PatternSyntax: return "type_check";
-                case IsPatternExpressionSyntax: return "type_check";
-                case TypeOfExpressionSyntax: return "typeof";
-                case BaseTypeSyntax: return "base_type";
-                case TypeConstraintSyntax: return "type_constraint";
-                case TypeParameterConstraintClauseSyntax: return "type_constraint";
-            }
+            if (ContextKindOf(ancestor) is { } kind)
+                return kind;
 
             // Nothing above a statement or member boundary can change a type's role.
             if (ancestor is StatementSyntax or MemberDeclarationSyntax)
@@ -81,6 +68,28 @@ public static class ReferenceClassifier
 
         return "declaration";
     }
+
+    /// <summary>
+    /// The reference kind implied by one enclosing node, or null when the node says nothing about
+    /// the type's role. <c>as</c> and <c>is</c> are both binary expressions, so they are told apart
+    /// by kind before the generic pattern forms are considered.
+    /// </summary>
+    private static string? ContextKindOf(SyntaxNode ancestor) => ancestor switch
+    {
+        TypeArgumentListSyntax => "type_argument",
+        AttributeSyntax => "attribute",
+        BaseObjectCreationExpressionSyntax => "object_creation",
+        CastExpressionSyntax => "cast",
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression) => "cast",
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.IsExpression) => "type_check",
+        PatternSyntax => "type_check",
+        IsPatternExpressionSyntax => "type_check",
+        TypeOfExpressionSyntax => "typeof",
+        BaseTypeSyntax => "base_type",
+        TypeConstraintSyntax => "type_constraint",
+        TypeParameterConstraintClauseSyntax => "type_constraint",
+        _ => null,
+    };
 
     private static string ClassifyValueContext(
         SimpleNameSyntax name, ISymbol symbol, Func<SemanticModel?> semanticModel)

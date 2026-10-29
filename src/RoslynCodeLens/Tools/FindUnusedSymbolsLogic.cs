@@ -243,52 +243,48 @@ public static class FindUnusedSymbolsLogic
         return false;
     }
 
-    private static bool ShouldSkipMember(ISymbol member, INamedTypeSymbol containingType, bool includeInternal)
+    /// <summary>
+    /// A member is a dead-code candidate only when it is visible outside the assembly, is a
+    /// plain method or property, and is not forced to exist by an override or an interface.
+    /// </summary>
+    private static bool ShouldSkipMember(ISymbol member, INamedTypeSymbol containingType, bool includeInternal) =>
+        member.IsImplicitlyDeclared
+        || IsInvisibleAccessibility(member.DeclaredAccessibility, includeInternal)
+        || IsNonCandidateMethod(member)
+        || IsForcedOverrideOrImplementation(member, containingType);
+
+    private static bool IsInvisibleAccessibility(Accessibility accessibility, bool includeInternal) =>
+        accessibility is Accessibility.Private or Accessibility.Protected or Accessibility.ProtectedAndInternal
+        // internal is only visible to us, so it is dead code unless the caller asked for it
+        || (!includeInternal && accessibility is Accessibility.Internal or Accessibility.ProtectedOrInternal);
+
+    /// <summary>Property accessors, event accessors, constructors and operators are not candidates.</summary>
+    private static bool IsNonCandidateMethod(ISymbol member) =>
+        member is IMethodSymbol method && method.MethodKind != MethodKind.Ordinary;
+
+    /// <summary>
+    /// An override exists because a base member does, and an interface implementation exists
+    /// because the interface does — neither can be deleted on its own, so both are skipped.
+    /// </summary>
+    private static bool IsForcedOverrideOrImplementation(ISymbol member, INamedTypeSymbol containingType) =>
+        member.IsOverride
+        || IsInterfaceImplementation(member, containingType);
+
+    /// <summary>
+    /// True when <paramref name="member"/> is the implementation the type supplies for one of its
+    /// interfaces. Comparing against the implementation (rather than merely being on
+    /// <c>AllInterfaces</c>) keeps explicit and inherited implementations out of the candidate set.
+    /// </summary>
+    private static bool IsInterfaceImplementation(ISymbol member, INamedTypeSymbol containingType)
     {
-        // Skip implicitly declared
-        if (member.IsImplicitlyDeclared)
-            return true;
+        if (member is not (IMethodSymbol or IPropertySymbol))
+            return false;
 
-        // Skip private or protected
-        if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected or Accessibility.ProtectedAndInternal)
-            return true;
-
-        // Skip internal unless includeInternal
-        if (!includeInternal && member.DeclaredAccessibility is Accessibility.Internal or Accessibility.ProtectedOrInternal)
-            return true;
-
-        // Skip non-ordinary methods (property accessors, event accessors, constructors, etc.)
-        if (member is IMethodSymbol method)
+        foreach (var iface in containingType.AllInterfaces)
         {
-            if (method.MethodKind != MethodKind.Ordinary)
+            var impl = containingType.FindImplementationForInterfaceMember(member);
+            if (impl != null && SymbolSignatureComparer.Instance.Equals(impl, member))
                 return true;
-
-            // Skip override methods
-            if (method.IsOverride)
-                return true;
-
-            // Skip interface implementation members
-            foreach (var iface in containingType.AllInterfaces)
-            {
-                var impl = containingType.FindImplementationForInterfaceMember(method);
-                if (impl != null && SymbolSignatureComparer.Instance.Equals(impl, method))
-                    return true;
-            }
-        }
-
-        // Skip override properties
-        if (member is IPropertySymbol prop)
-        {
-            if (prop.IsOverride)
-                return true;
-
-            // Skip interface implementation properties
-            foreach (var iface in containingType.AllInterfaces)
-            {
-                var impl = containingType.FindImplementationForInterfaceMember(prop);
-                if (impl != null && SymbolSignatureComparer.Instance.Equals(impl, prop))
-                    return true;
-            }
         }
 
         return false;

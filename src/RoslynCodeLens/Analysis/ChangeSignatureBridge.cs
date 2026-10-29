@@ -303,126 +303,177 @@ public static class ChangeSignatureBridge
 
             var features = m.LoadAssembly("Microsoft.CodeAnalysis.Features");
             var csharpFeatures = m.LoadAssembly("Microsoft.CodeAnalysis.CSharp.Features");
-            var workspaces = typeof(Workspace).Assembly;
             if (features is null || csharpFeatures is null)
-            {
                 return m;
-            }
 
-            var parameterType = m.FindType(features, $"{ChangeSignatureNamespace}.Parameter");
-            var existingParameter = m.FindType(features, $"{ChangeSignatureNamespace}.ExistingParameter");
-            var addedParameter = m.FindType(features, $"{ChangeSignatureNamespace}.AddedParameter");
-            var callSiteKind = m.FindType(features, $"{ChangeSignatureNamespace}.CallSiteKind");
-            var parameterConfiguration = m.FindType(features, $"{ChangeSignatureNamespace}.ParameterConfiguration");
-            var signatureChange = m.FindType(features, $"{ChangeSignatureNamespace}.SignatureChange");
-            var optionsResult = m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureOptionsResult");
-            var analyzedContext = m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureAnalyzedContext");
-            var succeededContext = m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureAnalysisSucceededContext");
-            var changeSignatureResult = m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureResult");
-            var abstractService = m.FindType(features, $"{ChangeSignatureNamespace}.AbstractChangeSignatureService");
-            var semanticDocument = m.FindType(workspaces, "Microsoft.CodeAnalysis.SemanticDocument");
-            m.CSharpServiceType = m.FindType(
-                csharpFeatures, "Microsoft.CodeAnalysis.CSharp.ChangeSignature.CSharpChangeSignatureService");
+            var types = Types.Resolve(m, features, csharpFeatures);
 
-            m.ParameterType = parameterType;
-            m.CallSiteKindType = callSiteKind;
+            ResolveEnumValues(m, types.CallSiteKind);
+            ResolveParameterMembers(m, types);
+            ResolveMethodHandles(m, types);
+            ResolveResultProperties(m, types.ChangeSignatureResult);
 
-            if (callSiteKind is not null)
+            return m;
+        }
+
+        /// <summary>The assembly's public surface, looked up once and handed to the resolvers below.</summary>
+        private sealed record Types(
+            Type? Parameter,
+            Type? ExistingParameter,
+            Type? AddedParameter,
+            Type? CallSiteKind,
+            Type? ParameterConfiguration,
+            Type? SignatureChange,
+            Type? OptionsResult,
+            Type? AnalyzedContext,
+            Type? SucceededContext,
+            Type? ChangeSignatureResult,
+            Type? AbstractService,
+            Type? SemanticDocument)
+        {
+            public static Types Resolve(Members m, Assembly features, Assembly csharpFeatures)
             {
-                m.CallSiteKindValue = m.EnumValue(callSiteKind, "Value");
-                m.CallSiteKindOmitted = m.EnumValue(callSiteKind, "Omitted");
-            }
+                var workspaces = typeof(Workspace).Assembly;
 
-            if (existingParameter is not null)
+                var types = new Types(
+                    Parameter: m.FindType(features, $"{ChangeSignatureNamespace}.Parameter"),
+                    ExistingParameter: m.FindType(features, $"{ChangeSignatureNamespace}.ExistingParameter"),
+                    AddedParameter: m.FindType(features, $"{ChangeSignatureNamespace}.AddedParameter"),
+                    CallSiteKind: m.FindType(features, $"{ChangeSignatureNamespace}.CallSiteKind"),
+                    ParameterConfiguration: m.FindType(features, $"{ChangeSignatureNamespace}.ParameterConfiguration"),
+                    SignatureChange: m.FindType(features, $"{ChangeSignatureNamespace}.SignatureChange"),
+                    OptionsResult: m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureOptionsResult"),
+                    AnalyzedContext: m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureAnalyzedContext"),
+                    SucceededContext: m.FindType(
+                        features, $"{ChangeSignatureNamespace}.ChangeSignatureAnalysisSucceededContext"),
+                    ChangeSignatureResult: m.FindType(features, $"{ChangeSignatureNamespace}.ChangeSignatureResult"),
+                    AbstractService: m.FindType(features, $"{ChangeSignatureNamespace}.AbstractChangeSignatureService"),
+                    SemanticDocument: m.FindType(workspaces, "Microsoft.CodeAnalysis.SemanticDocument"));
+
+                m.CSharpServiceType = m.FindType(
+                    csharpFeatures, "Microsoft.CodeAnalysis.CSharp.ChangeSignature.CSharpChangeSignatureService");
+                m.ParameterType = types.Parameter;
+                m.CallSiteKindType = types.CallSiteKind;
+
+                return types;
+            }
+        }
+
+        private static void ResolveEnumValues(Members m, Type? callSiteKind)
+        {
+            if (callSiteKind is null)
+                return;
+
+            m.CallSiteKindValue = m.EnumValue(callSiteKind, "Value");
+            m.CallSiteKindOmitted = m.EnumValue(callSiteKind, "Omitted");
+        }
+
+        /// <summary>
+        /// Constructors and the factory that build the parameter/configuration chain. Each entry
+        /// needs every type it is expressed in, so a missing type simply leaves that handle null —
+        /// the probe reports it via <see cref="Missing"/>.
+        /// </summary>
+        private static void ResolveParameterMembers(Members m, Types types)
+        {
+            if (types.ExistingParameter is not null)
             {
                 m.ExistingParameterCtor = m.FindCtor(
-                    existingParameter, [typeof(IParameterSymbol)], "ExistingParameter..ctor(IParameterSymbol)");
+                    types.ExistingParameter, [typeof(IParameterSymbol)],
+                    "ExistingParameter..ctor(IParameterSymbol)");
             }
 
-            if (addedParameter is not null && callSiteKind is not null)
+            if (types.AddedParameter is not null && types.CallSiteKind is not null)
             {
                 m.AddedParameterCtor = m.FindCtor(
-                    addedParameter,
+                    types.AddedParameter,
                     [
-                        typeof(ITypeSymbol), typeof(string), typeof(string), callSiteKind,
+                        typeof(ITypeSymbol), typeof(string), typeof(string), types.CallSiteKind,
                         typeof(string), typeof(bool), typeof(string), typeof(bool),
                     ],
                     "AddedParameter..ctor(ITypeSymbol, string, string, CallSiteKind, string, bool, string, bool)");
             }
 
-            if (parameterConfiguration is not null && parameterType is not null)
+            if (types.ParameterConfiguration is not null && types.Parameter is not null)
             {
                 m.ParameterConfigurationCreate = m.FindMethod(
-                    parameterConfiguration,
+                    types.ParameterConfiguration,
                     "Create",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    [typeof(ImmutableArray<>).MakeGenericType(parameterType), typeof(bool), typeof(int)],
+                    [typeof(ImmutableArray<>).MakeGenericType(types.Parameter), typeof(bool), typeof(int)],
                     "ParameterConfiguration.Create(ImmutableArray<Parameter>, bool, int)");
 
-                m.ImmutableArrayCreate = ResolveImmutableArrayCreate(m, parameterType);
+                m.ImmutableArrayCreate = ResolveImmutableArrayCreate(m, types.Parameter);
             }
 
-            if (signatureChange is not null && parameterConfiguration is not null)
+            if (types.SignatureChange is not null && types.ParameterConfiguration is not null)
             {
                 m.SignatureChangeCtor = m.FindCtor(
-                    signatureChange, [parameterConfiguration, parameterConfiguration],
+                    types.SignatureChange, [types.ParameterConfiguration, types.ParameterConfiguration],
                     "SignatureChange..ctor(ParameterConfiguration, ParameterConfiguration)");
             }
 
-            if (optionsResult is not null && signatureChange is not null)
+            if (types.OptionsResult is not null && types.SignatureChange is not null)
             {
                 m.OptionsResultCtor = m.FindCtor(
-                    optionsResult, [signatureChange, typeof(bool)],
+                    types.OptionsResult, [types.SignatureChange, typeof(bool)],
                     "ChangeSignatureOptionsResult..ctor(SignatureChange, bool)");
             }
 
-            if (succeededContext is not null && semanticDocument is not null && parameterConfiguration is not null)
+            if (types.SucceededContext is not null && types.SemanticDocument is not null
+                && types.ParameterConfiguration is not null)
             {
                 m.SucceededContextCtor = m.FindCtor(
-                    succeededContext,
-                    [semanticDocument, typeof(int), typeof(ISymbol), parameterConfiguration],
+                    types.SucceededContext,
+                    [types.SemanticDocument, typeof(int), typeof(ISymbol), types.ParameterConfiguration],
                     "ChangeSignatureAnalysisSucceededContext..ctor(SemanticDocument, int, ISymbol, ParameterConfiguration)");
             }
+        }
 
-            if (semanticDocument is not null)
+        /// <summary>The two async entry points the bridge invokes, plus the service it activates.</summary>
+        private static void ResolveMethodHandles(Members m, Types types)
+        {
+            if (types.SemanticDocument is not null)
             {
                 m.SemanticDocumentCreateAsync = m.FindMethod(
-                    semanticDocument,
+                    types.SemanticDocument,
                     "CreateAsync",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
                     [typeof(Document), typeof(CancellationToken)],
                     "SemanticDocument.CreateAsync(Document, CancellationToken)");
                 m.CheckTaskReturnType(
-                    m.SemanticDocumentCreateAsync, semanticDocument, "SemanticDocument.CreateAsync");
+                    m.SemanticDocumentCreateAsync, types.SemanticDocument, "SemanticDocument.CreateAsync");
             }
 
-            if (abstractService is not null && analyzedContext is not null && optionsResult is not null)
+            if (types.AbstractService is not null && types.AnalyzedContext is not null
+                && types.OptionsResult is not null)
             {
                 // The solution-wide entry point. Deliberately NOT ChangeSignature(...), which
                 // returns a SyntaxNode and rewrites the declaration only.
                 m.ChangeSignatureWithContextAsync = m.FindMethod(
-                    abstractService,
+                    types.AbstractService,
                     "ChangeSignatureWithContextAsync",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
-                    [analyzedContext, optionsResult, typeof(CancellationToken)],
+                    [types.AnalyzedContext, types.OptionsResult, typeof(CancellationToken)],
                     "AbstractChangeSignatureService.ChangeSignatureWithContextAsync(ChangeSignatureAnalyzedContext, ChangeSignatureOptionsResult, CancellationToken)");
                 m.CheckTaskReturnType(
-                    m.ChangeSignatureWithContextAsync, changeSignatureResult,
+                    m.ChangeSignatureWithContextAsync, types.ChangeSignatureResult,
                     "AbstractChangeSignatureService.ChangeSignatureWithContextAsync");
             }
 
             // Built via Activator, so nothing above would have caught its removal.
             m.CheckParameterlessCtor(m.CSharpServiceType, "CSharpChangeSignatureService..ctor()");
+        }
 
-            if (changeSignatureResult is not null)
-            {
-                m.ResultSucceeded = m.FindProperty(changeSignatureResult, "Succeeded");
-                m.ResultUpdatedSolution = m.FindProperty(changeSignatureResult, "UpdatedSolution");
-                m.ResultConfirmationMessage = m.FindProperty(changeSignatureResult, "ConfirmationMessage");
-                m.ResultFailureKind = m.FindProperty(changeSignatureResult, "ChangeSignatureFailureKind");
-            }
+        /// <summary>The four properties read off the outcome of a change-signature run.</summary>
+        private static void ResolveResultProperties(Members m, Type? changeSignatureResult)
+        {
+            if (changeSignatureResult is null)
+                return;
 
-            return m;
+            m.ResultSucceeded = m.FindProperty(changeSignatureResult, "Succeeded");
+            m.ResultUpdatedSolution = m.FindProperty(changeSignatureResult, "UpdatedSolution");
+            m.ResultConfirmationMessage = m.FindProperty(changeSignatureResult, "ConfirmationMessage");
+            m.ResultFailureKind = m.FindProperty(changeSignatureResult, "ChangeSignatureFailureKind");
         }
 
         /// <summary>ImmutableArray.Create&lt;T&gt;(params T[]) closed over the internal Parameter type.</summary>

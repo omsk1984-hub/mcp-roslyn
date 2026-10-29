@@ -147,43 +147,44 @@ internal static class ObsoleteUsageCollector
         var parent = node.Parent;
         if (parent is null) return false;
 
-        // Wrapped by a member access whose `.Name` is this node:
-        //   `_api.ObsoleteWarning` — IdentifierName('ObsoleteWarning') is the .Name of MemberAccess.
-        //   The MemberAccess will be visited; skip the IdentifierName.
-        if (parent is MemberAccessExpressionSyntax member && member.Name == node)
+        if (IsDirectlyWrappedByOuterNode(parent, node))
             return true;
 
-        // Wrapped by member-binding (`obj?.ObsoleteMethod()` — `?.ObsoleteMethod` is a
-        // MemberBindingExpression whose .Name is the IdentifierName).
-        if (parent is MemberBindingExpressionSyntax binding && binding.Name == node)
-            return true;
-
-        // Wrapped by an invocation whose `.Expression` is this node:
-        //   `obj.M()` — MemberAccess('obj.M') is the .Expression of Invocation. Invocation wins.
-        if (parent is InvocationExpressionSyntax invocation && invocation.Expression == node)
-            return true;
-
-        // Wrapped by an object-creation whose `.Type` is this node:
-        //   `new ObsoleteType()` — IdentifierName('ObsoleteType') is the .Type. ObjectCreation wins.
-        if (parent is ObjectCreationExpressionSyntax creation && creation.Type == node)
-            return true;
-
-        // Wrapped by a qualified-name whose `.Right` is this node, when the qualified name itself
-        // is the .Type of an object creation:
-        //   `new TestLib.ObsoleteSamples.ObsoleteType()` — ObsoleteType IdentifierName is the
-        //   .Right of a QualifiedName which is the .Type of ObjectCreation. ObjectCreation wins.
-        if (parent is QualifiedNameSyntax qualified
+        // A qualified name contributes its .Right to whatever contains the whole name, so a
+        // chain like TestLib.ObsoleteSamples.ObsoleteType is a duplicate only when its own
+        // parent is already relevant. Recursing collapses deep chains to one site.
+        return parent is QualifiedNameSyntax qualified
             && qualified.Right == node
-            && qualified.Parent is ObjectCreationExpressionSyntax)
-            return true;
-
-        // Wrapped by a qualified-name whose `.Right` is this node, when the qualified name's
-        // parent is itself wrapped by an outer relevant node (recursive case for deep chains).
-        if (parent is QualifiedNameSyntax qualifiedRecurse && qualifiedRecurse.Right == node)
-            return IsWrappedByOuterRelevantNode(qualifiedRecurse);
-
-        return false;
+            && IsWrappedByOuterRelevantNode(qualified);
     }
+
+    /// <summary>
+    /// Parent shapes whose own visit already accounts for this child: the enclosing node resolves
+    /// to the same symbol and is processed by the caller instead.
+    /// </summary>
+    private static bool IsDirectlyWrappedByOuterNode(SyntaxNode parent, SyntaxNode node) => parent switch
+    {
+        // IdentifierName('ObsoleteWarning') is the .Name of MemberAccess in _api.ObsoleteWarning,
+        // which will be visited; skip the IdentifierName.
+        MemberAccessExpressionSyntax member => member.Name == node,
+
+        // For obj?.ObsoleteMethod(), ?.ObsoleteMethod is a MemberBindingExpression whose .Name
+        // is the IdentifierName.
+        MemberBindingExpressionSyntax binding => binding.Name == node,
+
+        // MemberAccess('obj.M') is the .Expression of Invocation. Invocation wins.
+        InvocationExpressionSyntax invocation => invocation.Expression == node,
+
+        // IdentifierName('ObsoleteType') is the .Type of new ObsoleteType(). ObjectCreation wins.
+        ObjectCreationExpressionSyntax creation => creation.Type == node,
+
+        // In new TestLib.ObsoleteSamples.ObsoleteType() the type IdentifierName is the .Right of
+        // a QualifiedName that is itself the .Type of an ObjectCreation. ObjectCreation wins.
+        QualifiedNameSyntax qualified => qualified.Right == node
+            && qualified.Parent is ObjectCreationExpressionSyntax,
+
+        _ => false,
+    };
 
     private static ISymbol? MatchObsoleteSymbol(ISymbol referenced, HashSet<ISymbol> targetSet)
     {

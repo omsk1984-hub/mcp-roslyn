@@ -55,90 +55,25 @@ public static class ExtractMethodLogic
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!SyntaxFacts.IsValidIdentifier(methodName))
-        {
-            throw new McpToolException(ToolErrorCode.InvalidArgument,
-                $"'{methodName}' is not a valid C# identifier — methodName must be a bare " +
-                "identifier (e.g. 'CalculateTotal'), not a signature or a quoted string.",
-                new { methodName });
-        }
+        EnsureValidIdentifier(methodName);
 
-        if (!DocumentLocator.TryFind(loaded, filePath, out var project, out var document))
-        {
-            throw new McpToolException(ToolErrorCode.FileNotFound,
-                $"File not found in solution: {filePath}", new { filePath });
-        }
+        var (project, document, compilation) = await ResolveTargetAsync(loaded, filePath, ct)
+            .ConfigureAwait(false);
+        await EnsureRangeInFileAsync(document, startLine, endLine, ct).ConfigureAwait(false);
 
-        if (!loaded.Compilations.TryGetValue(project.Id, out var compilation))
-        {
-            throw new McpToolException(ToolErrorCode.InvalidArgument,
-                $"No compilation available for project: {project.Name}",
-                new { project.Name });
-        }
+        var extractAction = await FindExtractActionAsync(
+            project, document, compilation, filePath, startLine, endLine, ct).ConfigureAwait(false);
 
-        var originalText = await document.GetTextAsync(ct).ConfigureAwait(false);
-        if (startLine < 1 || endLine < startLine || endLine > originalText.Lines.Count)
-        {
-            throw new McpToolException(ToolErrorCode.InvalidArgument,
-                $"Invalid range [{startLine}, {endLine}]: lines are 1-based, startLine must be " +
-                $"<= endLine, and endLine must not exceed {originalText.Lines.Count} (total lines).",
-                new { startLine, endLine, totalLines = originalText.Lines.Count });
-        }
-
-        // The selection is the full content of the requested lines: column 1 .. end of endLine.
-        // CreateSpan clamps the end column to the line length, so int.MaxValue means "to EOL".
-        var actions = await CodeActionRunner.GetRawActionsAsync(
-            project, document, compilation,
-            startLine, column: 1, endLine, endColumn: int.MaxValue, ct).ConfigureAwait(false);
-
-        var extractAction = actions.FirstOrDefault(
-            a => a.EquivalenceKey == ExtractMethodEquivalenceKey);
-
-        if (extractAction is null)
-        {
-            var available = actions.Count == 0
-                ? "no actions at all"
-                : string.Join("; ", actions.Select(a => $"{a.Title} [{a.EquivalenceKey ?? "no-key"}]"));
-            throw new McpToolException(ToolErrorCode.InvalidArgument,
-                $"Extract-method is not available for lines {startLine}-{endLine} of {filePath} " +
-                $"(the range must lie inside a single method body). Actions offered there: {available}.",
-                new { filePath, startLine, endLine, available = actions.Select(a => a.Title).ToList() });
-        }
-
-        var operations = await extractAction.GetOperationsAsync(ct).ConfigureAwait(false);
-        var applyOp = operations.OfType<ApplyChangesOperation>().FirstOrDefault();
-        if (applyOp is null)
+        var extracted = await ApplyExtractionAsync(extractAction, ct).ConfigureAwait(false);
+        if (extracted is null)
         {
             return new ExtractMethodResult(false, methodName, "", Applied: false, [], [],
                 $"Roslyn's '{extractAction.Title}' action produced no applicable changes.");
         }
 
-        var extracted = applyOp.ChangedSolution;
-
-        // Roslyn named the new method itself; move it to the requested name so the tool's
-        // contract ("methodName") is actually honoured instead of silently ignored.
-        var found = await FindExtractedMethodAsync(extracted, project, document, ct)
+        var (finalSolution, generatedSymbol) = await RenameExtractedMethodAsync(
+            extracted, project, document, methodName, filePath, startLine, endLine, ct)
             .ConfigureAwait(false);
-        if (found is null)
-        {
-            throw new McpToolException(ToolErrorCode.Internal,
-                "Extraction succeeded but the new method could not be located in the changed " +
-                "solution, so the requested name could not be applied. No files were written.",
-                new { filePath, startLine, endLine, methodName });
-        }
-
-        var generatedSymbol = found.Value.Symbol;
-
-        var finalSolution = extracted;
-        if (!string.Equals(generatedSymbol.Name, methodName, StringComparison.Ordinal))
-        {
-            finalSolution = await Renamer.RenameSymbolAsync(
-                extracted, generatedSymbol,
-                new SymbolRenameOptions(
-                    RenameOverloads: false, RenameInStrings: false,
-                    RenameInComments: false, RenameFile: false),
-                methodName, ct).ConfigureAwait(false);
-        }
 
         var signature = await FormatSignatureAsync(finalSolution, document, methodName, ct)
             .ConfigureAwait(false);
@@ -164,6 +99,119 @@ public static class ExtractMethodLogic
         return new ExtractMethodResult(
             outcome.Success, methodName, signature, outcome.Applied,
             outcome.Edits, outcome.Conflicts, outcome.Message);
+    }
+
+    /// <summary>The tool's parameter is a bare identifier, not a signature or a quoted string.</summary>
+    private static void EnsureValidIdentifier(string methodName)
+    {
+        if (SyntaxFacts.IsValidIdentifier(methodName))
+            return;
+
+        throw new McpToolException(ToolErrorCode.InvalidArgument,
+            $"'{methodName}' is not a valid C# identifier — methodName must be a bare " +
+            "identifier (e.g. 'CalculateTotal'), not a signature or a quoted string.",
+            new { methodName });
+    }
+
+    private static async Task<(Project Project, Document Document, Compilation Compilation)> ResolveTargetAsync(
+        LoadedSolution loaded, string filePath, CancellationToken ct)
+    {
+        _ = ct;
+
+        if (!DocumentLocator.TryFind(loaded, filePath, out var project, out var document))
+        {
+            throw new McpToolException(ToolErrorCode.FileNotFound,
+                $"File not found in solution: {filePath}", new { filePath });
+        }
+
+        if (!loaded.Compilations.TryGetValue(project.Id, out var compilation))
+        {
+            throw new McpToolException(ToolErrorCode.InvalidArgument,
+                $"No compilation available for project: {project.Name}",
+                new { project.Name });
+        }
+
+        return (project, document, compilation);
+    }
+
+    /// <summary>
+    /// The selection must lie inside the file. The span itself is built by the action runner,
+    /// which clamps the end column to the line length, so "to EOL" is expressed as int.MaxValue.
+    /// </summary>
+    private static async Task EnsureRangeInFileAsync(Document document, int startLine, int endLine, CancellationToken ct)
+    {
+        var originalText = await document.GetTextAsync(ct).ConfigureAwait(false);
+        if (startLine >= 1 && endLine >= startLine && endLine <= originalText.Lines.Count)
+            return;
+
+        throw new McpToolException(ToolErrorCode.InvalidArgument,
+            $"Invalid range [{startLine}, {endLine}]: lines are 1-based, startLine must be " +
+            $"<= endLine, and endLine must not exceed {originalText.Lines.Count} (total lines).",
+            new { startLine, endLine, totalLines = originalText.Lines.Count });
+    }
+
+    /// <summary>
+    /// Locates Roslyn's extract-method action by <see cref="CodeAction.EquivalenceKey"/>, never by
+    /// title — titles are localized and the key is not.
+    /// </summary>
+    private static async Task<CodeAction> FindExtractActionAsync(
+        Project project, Document document, Compilation compilation,
+        string filePath, int startLine, int endLine, CancellationToken ct)
+    {
+        var actions = await CodeActionRunner.GetRawActionsAsync(
+            project, document, compilation,
+            startLine, column: 1, endLine, endColumn: int.MaxValue, ct).ConfigureAwait(false);
+
+        var extractAction = actions.FirstOrDefault(a => a.EquivalenceKey == ExtractMethodEquivalenceKey);
+        if (extractAction is not null)
+            return extractAction;
+
+        var available = actions.Count == 0
+            ? "no actions at all"
+            : string.Join("; ", actions.Select(a => $"{a.Title} [{a.EquivalenceKey ?? "no-key"}]"));
+        throw new McpToolException(ToolErrorCode.InvalidArgument,
+            $"Extract-method is not available for lines {startLine}-{endLine} of {filePath} " +
+            $"(the range must lie inside a single method body). Actions offered there: {available}.",
+            new { filePath, startLine, endLine, available = actions.Select(a => a.Title).ToList() });
+    }
+
+    /// <summary>The changed solution, or null when the action produced no applicable change.</summary>
+    private static async Task<Solution?> ApplyExtractionAsync(CodeAction extractAction, CancellationToken ct)
+    {
+        var operations = await extractAction.GetOperationsAsync(ct).ConfigureAwait(false);
+
+        return operations.OfType<ApplyChangesOperation>().FirstOrDefault()?.ChangedSolution;
+    }
+
+    /// <summary>
+    /// Roslyn named the new method itself (<c>NewMethod</c>, collision-free by appending digits);
+    /// move it to the requested name so the tool's contract is honoured rather than silently ignored.
+    /// </summary>
+    private static async Task<(Solution Solution, ISymbol Symbol)> RenameExtractedMethodAsync(
+        Solution extracted, Project project, Document document, string methodName,
+        string filePath, int startLine, int endLine, CancellationToken ct)
+    {
+        var found = await FindExtractedMethodAsync(extracted, project, document, ct).ConfigureAwait(false);
+        if (found is null)
+        {
+            throw new McpToolException(ToolErrorCode.Internal,
+                "Extraction succeeded but the new method could not be located in the changed " +
+                "solution, so the requested name could not be applied. No files were written.",
+                new { filePath, startLine, endLine, methodName });
+        }
+
+        var generatedSymbol = found.Value.Symbol;
+        if (string.Equals(generatedSymbol.Name, methodName, StringComparison.Ordinal))
+            return (extracted, generatedSymbol);
+
+        var renamed = await Renamer.RenameSymbolAsync(
+            extracted, generatedSymbol,
+            new SymbolRenameOptions(
+                RenameOverloads: false, RenameInStrings: false,
+                RenameInComments: false, RenameFile: false),
+            methodName, ct).ConfigureAwait(false);
+
+        return (renamed, generatedSymbol);
     }
 
     /// <summary>

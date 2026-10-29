@@ -17,35 +17,50 @@ public static class ComplexityCalculator
     /// previously made an if/else-if chain score roughly double.
     /// </para>
     /// </summary>
-    public static int Calculate(SyntaxNode node)
+    public static int Calculate(SyntaxNode node) =>
+        1 + CountDecisionNodes(node) + CountShortCircuitTokens(node);
+
+    /// <summary>
+    /// Decision nodes: every control construct plus the switch labels/arms, minus the discard arm.
+    /// </summary>
+    private static int CountDecisionNodes(SyntaxNode node)
     {
-        var complexity = 1;
+        var count = 0;
 
         foreach (var descendant in node.DescendantNodes())
         {
-            switch (descendant.Kind())
-            {
-                case SyntaxKind.IfStatement:
-                case SyntaxKind.ForStatement:
-                case SyntaxKind.ForEachStatement:
-                case SyntaxKind.WhileStatement:
-                case SyntaxKind.DoStatement:
-                case SyntaxKind.CatchClause:
-                case SyntaxKind.ConditionalExpression:
-                // Count labels rather than sections: `case 1: case 2:` shares one section but is
-                // two decisions, and `default:` (a DefaultSwitchLabelSyntax) is none.
-                case SyntaxKind.CaseSwitchLabel:
-                case SyntaxKind.CasePatternSwitchLabel:
-                    complexity++;
-                    break;
-
-                // Switch *expressions* have no sections at all, so they used to be invisible.
-                case SyntaxKind.SwitchExpressionArm
-                    when ((SwitchExpressionArmSyntax)descendant).Pattern is not DiscardPatternSyntax:
-                    complexity++;
-                    break;
-            }
+            if (IsDecisionNode(descendant))
+                count++;
         }
+
+        return count;
+    }
+
+    private static bool IsDecisionNode(SyntaxNode node) => node.Kind() switch
+    {
+        SyntaxKind.IfStatement
+            or SyntaxKind.ForStatement
+            or SyntaxKind.ForEachStatement
+            or SyntaxKind.WhileStatement
+            or SyntaxKind.DoStatement
+            or SyntaxKind.CatchClause
+            or SyntaxKind.ConditionalExpression
+            // Count labels rather than sections: `case 1: case 2:` shares one section but is
+            // two decisions, and `default:` (a DefaultSwitchLabelSyntax) is none.
+            or SyntaxKind.CaseSwitchLabel
+            or SyntaxKind.CasePatternSwitchLabel => true,
+
+        // Switch *expressions* have no sections at all, so they used to be invisible.
+        // A discard arm is the expression form of `default:` and is not a decision.
+        SyntaxKind.SwitchExpressionArm => ((SwitchExpressionArmSyntax)node).Pattern is not DiscardPatternSyntax,
+
+        _ => false,
+    };
+
+    /// <summary>Short-circuit operators, counted per token as McCabe defines them.</summary>
+    private static int CountShortCircuitTokens(SyntaxNode node)
+    {
+        var count = 0;
 
         foreach (var token in node.DescendantTokens())
         {
@@ -57,11 +72,11 @@ public static class ComplexityCalculator
                 case SyntaxKind.AmpersandAmpersandToken:
                 case SyntaxKind.BarBarToken:
                 case SyntaxKind.QuestionQuestionToken:
-                    complexity++;
+                    count++;
                     break;
             }
         }
 
-        return complexity;
+        return count;
     }
 }

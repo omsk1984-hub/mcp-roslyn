@@ -127,27 +127,43 @@ public static class GetTestSummaryLogic
         return seen.OrderBy(x => x, StringComparer.Ordinal).ToList();
     }
 
+    /// <summary>
+    /// Namespace roots that carry no production signal: test-framework infrastructure, plus the
+    /// BCL surface every test references (<c>string</c>/<c>int</c>/<c>Task</c>/…).
+    /// </summary>
+    /// <remarks>
+    /// Deliberately narrow under <c>Microsoft.*</c> — only language and runtime support
+    /// namespaces, NOT consumer frameworks like <c>Microsoft.Extensions.*</c>,
+    /// <c>Microsoft.AspNetCore.*</c> or <c>Microsoft.EntityFrameworkCore.*</c>, which are
+    /// legitimate production-code references in real test suites.
+    /// </remarks>
+    private static readonly string[] ExcludedNamespaceRoots =
+    [
+        // Test framework infrastructure — excluded from production-coverage signal.
+        "Xunit",
+        "NUnit.Framework",
+        "Microsoft.VisualStudio.TestTools.UnitTesting",
+        // BCL / language and runtime support.
+        "System",
+        "Microsoft.CSharp",
+        "Microsoft.VisualBasic",
+        "Microsoft.Win32",
+    ];
+
     private static bool IsExcludedNamespace(string ns)
     {
         if (string.IsNullOrEmpty(ns)) return false;
 
-        // Test framework infrastructure — excluded from production-coverage signal.
-        if (ns == "Xunit" || ns.StartsWith("Xunit.", StringComparison.Ordinal)) return true;
-        if (ns == "NUnit.Framework" || ns.StartsWith("NUnit.Framework.", StringComparison.Ordinal)) return true;
-        if (ns == "Microsoft.VisualStudio.TestTools.UnitTesting"
-            || ns.StartsWith("Microsoft.VisualStudio.TestTools.UnitTesting.", StringComparison.Ordinal)) return true;
-
-        // BCL — excluded because every test references string/int/Task/etc. NOTE: deliberately
-        // narrow under Microsoft.* — only language and runtime support namespaces, NOT consumer
-        // frameworks like Microsoft.Extensions.*, Microsoft.AspNetCore.*, Microsoft.EntityFrameworkCore.*
-        // which are legitimate production-code references in real test suites.
-        if (ns == "System" || ns.StartsWith("System.", StringComparison.Ordinal)) return true;
-        if (ns == "Microsoft.CSharp" || ns.StartsWith("Microsoft.CSharp.", StringComparison.Ordinal)) return true;
-        if (ns == "Microsoft.VisualBasic" || ns.StartsWith("Microsoft.VisualBasic.", StringComparison.Ordinal)) return true;
-        if (ns == "Microsoft.Win32" || ns.StartsWith("Microsoft.Win32.", StringComparison.Ordinal)) return true;
-
-        return false;
+        return ExcludedNamespaceRoots.Any(root => IsRootOrDeeper(ns, root));
     }
+
+    /// <summary>
+    /// An ordinal prefix test on segment boundaries: <c>System.Text</c> matches root
+    /// <c>System</c>, but <c>Systematic</c> must not.
+    /// </summary>
+    private static bool IsRootOrDeeper(string ns, string root) =>
+        ns.Equals(root, StringComparison.Ordinal)
+        || (ns.Length > root.Length && ns[root.Length] == '.' && ns.StartsWith(root, StringComparison.Ordinal));
 
     private static (string File, int Line) GetFileAndLine(ISymbol symbol)
     {

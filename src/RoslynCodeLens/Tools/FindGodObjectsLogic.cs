@@ -26,6 +26,36 @@ public static class FindGodObjectsLogic
         int minIncomingNamespaces,
         int minOutgoingNamespaces)
     {
+        var thresholds = new Thresholds(
+            minLines, minMembers, minFields, minIncomingNamespaces, minOutgoingNamespaces);
+
+        // Pass 1 — collect size-suspects (cheap).
+        var suspects = CollectSizeSuspects(loaded, resolver, project, thresholds);
+        if (suspects.Count == 0)
+            return new GodObjectsResult([]);
+
+        // Pass 2 — compute incoming-namespace coupling for each suspect with one solution-wide walk.
+        var incomingByType = ComputeIncomingNamespaces(loaded, suspects);
+
+        // Pass 3 — outgoing coupling per suspect, then rank.
+        var results = CollectCoupledObjects(loaded, resolver, suspects, incomingByType, thresholds);
+        results.Sort(CompareGodObjects);
+
+        return new GodObjectsResult(results);
+    }
+
+    /// <summary>The user-facing cut-offs, threaded as one value through all three passes.</summary>
+    private readonly record struct Thresholds(
+        int MinLines,
+        int MinMembers,
+        int MinFields,
+        int MinIncomingNamespaces,
+        int MinOutgoingNamespaces);
+
+    /// <summary>Pass 1: types that exceed all three size axes, before any coupling is computed.</summary>
+    private static List<SizeSuspect> CollectSizeSuspects(
+        LoadedSolution loaded, SymbolResolver resolver, string? project, Thresholds thresholds)
+    {
         var testProjectIds = TestProjectDetector.GetTestProjectIds(loaded.Solution);
 
         // Cache project name → project id once. Avoids O(P) project enumeration per candidate
@@ -34,36 +64,43 @@ public static class FindGodObjectsLogic
         foreach (var p in loaded.Solution.Projects)
             projectIdsByName[p.Name] = p.Id;
 
-        // Pass 1 — collect size-suspects (cheap).
         var suspects = new List<SizeSuspect>();
+
         foreach (var type in resolver.AllTypes)
         {
             if (!IsCandidate(type, testProjectIds, projectIdsByName, resolver, project))
                 continue;
 
-            var lineCount = GetLineCount(type);
-            var memberCount = type.GetMembers().Count(m => !m.IsImplicitlyDeclared);
-            var fieldCount = type.GetMembers().OfType<IFieldSymbol>().Count(f => !f.IsImplicitlyDeclared);
-
-            var sizeAxes =
-                (lineCount >= minLines ? 1 : 0)
-                + (memberCount >= minMembers ? 1 : 0)
-                + (fieldCount >= minFields ? 1 : 0);
+            var size = MeasureSize(type);
+            var sizeAxes = CountExceededAxes(
+                (size.LineCount, thresholds.MinLines),
+                (size.MemberCount, thresholds.MinMembers),
+                (size.FieldCount, thresholds.MinFields));
 
             // All three size axes must be exceeded for the type to be a god-object suspect.
             if (sizeAxes < 3) continue;
 
-            suspects.Add(new SizeSuspect(type, lineCount, memberCount, fieldCount, sizeAxes));
+            suspects.Add(new SizeSuspect(type, size.LineCount, size.MemberCount, size.FieldCount, sizeAxes));
         }
 
-        if (suspects.Count == 0)
-            return new GodObjectsResult([]);
+        return suspects;
+    }
 
-        // Pass 2 — compute incoming-namespace coupling for each suspect with one solution-wide walk.
-        var incomingByType = ComputeIncomingNamespaces(loaded, suspects);
+    private static (int LineCount, int MemberCount, int FieldCount) MeasureSize(INamedTypeSymbol type) => (
+        GetLineCount(type),
+        type.GetMembers().Count(m => !m.IsImplicitlyDeclared),
+        type.GetMembers().OfType<IFieldSymbol>().Count(f => !f.IsImplicitlyDeclared));
 
-        // Pass 3 — compute outgoing-namespace coupling per suspect.
+    /// <summary>Pass 3: keep suspects whose coupling crosses the threshold, and describe each one.</summary>
+    private static List<GodObjectInfo> CollectCoupledObjects(
+        LoadedSolution loaded,
+        SymbolResolver resolver,
+        List<SizeSuspect> suspects,
+        Dictionary<INamedTypeSymbol, HashSet<string>> incomingByType,
+        Thresholds thresholds)
+    {
         var results = new List<GodObjectInfo>();
+
         foreach (var s in suspects)
         {
             var ownNamespace = s.Type.ContainingNamespace?.ToDisplayString() ?? string.Empty;
@@ -73,39 +110,57 @@ public static class FindGodObjectsLogic
             var incoming = incomingByType[s.Type];
             var outgoing = ComputeOutgoingNamespaces(loaded, s.Type, ownNamespace);
 
-            var couplingAxes =
-                (incoming.Count >= minIncomingNamespaces ? 1 : 0)
-                + (outgoing.Count >= minOutgoingNamespaces ? 1 : 0);
+            var couplingAxes = CountExceededAxes(
+                (incoming.Count, thresholds.MinIncomingNamespaces),
+                (outgoing.Count, thresholds.MinOutgoingNamespaces));
 
             if (couplingAxes == 0) continue;
 
-            var (file, line) = resolver.GetFileAndLine(s.Type);
-            results.Add(new GodObjectInfo(
-                TypeName: s.Type.ToDisplayString(),
-                LineCount: s.LineCount,
-                MemberCount: s.MemberCount,
-                FieldCount: s.FieldCount,
-                IncomingNamespaces: incoming.Count,
-                OutgoingNamespaces: outgoing.Count,
-                SampleIncoming: incoming.OrderBy(x => x, StringComparer.Ordinal).Take(5).ToList(),
-                SampleOutgoing: outgoing.OrderBy(x => x, StringComparer.Ordinal).Take(5).ToList(),
-                FilePath: file,
-                Line: line,
-                Project: resolver.GetProjectName(s.Type),
-                SizeAxesExceeded: s.SizeAxes,
-                CouplingAxesExceeded: couplingAxes));
+            results.Add(DescribeGodObject(resolver, s, incoming, outgoing, couplingAxes));
         }
 
-        results.Sort((a, b) =>
-        {
-            var totalA = a.SizeAxesExceeded + a.CouplingAxesExceeded;
-            var totalB = b.SizeAxesExceeded + b.CouplingAxesExceeded;
-            var byTotal = totalB.CompareTo(totalA);
-            if (byTotal != 0) return byTotal;
-            return b.LineCount.CompareTo(a.LineCount);
-        });
+        return results;
+    }
 
-        return new GodObjectsResult(results);
+    private static GodObjectInfo DescribeGodObject(
+        SymbolResolver resolver,
+        SizeSuspect suspect,
+        HashSet<string> incoming,
+        HashSet<string> outgoing,
+        int couplingAxes)
+    {
+        var (file, line) = resolver.GetFileAndLine(suspect.Type);
+
+        return new GodObjectInfo(
+            TypeName: suspect.Type.ToDisplayString(),
+            LineCount: suspect.LineCount,
+            MemberCount: suspect.MemberCount,
+            FieldCount: suspect.FieldCount,
+            IncomingNamespaces: incoming.Count,
+            OutgoingNamespaces: outgoing.Count,
+            SampleIncoming: Sample(incoming),
+            SampleOutgoing: Sample(outgoing),
+            FilePath: file,
+            Line: line,
+            Project: resolver.GetProjectName(suspect.Type),
+            SizeAxesExceeded: suspect.SizeAxes,
+            CouplingAxesExceeded: couplingAxes);
+    }
+
+    /// <summary>The five names shown in the report, alphabetically — deterministic between runs.</summary>
+    private static List<string> Sample(HashSet<string> namespaces) =>
+        namespaces.OrderBy(x => x, StringComparer.Ordinal).Take(5).ToList();
+
+    private static int CountExceededAxes(params (int Actual, int Threshold)[] axes) =>
+        axes.Count(axis => axis.Actual >= axis.Threshold);
+
+    /// <summary>Worst first by total axes exceeded, then by size.</summary>
+    private static int CompareGodObjects(GodObjectInfo a, GodObjectInfo b)
+    {
+        var byTotal = (b.SizeAxesExceeded + b.CouplingAxesExceeded)
+            .CompareTo(a.SizeAxesExceeded + a.CouplingAxesExceeded);
+
+        return byTotal != 0 ? byTotal : b.LineCount.CompareTo(a.LineCount);
     }
 
     private record SizeSuspect(INamedTypeSymbol Type, int LineCount, int MemberCount, int FieldCount, int SizeAxes);

@@ -80,37 +80,65 @@ public static class CognitiveComplexityCalculator
         /// </param>
         public void Visit(SyntaxNode node, int nesting, int depth)
         {
+            // `else if` is reached through VisitIf below, never here.
+            if (node is IfStatementSyntax ifStatement)
+            {
+                VisitIf(ifStatement, nesting, depth, isElseIf: false);
+                return;
+            }
+
+            if (IsNestingWithScore(node))
+            {
+                Score += 1 + nesting;
+                Descend(node, nesting + 1, depth + 1);
+                return;
+            }
+
+            if (IsNestingWithoutScore(node))
+            {
+                Descend(node, nesting + 1, depth);
+                return;
+            }
+
+            ScoreFlatTerms(node);
+
+            Descend(node, nesting, depth);
+        }
+
+        /// <summary>
+        /// Control structures that cost +1 plus the current nesting level, and whose contents
+        /// therefore sit one cognitive level deeper.
+        /// </summary>
+        private static bool IsNestingWithScore(SyntaxNode node) => node is
+            ConditionalExpressionSyntax
+            or SwitchStatementSyntax
+            or SwitchExpressionSyntax
+            or ForStatementSyntax
+            or ForEachStatementSyntax
+            or ForEachVariableStatementSyntax
+            or WhileStatementSyntax
+            or DoStatementSyntax
+            or CatchClauseSyntax;
+
+        /// <summary>
+        /// Constructs that raise the cognitive nesting level without scoring: a lambda is not
+        /// itself a decision, but code buried inside one is harder to follow. None of these is a
+        /// control structure, so <c>depth</c> — and therefore max nesting — is unaffected.
+        /// </summary>
+        private static bool IsNestingWithoutScore(SyntaxNode node) => node is
+            SimpleLambdaExpressionSyntax
+            or ParenthesizedLambdaExpressionSyntax
+            or AnonymousMethodExpressionSyntax
+            or LocalFunctionStatementSyntax;
+
+        /// <summary>
+        /// Terms that cost a flat +1 with no nesting penalty and do not alter the nesting level
+        /// of their contents.
+        /// </summary>
+        private void ScoreFlatTerms(SyntaxNode node)
+        {
             switch (node)
             {
-                // `else if` is reached through VisitIf below, never here.
-                case IfStatementSyntax ifStatement:
-                    VisitIf(ifStatement, nesting, depth, isElseIf: false);
-                    return;
-
-                // +1 plus the current nesting level, and everything inside sits one level deeper.
-                case ConditionalExpressionSyntax:
-                case SwitchStatementSyntax:
-                case SwitchExpressionSyntax:
-                case ForStatementSyntax:
-                case ForEachStatementSyntax:
-                case ForEachVariableStatementSyntax:
-                case WhileStatementSyntax:
-                case DoStatementSyntax:
-                case CatchClauseSyntax:
-                    Score += 1 + nesting;
-                    Descend(node, nesting + 1, depth + 1);
-                    return;
-
-                // Raise nesting without scoring: the lambda is not itself a decision, but code
-                // buried inside one is harder to follow. Not a control structure, so `depth`
-                // (and therefore max nesting) is unaffected.
-                case SimpleLambdaExpressionSyntax:
-                case ParenthesizedLambdaExpressionSyntax:
-                case AnonymousMethodExpressionSyntax:
-                case LocalFunctionStatementSyntax:
-                    Descend(node, nesting + 1, depth);
-                    return;
-
                 // A jump out of the normal flow: +1, no nesting penalty.
                 // C# has no labelled break/continue, so `goto` is the whole of this rule here.
                 case GotoStatementSyntax:
@@ -131,8 +159,6 @@ public static class CognitiveComplexityCalculator
                     SawSelfCall = true;
                     break;
             }
-
-            Descend(node, nesting, depth);
         }
 
         /// <summary>

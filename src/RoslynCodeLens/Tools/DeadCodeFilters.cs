@@ -62,40 +62,40 @@ internal static class DeadCodeFilters
         "StructLayout", "InlineArray",
     ];
 
+    /// <summary>
+    /// Classifies a symbol into the first matching skip reason. Order is significant: it is the
+    /// priority ladder, and a symbol matching two families reports the earlier one.
+    /// </summary>
     public static Reason Classify(ISymbol symbol)
     {
-        // MCP tools — check symbol itself and its containing type
-        if (HasAnyAttribute(symbol, McpAttributes)) return Reason.McpTool;
-        if (symbol.ContainingType != null && HasAnyAttribute(symbol.ContainingType, McpAttributes))
-            return Reason.McpTool;
+        // MCP tools and generated code are recognised either on the symbol itself or on the type
+        // that declares it — a partial class carries the attribute once, and every member inherits
+        // the classification.
+        if (AttributeOnSelfOrType(symbol, McpAttributes)) return Reason.McpTool;
+        if (AttributeOnSelfOrType(symbol, GeneratedAttributes)) return Reason.Generated;
 
-        // Generated code — check symbol and containing type
-        if (HasAnyAttribute(symbol, GeneratedAttributes)) return Reason.Generated;
-        if (symbol.ContainingType != null && HasAnyAttribute(symbol.ContainingType, GeneratedAttributes))
-            return Reason.Generated;
-
-        // Test method
-        if (symbol is IMethodSymbol && HasAnyAttribute(symbol, TestMethodAttributes))
-            return Reason.TestMethod;
-
-        // Test container — walk BaseType chain
+        if (IsTestMethod(symbol)) return Reason.TestMethod;
         if (IsInTestContainer(symbol)) return Reason.TestContainer;
 
-        // Composition (MEF)
-        if (HasAnyAttribute(symbol, CompositionAttributes)) return Reason.Composition;
-        if (symbol.ContainingType != null && HasAnyAttribute(symbol.ContainingType, CompositionAttributes))
-            return Reason.Composition;
+        if (AttributeOnSelfOrType(symbol, CompositionAttributes)) return Reason.Composition;
 
-        // Interop (fields only)
-        if (symbol is IFieldSymbol field)
-        {
-            if (HasAnyAttribute(field, InteropFieldAttributes)) return Reason.Interop;
-            if (field.ContainingType != null && HasAnyAttribute(field.ContainingType, InteropStructAttributes))
-                return Reason.Interop;
-        }
+        // Interop is field-shaped: the field carries a marshalling attribute, or its type is a
+        // struct with an explicit layout.
+        if (symbol is IFieldSymbol interopField && IsInterop(interopField)) return Reason.Interop;
 
         return Reason.None;
     }
+
+    private static bool AttributeOnSelfOrType(ISymbol symbol, string[] attributeNames) =>
+        HasAnyAttribute(symbol, attributeNames)
+        || (symbol.ContainingType != null && HasAnyAttribute(symbol.ContainingType, attributeNames));
+
+    private static bool IsTestMethod(ISymbol symbol) =>
+        symbol is IMethodSymbol && HasAnyAttribute(symbol, TestMethodAttributes);
+
+    private static bool IsInterop(IFieldSymbol field) =>
+        HasAnyAttribute(field, InteropFieldAttributes)
+        || (field.ContainingType != null && HasAnyAttribute(field.ContainingType, InteropStructAttributes));
 
     private static bool IsInTestContainer(ISymbol symbol)
     {
