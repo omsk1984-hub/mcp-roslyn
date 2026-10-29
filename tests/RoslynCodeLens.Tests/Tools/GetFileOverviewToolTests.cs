@@ -51,7 +51,11 @@ public class GetFileOverviewToolTests
     [Theory]
     [InlineData("Counter.razor", new[] { "Components", "Pages" }, "Components/Pages/Counter_razor.g.cs")]
     [InlineData("App.razor", new[] { "Components" }, "Components/App_razor.g.cs")]
+    // ZA0109 cannot be fixed here: attribute arguments must be constant expressions, and
+    // Array.Empty<string>() is a method call (CS0182). The empty array is the input under test.
+#pragma warning disable ZA0109
     [InlineData("Index.cshtml", new string[0], "Index_cshtml.g.cs")]
+#pragma warning restore ZA0109
     [InlineData("Weather.Details.razor", new[] { "Pages" }, "Pages/Weather_Details_razor.g.cs")]
     public void ExpectedHintName_MirrorsProjectRelativePath(string name, string[] folders, string expected)
     {

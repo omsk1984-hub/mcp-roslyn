@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
@@ -112,7 +113,9 @@ public class SolutionChangeWriterTests : IDisposable
     /// </summary>
     private sealed class WindowsOnlyFactAttribute : FactAttribute
     {
-        public WindowsOnlyFactAttribute(string? sourceFilePath = null, int sourceLineNumber = -1)
+        public WindowsOnlyFactAttribute(
+            [CallerFilePath] string? sourceFilePath = null,
+            [CallerLineNumber] int sourceLineNumber = -1)
             : base(sourceFilePath, sourceLineNumber)
         {
             if (!OperatingSystem.IsWindows())
