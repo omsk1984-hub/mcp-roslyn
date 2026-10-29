@@ -24,8 +24,8 @@ public class TestProjectDetectorTests
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToList();
 
-        Assert.Contains("NUnitFixture", names);
-        Assert.Contains("MSTestFixture", names);
+        Assert.Contains("NUnitFixture", names, StringComparer.Ordinal);
+        Assert.Contains("MSTestFixture", names, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public class TestProjectDetectorTests
             .Select(id => _loaded.Solution.GetProject(id)!.Name)
             .ToList();
 
-        Assert.DoesNotContain("TestLib", names);
-        Assert.DoesNotContain("TestLib2", names);
+        Assert.DoesNotContain("TestLib", names, StringComparer.Ordinal);
+        Assert.DoesNotContain("TestLib2", names, StringComparer.Ordinal);
     }
 
     [Theory]

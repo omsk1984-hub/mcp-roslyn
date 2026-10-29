@@ -1,0 +1,8 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs|258|66|Use in-modifier for passing readonly struct 'TaskSymbols'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs|378|65|Use in-modifier for passing readonly struct 'TaskSymbols'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs|101|25|Use in-modifier for passing readonly struct 'AnalyzerAssemblyHandle'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\FileChangeTracker.cs|119|30|Use in-modifier for passing readonly struct 'StaleSnapshot'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs|259|1|Use in-modifier for passing readonly struct 'ResolvedReference'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs|316|69|Use in-modifier for passing readonly struct 'ResolvedReference'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs|57|74|Use in-modifier for passing readonly struct 'Thresholds'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs|100|1|Use in-modifier for passing readonly struct 'Thresholds'

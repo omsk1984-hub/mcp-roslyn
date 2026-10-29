@@ -22,11 +22,11 @@ public class SolutionLoaderFilterTests
         var (solution, workspace, skipped) = await loader.OpenAsync(Slnx(), filter);
         using var _ = workspace;
 
-        var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x).ToArray();
+        var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x, StringComparer.Ordinal).ToArray();
         Assert.Equal(
             new[] { "App.Api", "App.Api.Tests", "App.Domain", "App.Infrastructure", "Shared.Common" },
             loadedNames);
-        Assert.Single(skipped, s => s.Name == "Sample.Unrelated");
+        Assert.Single(skipped, s => string.Equals(s.Name, "Sample.Unrelated"));
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class SolutionLoaderFilterTests
         var (solution, workspace, skipped) = await loader.OpenAsync(Slnx(), filter);
         using var _ = workspace;
 
-        var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x).ToArray();
+        var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x, StringComparer.Ordinal).ToArray();
         Assert.Equal(
             new[] { "App.Api", "App.Domain", "App.Infrastructure", "Shared.Common" },
             loadedNames);

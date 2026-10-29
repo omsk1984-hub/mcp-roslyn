@@ -43,7 +43,7 @@ public class FindBreakingChangesToolTests
 
         var result = FindBreakingChangesLogic.Diff(baseline, _currentSurface);
 
-        var removed = Assert.Single(result.Changes, c => c.Name == "Fake.Removed.Method()");
+        var removed = Assert.Single(result.Changes, c => string.Equals(c.Name, "Fake.Removed.Method()"));
         Assert.Equal(BreakingChangeKind.Removed, removed.Kind);
         Assert.Equal(BreakingChangeSeverity.Breaking, removed.Severity);
     }
@@ -51,12 +51,12 @@ public class FindBreakingChangesToolTests
     [Fact]
     public void Diff_SymbolAdded_ReportedAsAddedNonBreaking()
     {
-        var dropped = _currentSurface.First(e => e.Name == "TestLib.Greeter");
-        var baseline = _currentSurface.Where(e => e.Name != dropped.Name).ToList();
+        var dropped = _currentSurface.First(e => string.Equals(e.Name, "TestLib.Greeter"));
+        var baseline = _currentSurface.Where(e => !string.Equals(e.Name, dropped.Name)).ToList();
 
         var result = FindBreakingChangesLogic.Diff(baseline, _currentSurface);
 
-        var added = Assert.Single(result.Changes, c => c.Name == dropped.Name);
+        var added = Assert.Single(result.Changes, c => string.Equals(c.Name, dropped.Name));
         Assert.Equal(BreakingChangeKind.Added, added.Kind);
         Assert.Equal(BreakingChangeSeverity.NonBreaking, added.Severity);
     }
@@ -64,15 +64,15 @@ public class FindBreakingChangesToolTests
     [Fact]
     public void Diff_KindChanged_ReportedAsKindChangedBreaking()
     {
-        var greeter = _currentSurface.First(e => e.Name == "TestLib.Greeter");
+        var greeter = _currentSurface.First(e => string.Equals(e.Name, "TestLib.Greeter"));
         var baselineMutated = _currentSurface
-            .Where(e => e.Name != greeter.Name)
+            .Where(e => !string.Equals(e.Name, greeter.Name))
             .Concat(new[] { greeter with { Kind = PublicApiKind.Struct } })
             .ToList();
 
         var result = FindBreakingChangesLogic.Diff(baselineMutated, _currentSurface);
 
-        var change = Assert.Single(result.Changes, c => c.Name == "TestLib.Greeter");
+        var change = Assert.Single(result.Changes, c => string.Equals(c.Name, "TestLib.Greeter"));
         Assert.Equal(BreakingChangeKind.KindChanged, change.Kind);
         Assert.Equal(BreakingChangeSeverity.Breaking, change.Severity);
     }
@@ -83,13 +83,13 @@ public class FindBreakingChangesToolTests
         var processProtected = _currentSurface.First(e =>
             e.Name.Contains("AbstractProcessor.Process", StringComparison.Ordinal));
         var baselineMutated = _currentSurface
-            .Where(e => e.Name != processProtected.Name)
+            .Where(e => !string.Equals(e.Name, processProtected.Name))
             .Concat(new[] { processProtected with { Accessibility = PublicApiAccessibility.Public } })
             .ToList();
 
         var result = FindBreakingChangesLogic.Diff(baselineMutated, _currentSurface);
 
-        var change = Assert.Single(result.Changes, c => c.Name == processProtected.Name);
+        var change = Assert.Single(result.Changes, c => string.Equals(c.Name, processProtected.Name));
         Assert.Equal(BreakingChangeKind.AccessibilityNarrowed, change.Kind);
         Assert.Equal(BreakingChangeSeverity.Breaking, change.Severity);
     }
@@ -97,15 +97,15 @@ public class FindBreakingChangesToolTests
     [Fact]
     public void Diff_AccessibilityWidened_NonBreaking()
     {
-        var greet = _currentSurface.First(e => e.Name == "TestLib.Greeter.Greet(string)");
+        var greet = _currentSurface.First(e => string.Equals(e.Name, "TestLib.Greeter.Greet(string)"));
         var baselineMutated = _currentSurface
-            .Where(e => e.Name != greet.Name)
+            .Where(e => !string.Equals(e.Name, greet.Name))
             .Concat(new[] { greet with { Accessibility = PublicApiAccessibility.Protected } })
             .ToList();
 
         var result = FindBreakingChangesLogic.Diff(baselineMutated, _currentSurface);
 
-        var change = Assert.Single(result.Changes, c => c.Name == greet.Name);
+        var change = Assert.Single(result.Changes, c => string.Equals(c.Name, greet.Name));
         Assert.Equal(BreakingChangeKind.AccessibilityWidened, change.Kind);
         Assert.Equal(BreakingChangeSeverity.NonBreaking, change.Severity);
     }
@@ -177,12 +177,12 @@ public class FindBreakingChangesToolTests
 
         foreach (var (kindName, count) in result.Summary.ByKind)
         {
-            var actual = result.Changes.Count(c => c.Kind.ToString() == kindName);
+            var actual = result.Changes.Count(c => string.Equals(c.Kind.ToString(), kindName));
             Assert.Equal(actual, count);
         }
         foreach (var (severityName, count) in result.Summary.BySeverity)
         {
-            var actual = result.Changes.Count(c => c.Severity.ToString() == severityName);
+            var actual = result.Changes.Count(c => string.Equals(c.Severity.ToString(), severityName));
             Assert.Equal(actual, count);
         }
     }
@@ -199,7 +199,7 @@ public class FindBreakingChangesToolTests
 
         var result = FindBreakingChangesLogic.Diff(baseline, _currentSurface);
 
-        var matches = result.Changes.Where(c => c.Name == "Fake.Dup.Method()").ToList();
+        var matches = result.Changes.Where(c => string.Equals(c.Name, "Fake.Dup.Method()")).ToList();
         Assert.Single(matches);
         Assert.Equal(BreakingChangeKind.Removed, matches[0].Kind);
     }
@@ -214,7 +214,7 @@ public class FindBreakingChangesToolTests
 
         var result = FindBreakingChangesLogic.Diff(_currentSurface, current);
 
-        var matches = result.Changes.Where(c => c.Name == "Fake.NewDup.Method()").ToList();
+        var matches = result.Changes.Where(c => string.Equals(c.Name, "Fake.NewDup.Method()")).ToList();
         Assert.Single(matches);
         Assert.Equal(BreakingChangeKind.Added, matches[0].Kind);
     }
@@ -265,13 +265,13 @@ public class FindBreakingChangesToolTests
             using (var fs = File.Create(dllPath))
             {
                 var emitResult = compilation.Emit(fs);
-                Assert.True(emitResult.Success, $"Emit failed: {string.Join(", ", emitResult.Diagnostics)}");
+                Assert.True(emitResult.Success, $"Emit failed: {string.Join(", ", emitResult.Diagnostics.Select(d => d.ToString()))}");
             }
 
             var result = FindBreakingChangesLogic.Execute(_loaded, _resolver, dllPath);
 
             Assert.Contains(result.Changes, c =>
-                c.Name == "BaselineProbe.Foo" && c.Kind == BreakingChangeKind.Removed);
+                string.Equals(c.Name, "BaselineProbe.Foo") && c.Kind == BreakingChangeKind.Removed);
             Assert.Contains(result.Changes, c =>
                 c.Name.Contains("BaselineProbe.Foo.Bar", StringComparison.Ordinal) &&
                 c.Kind == BreakingChangeKind.Removed);
@@ -280,10 +280,10 @@ public class FindBreakingChangesToolTests
             // BCL refs in LoadBaselineFromAssembly's compilation, parameter and return types
             // would render as ?-error symbols and the FQN would lose its parameter list.
             Assert.Contains(result.Changes, c =>
-                c.Name == "BaselineProbe.Foo.Echo(string, int)" &&
+                string.Equals(c.Name, "BaselineProbe.Foo.Echo(string, int)") &&
                 c.Kind == BreakingChangeKind.Removed);
             Assert.Contains(result.Changes, c =>
-                c.Name == "BaselineProbe.Foo.Counted(int)" &&
+                string.Equals(c.Name, "BaselineProbe.Foo.Counted(int)") &&
                 c.Kind == BreakingChangeKind.Removed);
         }
         finally

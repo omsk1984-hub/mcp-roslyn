@@ -1,0 +1,5 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeSafety.cs|168|46|Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Diagnostic>' inside a loop — consider using a generic overload or caching
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs|446|59|Value type 'CancellationToken' is boxed to 'IImmutableSet<Project>?' inside a loop — consider using a generic overload or caching
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs|448|59|Value type 'CancellationToken' is boxed to 'IImmutableSet<Project>?' inside a loop — consider using a generic overload or caching
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs|416|45|Value type 'ImmutableArray<IParameterSymbol>' is boxed to 'IEnumerable<IParameterSymbol>' inside a loop — consider using a generic overload or caching
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetMethodSourceLogic.cs|144|63|Value type 'ImmutableArray<IMethodSymbol>' is boxed to 'IEnumerable<IMethodSymbol>' inside a loop — consider using a generic overload or caching

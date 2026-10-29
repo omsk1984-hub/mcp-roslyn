@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace AsyncFixture;
@@ -51,7 +51,7 @@ public class Violations
     public string ConfiguredGetAwaiterGetResultViolation()
     {
         var task = Task.FromResult("hello");
-        return task.ConfigureAwait(false).GetAwaiter().GetResult();
+        return task.GetAwaiter().GetResult();
     }
 
     // 1b. SyncOverAsyncResult on ValueTask<T> (same blocking pattern, different awaitable type)

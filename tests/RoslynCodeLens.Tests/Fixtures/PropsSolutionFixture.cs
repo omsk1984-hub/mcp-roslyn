@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using RoslynCodeLens;
 using RoslynCodeLens.Symbols;
 
@@ -32,12 +32,12 @@ public class PropsSolutionFixture : IAsyncLifetime
         SolutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "PropsFixture", "PropsFixture.slnx"));
 
-        await EnsureRestoredAsync().ConfigureAwait(false);
+        await EnsureRestoredAsync();
 
         var problem = string.Empty;
         for (var attempt = 1; attempt <= MaxLoadAttempts; attempt++)
         {
-            Loaded = await new SolutionLoader().LoadAsync(SolutionPath).ConfigureAwait(false);
+            Loaded = await new SolutionLoader().LoadAsync(SolutionPath);
             if (LoadIsHealthy(Loaded, out problem))
             {
                 Resolver = new SymbolResolver(Loaded);
@@ -104,13 +104,13 @@ public class PropsSolutionFixture : IAsyncLifetime
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+        await process.WaitForExitAsync(cts.Token);
 
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException(
                 $"'dotnet restore' for the Props fixture failed (exit {process.ExitCode}):\n" +
-                $"{await stdout.ConfigureAwait(false)}\n{await stderr.ConfigureAwait(false)}");
+                $"{await stdout}\n{await stderr}");
         }
     }
 

@@ -1,0 +1,2 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs|93|46|'_persistent.TrustedSolutions' is already a List<TrustedSolution> — 'ToList' allocates a new collection unnecessarily; use the original directly
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs|94|42|'_persistent.TrustedRoots' is already a List<string> — 'ToList' allocates a new collection unnecessarily; use the original directly

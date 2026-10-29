@@ -1,0 +1,2 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\CognitiveComplexityCalculator.cs|40|35|Add StructLayoutAttribute (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0008.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs|48|36|Add StructLayoutAttribute (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0008.md)

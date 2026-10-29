@@ -28,7 +28,7 @@ public class AnalyzeDataFlowToolTests
 
         Assert.NotNull(result);
         // `greeter` parameter flows into this assignment
-        Assert.Contains("greeter", result.DataFlowsIn);
+        Assert.Contains("greeter", result.DataFlowsIn, StringComparer.Ordinal);
     }
 
     [Fact]

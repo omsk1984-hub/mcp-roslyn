@@ -60,8 +60,8 @@ public static class ValidateEditLogic
                 includeAnalyzers, trustStore, allowlist,
                 filePath: normalized, ct: ct).ConfigureAwait(false);
 
-            var errors = diags.Where(d => d.Source == "compiler" && d.Severity == "Error").ToList();
-            var warnings = diags.Where(d => d.Source == "compiler" && d.Severity == "Warning").ToList();
+            var errors = diags.Where(d => string.Equals(d.Source, "compiler") && string.Equals(d.Severity, "Error")).ToList();
+            var warnings = diags.Where(d => string.Equals(d.Source, "compiler") && string.Equals(d.Severity, "Warning")).ToList();
             var analyzer = diags.Where(d => d.Source.StartsWith("analyzer:", StringComparison.Ordinal)).ToList();
             var typesDefined = await GetTypesDefinedAsync(document, ct).ConfigureAwait(false);
 

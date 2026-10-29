@@ -1,0 +1,6 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs|55|31|Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs|61|31|Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs|65|27|Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs|83|19|Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs|89|19|Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs|139|19|Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)

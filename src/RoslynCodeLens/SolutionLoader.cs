@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
@@ -15,6 +16,7 @@ public class SolutionLoader
     internal static int GetOpenProjectTimeoutSec() =>
         int.TryParse(
             Environment.GetEnvironmentVariable("ROSLYN_CODELENS_OPEN_PROJECT_TIMEOUT_SECONDS"),
+            CultureInfo.InvariantCulture,
             out var n) && n > 0
                 ? n
                 : DefaultOpenProjectTimeoutSec;
@@ -28,6 +30,7 @@ public class SolutionLoader
     internal static int GetLoadParallelism() =>
         int.TryParse(
             Environment.GetEnvironmentVariable("ROSLYN_CODELENS_LOAD_PARALLELISM"),
+            CultureInfo.InvariantCulture,
             out var n) && n > 0
                 ? n
                 : Math.Max(1, Math.Min(Environment.ProcessorCount, MaxDefaultParallelism));
@@ -44,6 +47,7 @@ public class SolutionLoader
     internal static int GetMaxConcurrentBuildHosts() =>
         int.TryParse(
             Environment.GetEnvironmentVariable("ROSLYN_CODELENS_MAX_CONCURRENT_LOADS"),
+            CultureInfo.InvariantCulture,
             out var n) && n > 0
                 ? n
                 : GetLoadParallelism();
@@ -55,6 +59,7 @@ public class SolutionLoader
     internal static int GetLoadRetryCount() =>
         int.TryParse(
             Environment.GetEnvironmentVariable("ROSLYN_CODELENS_LOAD_RETRIES"),
+            CultureInfo.InvariantCulture,
             out var n) && n >= 0
                 ? n
                 : 2;

@@ -23,9 +23,9 @@ public class GetTestSummaryToolTests
     {
         var result = GetTestSummaryLogic.Execute(_loaded, _resolver, project: null);
 
-        var xUnitProject = Assert.Single(result.Projects, p => p.Project == "XUnitFixture");
+        var xUnitProject = Assert.Single(result.Projects, p => string.Equals(p.Project, "XUnitFixture"));
         Assert.True(xUnitProject.TotalTests > 0);
-        Assert.Contains("XUnit", xUnitProject.ByFramework.Keys);
+        Assert.Contains("XUnit", xUnitProject.ByFramework.Keys, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -33,9 +33,9 @@ public class GetTestSummaryToolTests
     {
         var result = GetTestSummaryLogic.Execute(_loaded, _resolver, project: null);
 
-        var nUnitProject = Assert.Single(result.Projects, p => p.Project == "NUnitFixture");
+        var nUnitProject = Assert.Single(result.Projects, p => string.Equals(p.Project, "NUnitFixture"));
         Assert.True(nUnitProject.TotalTests > 0);
-        Assert.Contains("NUnit", nUnitProject.ByFramework.Keys);
+        Assert.Contains("NUnit", nUnitProject.ByFramework.Keys, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -43,9 +43,9 @@ public class GetTestSummaryToolTests
     {
         var result = GetTestSummaryLogic.Execute(_loaded, _resolver, project: null);
 
-        var msTestProject = Assert.Single(result.Projects, p => p.Project == "MSTestFixture");
+        var msTestProject = Assert.Single(result.Projects, p => string.Equals(p.Project, "MSTestFixture"));
         Assert.True(msTestProject.TotalTests > 0);
-        Assert.Contains("MSTest", msTestProject.ByFramework.Keys);
+        Assert.Contains("MSTest", msTestProject.ByFramework.Keys, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -97,9 +97,9 @@ public class GetTestSummaryToolTests
             {
                 Assert.False(symbol.StartsWith("Xunit", StringComparison.Ordinal),
                     $"Test {test.MethodName} referenced framework symbol {symbol}");
-                Assert.False(symbol.StartsWith("System.", StringComparison.Ordinal) || symbol == "System",
+                Assert.False(symbol.StartsWith("System.", StringComparison.Ordinal) || string.Equals(symbol, "System"),
                     $"Test {test.MethodName} referenced BCL symbol {symbol}");
-                Assert.False(symbol.StartsWith("Microsoft.", StringComparison.Ordinal) || symbol == "Microsoft",
+                Assert.False(symbol.StartsWith("Microsoft.", StringComparison.Ordinal) || string.Equals(symbol, "Microsoft"),
                     $"Test {test.MethodName} referenced Microsoft.* symbol {symbol}");
                 Assert.False(symbol.StartsWith("NUnit.Framework", StringComparison.Ordinal),
                     $"Test {test.MethodName} referenced NUnit framework symbol {symbol}");
@@ -121,8 +121,8 @@ public class GetTestSummaryToolTests
     {
         var result = GetTestSummaryLogic.Execute(_loaded, _resolver, project: null);
 
-        Assert.DoesNotContain(result.Projects, p => p.Project == "TestLib");
-        Assert.DoesNotContain(result.Projects, p => p.Project == "TestLib2");
+        Assert.DoesNotContain(result.Projects, p => string.Equals(p.Project, "TestLib"));
+        Assert.DoesNotContain(result.Projects, p => string.Equals(p.Project, "TestLib2"));
     }
 
     [Fact]

@@ -28,8 +28,8 @@ public class PropsFixtureDetectionTests
             .Select(id => _fixture.Loaded.Solution.GetProject(id)!.Name)
             .ToList();
 
-        Assert.Contains("PropsDrivenTests", names);
-        Assert.DoesNotContain("PropsLib", names);
+        Assert.Contains("PropsDrivenTests", names, StringComparer.Ordinal);
+        Assert.DoesNotContain("PropsLib", names, StringComparer.Ordinal);
     }
 
     [Fact]

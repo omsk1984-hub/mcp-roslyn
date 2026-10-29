@@ -1,0 +1,349 @@
+﻿=== MA0051 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ChangeSignatureBridge.cs(44,44): warning MA0051: Method is too long (74 lines; maximum allowed: 60) (https://
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ValidateEditLogic.cs(23,50): warning MA0051: Method is too long (86 lines; maximum allowed: 60) (https://github.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(31,35): warning MA0051: Method is too long (62 lines; maximum allowed: 60) (https://
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(106,37): warning MA0051: Method is too long (129 lines; maximum allowed: 60) (https://github.com/mez
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindEventSubscribersLogic.cs(12,54): warning MA0051: Method is too long (71 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindDisposableMisuseLogic.cs(14,46): warning MA0051: Method is too long (83 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetDiagnosticsLogic.cs(15,61): warning MA0051: Method is too long (64 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetComplexityMetricsLogic.cs(17,51): warning MA0051: Method is too long (61 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GenerateTestSkeletonLogic.cs(12,46): warning MA0051: Method is too long (62 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindReferencesLogic.cs(38,54): warning MA0051: Method is too long (62 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindCallersLogic.cs(16,57): warning MA0051: Method is too long (64 lines; maximum allowed: 60) (https://github.c
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetExceptionFlowLogic.cs(108,21): warning MA0051: Method is too long (64 lines; maximum allowed: 60) (https://gi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FormatDocumentLogic.cs(18,52): warning MA0051: Method is too long (74 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(291,45): warning MA0051: Method is too long (128 lines; maximum allowed: 60) (https://github.com/mez
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(445,37): warning MA0051: Method is too long (61 lines; maximum allowed: 60) (https://github.com/mezi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindBreakingChangesLogic.cs(26,47): warning MA0051: Method is too long (106 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetTestSummaryLogic.cs(14,40): warning MA0051: Method is too long (67 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs(81,35): warning MA0051: Method is too long (67 lines; maximum allowed: 60) (https://github.com/me
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs(223,25): warning MA0051: Method is too long (66 lines; maximum allowed: 60) (https://github.com/m
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs(9,42): warning MA0051: Method is too long (84 lines; maximum allowed: 60) (https://gith
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ChangeSignatureBridge.cs(44,44): warning MA0051: Method is too long (74 lines; maximum allowed: 60) (https://
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ValidateEditLogic.cs(23,50): warning MA0051: Method is too long (86 lines; maximum allowed: 60) (https://github.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(31,35): warning MA0051: Method is too long (62 lines; maximum allowed: 60) (https://
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(106,37): warning MA0051: Method is too long (129 lines; maximum allowed: 60) (https://github.com/mez
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindEventSubscribersLogic.cs(12,54): warning MA0051: Method is too long (71 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindDisposableMisuseLogic.cs(14,46): warning MA0051: Method is too long (83 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetDiagnosticsLogic.cs(15,61): warning MA0051: Method is too long (64 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetComplexityMetricsLogic.cs(17,51): warning MA0051: Method is too long (61 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GenerateTestSkeletonLogic.cs(12,46): warning MA0051: Method is too long (62 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindReferencesLogic.cs(38,54): warning MA0051: Method is too long (62 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindCallersLogic.cs(16,57): warning MA0051: Method is too long (64 lines; maximum allowed: 60) (https://github.c
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetExceptionFlowLogic.cs(108,21): warning MA0051: Method is too long (64 lines; maximum allowed: 60) (https://gi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FormatDocumentLogic.cs(18,52): warning MA0051: Method is too long (74 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(291,45): warning MA0051: Method is too long (128 lines; maximum allowed: 60) (https://github.com/mez
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(445,37): warning MA0051: Method is too long (61 lines; maximum allowed: 60) (https://github.com/mezi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindBreakingChangesLogic.cs(26,47): warning MA0051: Method is too long (106 lines; maximum allowed: 60) (https:/
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetTestSummaryLogic.cs(14,40): warning MA0051: Method is too long (67 lines; maximum allowed: 60) (https://githu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs(81,35): warning MA0051: Method is too long (67 lines; maximum allowed: 60) (https://github.com/me
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs(223,25): warning MA0051: Method is too long (66 lines; maximum allowed: 60) (https://github.com/m
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs(9,42): warning MA0051: Method is too long (84 lines; maximum allowed: 60) (https://gith
+
+=== MA0009 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(55,52): warning MA0009: Regular expressions should not be vulnerable to Denial of Service attacks
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(21,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(23,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(25,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(29,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(27,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\TypeNameNormalizer.cs(12,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Serv
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(19,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(42,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(46,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(37,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(50,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(54,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs(142,16): warning MA0009: Regular expressions should not be vulnerable to Denial of Service attacks (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ValidateEditLogic.cs(177,23): warning MA0009: Regular expressions should not be vulnerable to Denial of Service 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\MethodDisplayHelpers.cs(60,20): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(55,52): warning MA0009: Regular expressions should not be vulnerable to Denial of Service attacks
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(21,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(23,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(25,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(29,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(27,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\TypeNameNormalizer.cs(12,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Serv
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(19,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Ser
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(42,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(46,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(37,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(50,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(54,6): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs(142,16): warning MA0009: Regular expressions should not be vulnerable to Denial of Service attacks (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ValidateEditLogic.cs(177,23): warning MA0009: Regular expressions should not be vulnerable to Denial of Service 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\MethodDisplayHelpers.cs(60,20): warning MA0009: Regular expressions should not be vulnerable to Denial of Servic
+
+=== ERP022 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(161,101): warning ERP022: Exit point '}' swallows an unobserved exception. [d
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(204,103): warning ERP022: Exit point '}' swallows an unobserved exception. [d
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(207,74): warning ERP022: Exit point '}' swallows an unobserved exception. [d:
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(213,17): warning ERP022: Exit point 'return false;' swallows an unobserved ex
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(51,13): warning ERP022: Exit point 'return Array.Empty<string>();' swallows an unobserved excepti
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(79,13): warning ERP022: Exit point 'return Array.Empty<string>();' swallows an unobserved excepti
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs(168,13): warning ERP022: Exit point 'return Array.Empty<SkippedProjectInfo>();' swallows an un
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs(184,13): warning ERP022: Exit point 'return Array.Empty<string>();' swallows an unobserved exc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(187,17): warning ERP022: Exit point 'return path;' swallows an unobserved exception. [d:\work\M
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLifecycle\StaleRebuildCoordinator.cs(371,17): warning ERP022: Exit point 'return null;' swallows an unobserved
+tests\Analyzers\SharedAnalyzerAssemblyCacheTests.cs:11
+tests\Analyzers\GeneratorShadowLoadIntegrationTests.cs:19
+tests\Analyzers\ShadowCopyAnalyzerAssemblyLoaderTests.cs:9
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(161,101): warning ERP022: Exit point '}' swallows an unobserved exception. [d
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(204,103): warning ERP022: Exit point '}' swallows an unobserved exception. [d
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(207,74): warning ERP022: Exit point '}' swallows an unobserved exception. [d:
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(213,17): warning ERP022: Exit point 'return false;' swallows an unobserved ex
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(51,13): warning ERP022: Exit point 'return Array.Empty<string>();' swallows an unobserved excepti
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(79,13): warning ERP022: Exit point 'return Array.Empty<string>();' swallows an unobserved excepti
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs(168,13): warning ERP022: Exit point 'return Array.Empty<SkippedProjectInfo>();' swallows an un
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs(184,13): warning ERP022: Exit point 'return Array.Empty<string>();' swallows an unobserved exc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(187,17): warning ERP022: Exit point 'return path;' swallows an unobserved exception. [d:\work\M
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLifecycle\StaleRebuildCoordinator.cs(371,17): warning ERP022: Exit point 'return null;' swallows an unobserved
+tests\Analyzers\SharedAnalyzerAssemblyCacheTests.cs:11
+tests\Analyzers\GeneratorShadowLoadIntegrationTests.cs:19
+tests\Analyzers\ShadowCopyAnalyzerAssemblyLoaderTests.cs:9
+
+=== EPC12 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\BackgroundTasks\BackgroundTaskStore.cs(56,37): warning EPC12: Suspicious exception handling: only ex.Message is observ
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs(41,94): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(109,109): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs(72,21): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(115,111): warning EPC12: Suspicious exception handling: only ex.Message is observed in exceptio
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(184,91): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception bloc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(485,90): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception bloc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(487,41): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception bloc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\BackgroundTasks\BackgroundTaskStore.cs(56,37): warning EPC12: Suspicious exception handling: only ex.Message is observ
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs(41,94): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(109,109): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs(72,21): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(115,111): warning EPC12: Suspicious exception handling: only ex.Message is observed in exceptio
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(184,91): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception bloc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(485,90): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception bloc
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(487,41): warning EPC12: Suspicious exception handling: only ex.Message is observed in exception bloc
+
+=== EPS05 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(101,25): warning EPS05: Use in-modifier for passing readonly struct 'Analyzer
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs(258,66): warning EPS05: Use in-modifier for passing readonly struct 'TaskSymbols' [
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\FileChangeTracker.cs(119,30): warning EPS05: Use in-modifier for passing readonly struct 'StaleSnapshot' [d:\work\MCP\
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs(378,65): warning EPS05: Use in-modifier for passing readonly struct 'TaskSymbols' [
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs(57,74): warning EPS05: Use in-modifier for passing readonly struct 'Thresholds' [d:\work\
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs(100,1): warning EPS05: Use in-modifier for passing readonly struct 'Thresholds' [d:\work\
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs(259,1): warning EPS05: Use in-modifier for passing readonly struct 'ResolvedReference'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs(316,69): warning EPS05: Use in-modifier for passing readonly struct 'ResolvedReference
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(101,25): warning EPS05: Use in-modifier for passing readonly struct 'Analyzer
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs(258,66): warning EPS05: Use in-modifier for passing readonly struct 'TaskSymbols' [
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\FileChangeTracker.cs(119,30): warning EPS05: Use in-modifier for passing readonly struct 'StaleSnapshot' [d:\work\MCP\
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs(378,65): warning EPS05: Use in-modifier for passing readonly struct 'TaskSymbols' [
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs(57,74): warning EPS05: Use in-modifier for passing readonly struct 'Thresholds' [d:\work\
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs(100,1): warning EPS05: Use in-modifier for passing readonly struct 'Thresholds' [d:\work\
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs(259,1): warning EPS05: Use in-modifier for passing readonly struct 'ResolvedReference'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs(316,69): warning EPS05: Use in-modifier for passing readonly struct 'ResolvedReference
+
+=== EPS06 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(196,33): warning EPS06: Expression 'IndexOf' causes a hidden copy of a struct
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs(611,29): warning EPS06: Expression 'All' causes a hidden copy of a struct 'ImmutableAr
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs(281,38): warning EPS06: Expression 'SequenceEqual' causes a hidden copy of a struct 'ReadOnlySpan
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs(497,35): warning EPS06: Expression 'Any' causes a hidden copy of a struct 'Immut
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(196,33): warning EPS06: Expression 'IndexOf' causes a hidden copy of a struct
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs(611,29): warning EPS06: Expression 'All' causes a hidden copy of a struct 'ImmutableAr
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs(281,38): warning EPS06: Expression 'SequenceEqual' causes a hidden copy of a struct 'ReadOnlySpan
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs(497,35): warning EPS06: Expression 'Any' causes a hidden copy of a struct 'Immut
+
+=== ZA0501 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeSafety.cs(168,46): warning ZA0501: Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Dia
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeSafety.cs(168,54): warning ZA0501: Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Dia
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetMethodSourceLogic.cs(144,63): warning ZA0501: Value type 'ImmutableArray<IMethodSymbol>' is boxed to 'IEnumer
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs(446,59): warning ZA0501: Value type 'CancellationToken' is boxed to 'IImmutableSet<Proje
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs(448,59): warning ZA0501: Value type 'CancellationToken' is boxed to 'IImmutableSet<Proje
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs(416,45): warning ZA0501: Value type 'ImmutableArray<IParameterSymbol>' is boxed 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeSafety.cs(168,46): warning ZA0501: Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Dia
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeSafety.cs(168,54): warning ZA0501: Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Dia
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetMethodSourceLogic.cs(144,63): warning ZA0501: Value type 'ImmutableArray<IMethodSymbol>' is boxed to 'IEnumer
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs(446,59): warning ZA0501: Value type 'CancellationToken' is boxed to 'IImmutableSet<Proje
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs(448,59): warning ZA0501: Value type 'CancellationToken' is boxed to 'IImmutableSet<Proje
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs(416,45): warning ZA0501: Value type 'ImmutableArray<IParameterSymbol>' is boxed 
+
+=== ZA0208 ===
+tests\Analyzers\GeneratorShadowLoadIntegrationTests.cs:62
+tests\Fixtures\TestSolutionFixture.cs:104
+tests\Symbols\SymbolSignatureComparerTests.cs:27
+tests\Tools\FindBreakingChangesToolTests.cs:268
+tests\Analyzers\GeneratorShadowLoadIntegrationTests.cs:62
+tests\Fixtures\TestSolutionFixture.cs:104
+tests\Symbols\SymbolSignatureComparerTests.cs:27
+tests\Tools\FindBreakingChangesToolTests.cs:268
+
+=== ZA0108 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(93,46): warning ZA0108: '_persistent.TrustedSolutions' is already a List<TrustedSolution> — 'To
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(94,42): warning ZA0108: '_persistent.TrustedRoots' is already a List<string> — 'ToList' allocat
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(93,46): warning ZA0108: '_persistent.TrustedSolutions' is already a List<TrustedSolution> — 'To
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(94,42): warning ZA0108: '_persistent.TrustedRoots' is already a List<string> — 'ToList' allocat
+
+=== ZA0109 ===
+tests\Tools\GetFileOverviewToolTests.cs:54
+tests\Tools\GetFileOverviewToolTests.cs:54
+
+=== MA0011 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(197,35): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFo
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(54,26): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (htt
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(16,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(29,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(45,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(56,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Symbols\SymbolSignatureComparer.cs(43,11): warning MA0011: Use an overload of 'ToString' that has a 'System.IFormatPro
+tests\Security\TrustStoreModelTests.cs:17
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs(197,35): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFo
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(54,26): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (htt
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(16,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(29,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(45,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs(56,9): warning MA0011: Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Symbols\SymbolSignatureComparer.cs(43,11): warning MA0011: Use an overload of 'ToString' that has a 'System.IFormatPro
+tests\Security\TrustStoreModelTests.cs:17
+
+=== MA0015 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(55,31): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(61,31): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(65,27): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(83,19): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(89,19): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs(139,19): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (http
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(55,31): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(61,31): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(65,27): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(83,19): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(89,19): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (https://g
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs(139,19): warning MA0015: Use an overload of 'System.ArgumentException' with the parameter name (http
+
+=== MA0008 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs(48,36): warning MA0008: Add StructLayoutAttribute (https://github.com/meziantou/Meziantou
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\CognitiveComplexityCalculator.cs(40,35): warning MA0008: Add StructLayoutAttribute (https://github.com/mezian
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs(48,36): warning MA0008: Add StructLayoutAttribute (https://github.com/meziantou/Meziantou
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\CognitiveComplexityCalculator.cs(40,35): warning MA0008: Add StructLayoutAttribute (https://github.com/mezian
+
+=== MA0023 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(57,9): warning MA0023: Use RegexOptions.ExplicitCapture or named groups to prevent capturing unne
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs(57,9): warning MA0023: Use RegexOptions.ExplicitCapture or named groups to prevent capturing unne
+
+=== MA0054 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs(89,23): warning MA0054: Embed the caught exception as innerException (https://github.com/meziantou/M
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs(89,23): warning MA0054: Embed the caught exception as innerException (https://github.com/meziantou/M
+
+=== MA0061 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StructuredErrorToolWrapper.cs(10,27): warning MA0061: Method overrides should not change default values (original: nul
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StructuredErrorToolWrapper.cs(10,27): warning MA0061: Method overrides should not change default values (original: nul
+
+=== MA0158 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(11,29): warning MA0158: Use System.Threading.Lock (https://github.com/meziantou/Meziantou.Analy
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(11,29): warning MA0158: Use System.Threading.Lock (https://github.com/meziantou/Meziantou.Analy
+
+=== RCS1194 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\McpToolException.cs(5,21): warning RCS1194: Implement exception constructors (https://josefpihrt.github.io/docs/roslyn
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\McpToolException.cs(5,21): warning RCS1194: Implement exception constructors (https://josefpihrt.github.io/docs/roslyn
+
+=== MA0074 ===
+tests\ProjectGraphReaderTests.cs:17
+tests\ProjectGraphReaderTests.cs:18
+tests\ProjectGraphReaderTests.cs:17
+tests\ProjectGraphReaderTests.cs:18
+
+=== MA0048 ===
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs(12,23): warning MA0048: File name must match type name (class AsyncMethodScan), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\SolutionScanner.cs(19,22): warning MA0048: File name must match type name (record ScanTree), expected file na
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ExceptionAnalyzer.cs(11,22): warning MA0048: File name must match type name (record ExceptionHandler), expect
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ChangeSignatureBridge.cs(12,22): warning MA0048: File name must match type name (record DesiredParameter), ex
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs(15,22): warning MA0048: File name must match type name (record SolutionWriteResult), expected 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\LoadedSolution.cs(36,22): warning MA0048: File name must match type name (record SkippedProject), expected file name: 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ExceptionAnalyzer.cs(8,22): warning MA0048: File name must match type name (record ThrowSite), expected file 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStoreModel.cs(21,22): warning MA0048: File name must match type name (record TrustedSolution), expected 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(194,22): warning MA0048: File name must match type name (record TrustSnapshot), expected file n
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ChangeSignatureBridge.cs(9,22): warning MA0048: File name must match type name (record BridgeResult), expecte
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(5,13): warning MA0048: File name must match type name (enum DemangledKind), expected
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(12,22): warning MA0048: File name must match type name (record DemangledTarget), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Loading\TargetProjectGraph.cs(82,33): warning MA0048: File name must match type name (record struct TargetGraph), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLifecycle\StaleRebuildCoordinator.cs(384,18): warning MA0048: File name must match type name (interface ISolut
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ArchitectureViolation.cs(6,15): warning MA0048: File name must match type name (record ViolationSite), expected
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(7,22): warning MA0048: File name must match type name (record ParsedTraceLine), expecte
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\TestDiscovery\TestMethodClassifier.cs(5,15): warning MA0048: File name must match type name (record TestMethodClassifi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(61,15): warning MA0048: File name must match type name (record InstantiationOptionsResu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(27,22): warning MA0048: File name must match type name (record StackTraceParseResult), 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(16,15): warning MA0048: File name must match type name (record ConstructorOption), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(39,15): warning MA0048: File name must match type name (record FactoryOption), expected
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(26,15): warning MA0048: File name must match type name (record ParameterOption), expect
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(54,15): warning MA0048: File name must match type name (record RequiredMemberOption), e
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(58,22): warning MA0048: File name must match type name (record SymbolValidationReport), e
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(74,22): warning MA0048: File name must match type name (record ValidateEditSummary), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(87,22): warning MA0048: File name must match type name (record ValidateEditBaseline), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs(27,22): warning MA0048: File name must match type name (delegate CommitWrittenDocuments), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\SolutionInfo.cs(10,22): warning MA0048: File name must match type name (record SkippedProjectInfo), expected fi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindObsoleteUsageLogic.cs(76,33): warning MA0048: File name must match type name (record struct ObsoleteAttribut
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(39,22): warning MA0048: File name must match type name (record FileValidationReport), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureTool.cs(12,22): warning MA0048: File name must match type name (record ArchitectureRuleInput), 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\TrustSolutionLogic.cs(29,22): warning MA0048: File name must match type name (record TrustSolutionResult), expec
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ResolveStackTraceLogic.cs(10,22): warning MA0048: File name must match type name (record StackTraceResolution), 
+tests\GetExceptionFlowLogicTests.cs:304
+tests\Fixtures\PropsSolutionFixture.cs:121
+tests\GetExceptionFlowLogicTests.cs:235
+tests\Fixtures\RazorSolutionFixture.cs:117
+tests\Fixtures\RenameTestWorkspace.cs:13
+tests\Fixtures\TestSolutionFixture.cs:185
+tests\Tools\GenerateTestSkeletonToolTests.cs:376
+tests\Tools\GenerateTestSkeletonToolTests.cs:231
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs(12,23): warning MA0048: File name must match type name (class AsyncMethodScan), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\SolutionScanner.cs(19,22): warning MA0048: File name must match type name (record ScanTree), expected file na
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ExceptionAnalyzer.cs(11,22): warning MA0048: File name must match type name (record ExceptionHandler), expect
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ChangeSignatureBridge.cs(12,22): warning MA0048: File name must match type name (record DesiredParameter), ex
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs(15,22): warning MA0048: File name must match type name (record SolutionWriteResult), expected 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\LoadedSolution.cs(36,22): warning MA0048: File name must match type name (record SkippedProject), expected file name: 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ExceptionAnalyzer.cs(8,22): warning MA0048: File name must match type name (record ThrowSite), expected file 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStoreModel.cs(21,22): warning MA0048: File name must match type name (record TrustedSolution), expected 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs(194,22): warning MA0048: File name must match type name (record TrustSnapshot), expected file n
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\ChangeSignatureBridge.cs(9,22): warning MA0048: File name must match type name (record BridgeResult), expecte
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(5,13): warning MA0048: File name must match type name (enum DemangledKind), expected
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackFrameDemangler.cs(12,22): warning MA0048: File name must match type name (record DemangledTarget), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Loading\TargetProjectGraph.cs(82,33): warning MA0048: File name must match type name (record struct TargetGraph), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLifecycle\StaleRebuildCoordinator.cs(384,18): warning MA0048: File name must match type name (interface ISolut
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ArchitectureViolation.cs(6,15): warning MA0048: File name must match type name (record ViolationSite), expected
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(7,22): warning MA0048: File name must match type name (record ParsedTraceLine), expecte
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\TestDiscovery\TestMethodClassifier.cs(5,15): warning MA0048: File name must match type name (record TestMethodClassifi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(61,15): warning MA0048: File name must match type name (record InstantiationOptionsResu
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StackTrace\StackTraceParser.cs(27,22): warning MA0048: File name must match type name (record StackTraceParseResult), 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(16,15): warning MA0048: File name must match type name (record ConstructorOption), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(39,15): warning MA0048: File name must match type name (record FactoryOption), expected
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(26,15): warning MA0048: File name must match type name (record ParameterOption), expect
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\InstantiationOptions.cs(54,15): warning MA0048: File name must match type name (record RequiredMemberOption), e
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(58,22): warning MA0048: File name must match type name (record SymbolValidationReport), e
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(74,22): warning MA0048: File name must match type name (record ValidateEditSummary), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(87,22): warning MA0048: File name must match type name (record ValidateEditBaseline), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs(27,22): warning MA0048: File name must match type name (delegate CommitWrittenDocuments), expe
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\SolutionInfo.cs(10,22): warning MA0048: File name must match type name (record SkippedProjectInfo), expected fi
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\FindObsoleteUsageLogic.cs(76,33): warning MA0048: File name must match type name (record struct ObsoleteAttribut
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Models\ValidateEditResult.cs(39,22): warning MA0048: File name must match type name (record FileValidationReport), exp
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureTool.cs(12,22): warning MA0048: File name must match type name (record ArchitectureRuleInput), 
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\TrustSolutionLogic.cs(29,22): warning MA0048: File name must match type name (record TrustSolutionResult), expec
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\ResolveStackTraceLogic.cs(10,22): warning MA0048: File name must match type name (record StackTraceResolution), 
+tests\GetExceptionFlowLogicTests.cs:304
+tests\Fixtures\PropsSolutionFixture.cs:121
+tests\GetExceptionFlowLogicTests.cs:235
+tests\Fixtures\RazorSolutionFixture.cs:117
+tests\Fixtures\RenameTestWorkspace.cs:13
+tests\Fixtures\TestSolutionFixture.cs:185
+tests\Tools\GenerateTestSkeletonToolTests.cs:376
+tests\Tools\GenerateTestSkeletonToolTests.cs:231
+
+=== MA0048 detail ===
+tests\GetExceptionFlowLogicTests.cs:304 | 14 class
+tests\Fixtures\PropsSolutionFixture.cs:121 | 14 class
+tests\GetExceptionFlowLogicTests.cs:235 | 14 class
+tests\Fixtures\RazorSolutionFixture.cs:117 | 14 class
+tests\Fixtures\RenameTestWorkspace.cs:13 | 15 enum
+tests\Fixtures\TestSolutionFixture.cs:185 | 14 class
+tests\Tools\GenerateTestSkeletonToolTests.cs:376 | 14 class
+tests\Tools\GenerateTestSkeletonToolTests.cs:231 | 14 class
+tests\GetExceptionFlowLogicTests.cs:304 | 14 class
+tests\Fixtures\PropsSolutionFixture.cs:121 | 14 class
+tests\GetExceptionFlowLogicTests.cs:235 | 14 class
+tests\Fixtures\RazorSolutionFixture.cs:117 | 14 class
+tests\Fixtures\RenameTestWorkspace.cs:13 | 15 enum
+tests\Fixtures\TestSolutionFixture.cs:185 | 14 class
+tests\Tools\GenerateTestSkeletonToolTests.cs:376 | 14 class
+tests\Tools\GenerateTestSkeletonToolTests.cs:231 | 14 class

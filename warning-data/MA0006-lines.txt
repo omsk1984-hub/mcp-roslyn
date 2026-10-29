@@ -1,0 +1,143 @@
+src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs|255|9|memberAccess.Name.Identifier.Text == "Result" &&
+src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs|321|13|if (memberAccess.Name.Identifier.Text != "GetResult") return false;
+src\RoslynCodeLens\SolutionLoadFailure.cs|28|17|if (current.GetType().FullName == "Microsoft.Build.Exceptions.InvalidProjectFileException"
+src\RoslynCodeLens\Tools\ExtractMethodLogic.cs|165|57|var extractAction = actions.FirstOrDefault(a => a.EquivalenceKey == ExtractMethodEquivalenceKey);
+src\RoslynCodeLens\Tools\ExtractMethodLogic.cs|282|34|.FirstOrDefault(m => m.Identifier.Text == methodName);
+src\RoslynCodeLens\Tools\FindDisposableMisuseLogic.cs|228|48|if (node is IdentifierNameSyntax id && id.Identifier.Text == name)
+src\RoslynCodeLens\Tools\FindDisposableMisuseLogic.cs|233|17|if (descendant.Identifier.Text == name)
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs|14|12|=> ns == "System"
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs|15|15||| ns == "Microsoft"
+src\RoslynCodeLens\Tools\GenerateTestSkeletonLogic.cs|534|44|if (project.Documents.Any(d => d.FilePath == loc.SourceTree.FilePath))
+src\RoslynCodeLens\Tools\ObsoleteUsageCollector.cs|79|21|if (attr.AttributeClass?.ToDisplayString() != "System.ObsoleteAttribute") continue;
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs|63|43|var errors = diags.Where(d => d.Source == "compiler" && d.Severity == "Error").ToList();
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs|64|45|var warnings = diags.Where(d => d.Source == "compiler" && d.Severity == "Warning").ToList();
+tests\RoslynCodeLens.Tests\Analysis\SolutionScannerTests.cs|82|24|return name == "ProjB";
+tests\RoslynCodeLens.Tests\ApplyFixLogicTests.cs|73|25|.First(d => d.Id == "CS0246" && d.Location.IsInSource);
+tests\RoslynCodeLens.Tests\ApplyFixLogicTests.cs|122|29|.First(d => d.Id == "CS0246" && d.Location.IsInSource);
+tests\RoslynCodeLens.Tests\ApplyFixLogicTests.cs|144|65|Assert.DoesNotContain(recomp.GetDiagnostics(), d => d.Id == "CS0246");
+tests\RoslynCodeLens.Tests\BackgroundTasks\BackgroundTaskStoreTests.cs|74|51|Assert.Contains(store.ListRunning(), t => t.TaskId == info.TaskId);
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs|60|49|var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Singleton" && x.Service == "Demo.IFoo"
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs|68|49|var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Scoped");
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs|76|49|var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Transient");
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs|84|49|var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Singleton" && x.Line == 14);
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs|127|44|Assert.Equal(2, results.Count(r => r.Lifetime == "Scoped"));
+tests\RoslynCodeLens.Tests\ExceptionAnalyzerTests.cs|19|26|.Single(m => m.Identifier.Text == methodName);
+tests\RoslynCodeLens.Tests\FindThrowSitesLogicTests.cs|71|37|Assert.Contains(sites, s => s.ExceptionType == "System.InvalidOperationException");
+tests\RoslynCodeLens.Tests\FindThrowSitesLogicTests.cs|72|37|Assert.Contains(sites, s => s.ExceptionType == "Demo.CustomException");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsFixtureTests.cs|33|49|var chunk = Assert.Single(results, r => r.Name == "Chunk");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsFixtureTests.cs|47|45|Assert.DoesNotContain(results, r => r.Namespace == "System.Linq");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|118|49|var where = Run("List<int>").Where(i => i.Name == "Where").ToList();
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|128|53|var thrice = Assert.Single(Run("int"), i => i.Name == "Thrice");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|139|54|var tripled = Assert.Single(Run("int"), i => i.Name == "Tripled");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|156|51|var zero = Assert.Single(Run("int"), i => i.Name == "Zero");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|172|54|var doubled = Assert.Single(Run("int"), i => i.Name == "Doubled");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|180|53|var thrice = Assert.Single(Run("int"), i => i.Name == "Thrice");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|189|41|Run("List<int>").Where(i => i.Origin == "metadata"),
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|201|55|var makeZero = Assert.Single(Run("int"), i => i.Name == "MakeZero");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|217|47|Assert.Equal(1, Run("int").Count(i => i.Name == "Thrice"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|273|65|Assert.Equal("int Tripled", Assert.Single(results, i => i.Name == "Tripled").Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|274|66|Assert.Equal("int Thrice()", Assert.Single(results, i => i.Name == "Thrice").Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|275|67|Assert.Equal("int Doubled()", Assert.Single(results, i => i.Name == "Doubled").Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|276|62|Assert.Equal("int Zero", Assert.Single(results, i => i.Name == "Zero").Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|282|49|var where = Run("List<int>").First(i => i.Name == "Where");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|303|53|var lastSource = results.FindLastIndex(r => r.Origin == "source");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|304|52|var firstMetadata = results.FindIndex(r => r.Origin == "metadata");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|436|54|var doubled = Assert.Single(Run("int"), i => i.Name == "Doubled");
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs|442|49|var where = Run("List<int>").First(i => i.Name == "Where");
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs|34|46|Assert.Contains(r.Constructors, c => c.Accessibility == "private");
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs|109|56|Assert.True(Assert.Single(r.Constructors, c => c.Accessibility == "internal").Accessible);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs|119|57|Assert.False(Assert.Single(r.Constructors, c => c.Accessibility == "internal").Accessible);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs|134|56|Assert.True(Assert.Single(r.Constructors, c => c.Accessibility == "public").Accessible);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs|325|33|Assert.Contains(f, x => x.Kind == "property" && x.Signature.Contains("Instance", StringComparison.Ordinal));
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs|326|33|Assert.Contains(f, x => x.Kind == "field" && x.Signature.Contains("Default", StringComparison.Ordinal));
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs|32|49|var api = solution.Projects.Single(p => p.Name == "App.Api");
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs|54|49|var api = solution.Projects.Single(p => p.Name == "App.Api");
+tests\RoslynCodeLens.Tests\SolutionLoaderFilterTests.cs|29|37|Assert.Single(skipped, s => s.Name == "Sample.Unrelated");
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs|38|69|Assert.Contains(symbolIndex.FindNamedTypes("Greeter"), t => t.Name == "Greeter");
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs|67|66|Assert.Contains(typeIndex.GetDerivedTypes(greeter), t => t.Name == "FancyGreeter");
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs|73|44|Assert.Contains(implementors, t => t.Name == "Greeter");
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs|74|44|Assert.Contains(implementors, t => t.Name == "CrossProjectGreeter");
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs|98|67|var owningProject = _loaded.Solution.Projects.Single(p => p.Name == projectName);
+tests\RoslynCodeLens.Tests\SymbolResolverTests.cs|84|39|Assert.Contains(results, t => t.ToDisplayString() == "Data.Repository<T>");
+tests\RoslynCodeLens.Tests\SymbolResolverTests.cs|85|39|Assert.Contains(results, t => t.ToDisplayString() == "Data.Repository<T1, T2>");
+tests\RoslynCodeLens.Tests\Symbols\SymbolSignatureComparerTests.cs|31|20|var memberImpl = typeName == "IFoo" ? "public void Do() {}" : "";
+tests\RoslynCodeLens.Tests\Symbols\SymbolSignatureComparerTests.cs|41|38|.GetNamespaceMembers().First(n => n.Name == "Lib")
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs|20|26|.Single(p => p.Name == "XUnitFixture");
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs|31|26|.Single(p => p.Name == "NUnitFixture");
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs|42|26|.Single(p => p.Name == "MSTestFixture");
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs|53|26|.Single(p => p.Name == "TestLib");
+tests\RoslynCodeLens.Tests\Tools\FindAsyncViolationsToolTests.cs|125|55|var actual = result.Violations.Count(v => v.Pattern.ToString() == kvp.Key);
+tests\RoslynCodeLens.Tests\Tools\FindAsyncViolationsToolTests.cs|137|55|var actual = result.Violations.Count(v => v.Severity.ToString() == kvp.Key);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|46|58|var removed = Assert.Single(result.Changes, c => c.Name == "Fake.Removed.Method()");
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|54|50|var dropped = _currentSurface.First(e => e.Name == "TestLib.Greeter");
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|55|51|var baseline = _currentSurface.Where(e => e.Name != dropped.Name).ToList();
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|59|56|var added = Assert.Single(result.Changes, c => c.Name == dropped.Name);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|67|50|var greeter = _currentSurface.First(e => e.Name == "TestLib.Greeter");
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|69|25|.Where(e => e.Name != greeter.Name)
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|75|57|var change = Assert.Single(result.Changes, c => c.Name == "TestLib.Greeter");
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|86|25|.Where(e => e.Name != processProtected.Name)
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|92|57|var change = Assert.Single(result.Changes, c => c.Name == processProtected.Name);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|100|48|var greet = _currentSurface.First(e => e.Name == "TestLib.Greeter.Greet(string)");
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|102|25|.Where(e => e.Name != greet.Name)
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|108|57|var change = Assert.Single(result.Changes, c => c.Name == greet.Name);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|180|52|var actual = result.Changes.Count(c => c.Kind.ToString() == kindName);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|185|52|var actual = result.Changes.Count(c => c.Severity.ToString() == severityName);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|202|49|var matches = result.Changes.Where(c => c.Name == "Fake.Dup.Method()").ToList();
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|217|49|var matches = result.Changes.Where(c => c.Name == "Fake.NewDup.Method()").ToList();
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|274|17|c.Name == "BaselineProbe.Foo" && c.Kind == BreakingChangeKind.Removed);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|283|17|c.Name == "BaselineProbe.Foo.Echo(string, int)" &&
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|286|17|c.Name == "BaselineProbe.Foo.Counted(int)" &&
+tests\RoslynCodeLens.Tests\Tools\FindDisposableMisuseToolTests.cs|118|55|var actual = result.Violations.Count(v => v.Pattern.ToString() == patternName);
+tests\RoslynCodeLens.Tests\Tools\FindDisposableMisuseToolTests.cs|129|55|var actual = result.Violations.Count(v => v.Severity.ToString() == severityName);
+tests\RoslynCodeLens.Tests\Tools\FindGodObjectsToolTests.cs|86|13|ns == "TestLib.GodObjectSamples.Bad");
+tests\RoslynCodeLens.Tests\Tools\FindGodObjectsToolTests.cs|201|50|Assert.DoesNotContain(result.Types, t => t.Project == "RoslynCodeLens.Tests");
+tests\RoslynCodeLens.Tests\Tools\FindUnusedSymbolsToolTests.cs|118|45|var fixtureItems = items.Where(i => i.Project == "XUnitFixture").ToList();
+tests\RoslynCodeLens.Tests\Tools\GetCallGraphToolTests.cs|92|58|Assert.Contains(result.Callees[aKey].Edges, e => e.Target == bKey);
+tests\RoslynCodeLens.Tests\Tools\GetCallGraphToolTests.cs|93|58|Assert.Contains(result.Callees[bKey].Edges, e => e.Target == aKey);
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|37|63|var classify = Assert.Single(atDefaultThreshold, m => m.MethodName == "Classify");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|53|54|var nested = Assert.Single(byCognitive, m => m.MethodName == "DeeplyNested");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|84|39|Assert.Contains(results, r => r.MethodName == "OrderService" && r.TypeName == "OrderService");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|85|39|Assert.Contains(results, r => r.MethodName == "FormalNameLength");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|93|44|var classify = results.Single(r => r.MethodName == "ClassifyName");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|109|43|Assert.Contains(byCognitive, r => r.MethodName == "SumPositives");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|110|50|Assert.DoesNotContain(byCyclomatic, r => r.MethodName == "SumPositives");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|173|37|Assert.Single(results, r => r.MethodName == "Shared");
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs|190|50|var shared = Assert.Single(results, r => r.MethodName == "Shared");
+tests\RoslynCodeLens.Tests\Tools\GetDiagnosticsToolTests.cs|265|56|var param = method.GetParameters().Single(p => p.Name == "includeAnalyzers");
+tests\RoslynCodeLens.Tests\Tools\GetDiagnosticsToolTests.cs|274|56|var param = method.GetParameters().Single(p => p.Name == "limit");
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|62|49|Assert.Contains(result.Operators, op => op.Kind == "+" && !op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|69|49|Assert.Contains(result.Operators, op => op.Kind == "implicit");
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|70|49|Assert.Contains(result.Operators, op => op.Kind == "explicit");
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|77|49|Assert.Contains(result.Operators, op => op.Kind == "+" && op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|84|49|Assert.Contains(result.Operators, op => op.Kind == "==");
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|85|49|Assert.Contains(result.Operators, op => op.Kind == "!=");
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|92|53|var addition = result.Operators.First(op => op.Kind == "+" && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|107|13|op.Kind == "+" && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|135|49|Assert.Contains(result.Operators, op => op.Kind == "+");
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs|136|49|Assert.Contains(result.Operators, op => op.Kind == "implicit");
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs|92|50|var color = paint.Parameters.Single(p => p.Name == "color");
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs|153|61|Assert.Equal("out", tryParse.Parameters.Single(p => p.Name == "value").Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs|156|62|Assert.Equal("ref", increment.Parameters.Single(p => p.Name == "value").Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs|159|61|Assert.Equal("in", inspectIn.Parameters.Single(p => p.Name == "value").Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs|162|80|Assert.Equal("ref readonly", inspectRefReadonly.Parameters.Single(p => p.Name == "value").Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetProjectHealthToolTests.cs|26|47|Assert.Contains(result.Projects, p => p.Project == "TestLib");
+tests\RoslynCodeLens.Tests\Tools\GetProjectHealthToolTests.cs|27|47|Assert.Contains(result.Projects, p => p.Project == "TestLib2");
+tests\RoslynCodeLens.Tests\Tools\GetProjectHealthToolTests.cs|35|53|Assert.DoesNotContain(result.Projects, p => p.Project == "RoslynCodeLens.Tests");
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|48|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.Greeter" && e.Kind == PublicApiKind.Class);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|49|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.IGreeter" && e.Kind == PublicApiKind.Interface);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|50|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.FancyGreeter" && e.Kind == PublicApiKind.Class);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|51|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.OrderRecord" && e.Kind == PublicApiKind.Record);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|52|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.PointStruct" && e.Kind == PublicApiKind.RecordStruct);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|53|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.PriorityLevel" && e.Kind == PublicApiKind.Enum);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|54|46|Assert.Contains(result.Entries, e => e.Name == "TestLib.OrderProcessedHandler" && e.Kind == PublicApiKind.Delegate);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|197|52|var actual = result.Entries.Count(e => e.Kind.ToString() == kindName);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|209|52|var actual = result.Entries.Count(e => e.Project == projectName);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|221|52|var actual = result.Entries.Count(e => e.Accessibility.ToString() == accName);
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|26|64|var xUnitProject = Assert.Single(result.Projects, p => p.Project == "XUnitFixture");
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|36|64|var nUnitProject = Assert.Single(result.Projects, p => p.Project == "NUnitFixture");
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|46|65|var msTestProject = Assert.Single(result.Projects, p => p.Project == "MSTestFixture");
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|100|88|Assert.False(symbol.StartsWith("System.", StringComparison.Ordinal) || symbol == "System",
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|102|91|Assert.False(symbol.StartsWith("Microsoft.", StringComparison.Ordinal) || symbol == "Microsoft",
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|124|53|Assert.DoesNotContain(result.Projects, p => p.Project == "TestLib");
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|125|53|Assert.DoesNotContain(result.Projects, p => p.Project == "TestLib2");
+tests\RoslynCodeLens.Tests\Tools\ListRunningTasksToolTests.cs|27|44|Assert.Contains(result.Items, t => t.TaskId == started.TaskId);

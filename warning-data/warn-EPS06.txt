@@ -1,0 +1,4 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs|196|33|Expression 'IndexOf' causes a hidden copy of a struct 'ReadOnlySpan'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs|611|29|Expression 'All' causes a hidden copy of a struct 'ImmutableArray'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs|497|35|Expression 'Any' causes a hidden copy of a struct 'ImmutableArray'
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Tools\PeekIlLogic.cs|281|38|Expression 'SequenceEqual' causes a hidden copy of a struct 'ReadOnlySpan'

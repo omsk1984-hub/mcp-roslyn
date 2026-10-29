@@ -1,4 +1,13 @@
 <Project>
+  <PropertyGroup>
+    <!-- Microsoft.Build 18.11.0 targets emit TFM-support warnings for net10.0.
+         The packages work correctly; the warnings are informational only. -->
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <!-- NU1701: NuGet package fallback to .NET Framework — expected for
+         Microsoft.Build 18.11.0 which ships net472 + netstandard2.0. -->
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Meziantou.Analyzer" Version="3.0.317">
       <PrivateAssets>all</PrivateAssets>

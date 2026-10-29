@@ -25,7 +25,7 @@ public class SymbolIndexDecompositionTests : IAsyncLifetime
     {
         var fixturePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
-        _loaded = await new SolutionLoader().LoadAsync(fixturePath).ConfigureAwait(false);
+        _loaded = await new SolutionLoader().LoadAsync(fixturePath);
     }
 
     public ValueTask DisposeAsync() => default;
@@ -35,7 +35,7 @@ public class SymbolIndexDecompositionTests : IAsyncLifetime
     {
         var symbolIndex = new SymbolIndex(_loaded);
 
-        Assert.Contains(symbolIndex.FindNamedTypes("Greeter"), t => t.Name == "Greeter");
+        Assert.Contains(symbolIndex.FindNamedTypes("Greeter"), t => string.Equals(t.Name, "Greeter"));
         Assert.NotEmpty(symbolIndex.FindMethods("Greeter.Greet"));
         Assert.NotEmpty(symbolIndex.FindSymbols("Greeter.Greet"));
         Assert.NotEmpty(symbolIndex.AllTypes);
@@ -64,14 +64,14 @@ public class SymbolIndexDecompositionTests : IAsyncLifetime
         var greeter = Assert.Single(viaTypeIndex);
 
         // Фикстура объявляет `FancyGreeter : Greeter` — производный тип должен быть найден.
-        Assert.Contains(typeIndex.GetDerivedTypes(greeter), t => t.Name == "FancyGreeter");
+        Assert.Contains(typeIndex.GetDerivedTypes(greeter), t => string.Equals(t.Name, "FancyGreeter"));
 
         // `Greeter : IGreeter`, плюс CrossProjectGreeter реализует тот же интерфейс
         // в другом проекте — проверяем, что карта реализаций заполнена и кросс-проектно.
         var greeterInterface = Assert.Single(typeIndex.FindNamedTypes("IGreeter"));
         var implementors = typeIndex.GetInterfaceImplementors(greeterInterface);
-        Assert.Contains(implementors, t => t.Name == "Greeter");
-        Assert.Contains(implementors, t => t.Name == "CrossProjectGreeter");
+        Assert.Contains(implementors, t => string.Equals(t.Name, "Greeter"));
+        Assert.Contains(implementors, t => string.Equals(t.Name, "CrossProjectGreeter"));
 
         // Запрос по символу, которого нет в карте, отдаёт пустой список, а не null/исключение.
         Assert.Empty(typeIndex.GetDerivedTypes(greeterInterface));
@@ -95,7 +95,7 @@ public class SymbolIndexDecompositionTests : IAsyncLifetime
         // must report a non-empty project and the same name as its own project id.
         var projectName = locationIndex.GetProjectName(type);
         Assert.False(string.IsNullOrEmpty(projectName));
-        var owningProject = _loaded.Solution.Projects.Single(p => p.Name == projectName);
+        var owningProject = _loaded.Solution.Projects.Single(p => string.Equals(p.Name, projectName));
         Assert.Equal(projectName, locationIndex.GetProjectName(owningProject.Id));
 
         Assert.False(locationIndex.IsGenerated(file));

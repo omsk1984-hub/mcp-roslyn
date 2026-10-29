@@ -11,7 +11,7 @@ public class SymbolResolverTests : IAsyncLifetime
     {
         var fixturePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
-        _loaded = await new SolutionLoader().LoadAsync(fixturePath).ConfigureAwait(false);
+        _loaded = await new SolutionLoader().LoadAsync(fixturePath);
     }
 
     public ValueTask DisposeAsync() => default;
@@ -81,8 +81,8 @@ public class SymbolResolverTests : IAsyncLifetime
         var results = resolver.FindNamedTypes("Data.Repository");
 
         Assert.Equal(2, results.Count);
-        Assert.Contains(results, t => t.ToDisplayString() == "Data.Repository<T>");
-        Assert.Contains(results, t => t.ToDisplayString() == "Data.Repository<T1, T2>");
+        Assert.Contains(results, t => string.Equals(t.ToDisplayString(), "Data.Repository<T>"));
+        Assert.Contains(results, t => string.Equals(t.ToDisplayString(), "Data.Repository<T1, T2>"));
     }
 
     [Fact]

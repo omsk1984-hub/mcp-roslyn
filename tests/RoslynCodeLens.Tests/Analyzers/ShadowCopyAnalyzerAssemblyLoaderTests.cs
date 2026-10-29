@@ -48,6 +48,6 @@ public class ShadowCopyAnalyzerAssemblyLoaderTests : IDisposable
         loader2.AddDependencyLocation(original);
         var dir2 = Path.GetDirectoryName(loader2.LoadFromPath(original).Location)!;
 
-        Assert.NotEqual(dir1, dir2);
+        Assert.NotEqual(dir1, dir2, StringComparer.Ordinal);
     }
 }

@@ -59,7 +59,7 @@ public class GeneratorShadowLoadIntegrationTests : IDisposable
         var dllPath = Path.Combine(_tmp, "HelloGen.dll");
         var emit = compilation.Emit(dllPath);
         Assert.True(emit.Success,
-            "generator failed to compile:\n" + string.Join("\n", emit.Diagnostics));
+            "generator failed to compile:\n" + string.Join("\n", emit.Diagnostics.Select(d => d.ToString())));
         return dllPath;
     }
 

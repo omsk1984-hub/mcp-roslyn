@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace RoslynCodeLens;
 
 /// <summary>
@@ -51,20 +53,20 @@ public sealed class CliOptions
 
                 case "--port":
                     var portValue = inlineValue ?? NextValue(args, ref i, name);
-                    if (!int.TryParse(portValue, out port) || port is < 1 or > 65535)
-                        throw new ArgumentException($"Invalid value for --port: '{portValue}'. Expected an integer between 1 and 65535.");
+                    if (!int.TryParse(portValue, CultureInfo.InvariantCulture, out port) || port is < 1 or > 65535)
+                        throw new ArgumentException($"Invalid value for --port: '{portValue}'. Expected an integer between 1 and 65535.", "port");
                     break;
 
                 case "--host":
                     httpHost = inlineValue ?? NextValue(args, ref i, name);
                     if (string.IsNullOrWhiteSpace(httpHost))
-                        throw new ArgumentException("Invalid value for --host: value is empty.");
+                        throw new ArgumentException("Invalid value for --host: value is empty.", "host");
                     break;
 
                 default:
                     throw new ArgumentException(
                         $"Unknown option '{arg}'. Supported options: --http, --port <1-65535>, --host <address>. " +
-                        "Positional arguments are .sln/.slnx paths.");
+                        "Positional arguments are .sln/.slnx paths.", "arg");
             }
         }
 
@@ -80,13 +82,13 @@ public sealed class CliOptions
     private static void RejectInlineValue(string name, string? inlineValue)
     {
         if (inlineValue is not null)
-            throw new ArgumentException($"Option '{name}' does not take a value.");
+            throw new ArgumentException($"Option '{name}' does not take a value.", nameof(name));
     }
 
     private static string NextValue(string[] args, ref int i, string name)
     {
         if (i + 1 >= args.Length)
-            throw new ArgumentException($"Option '{name}' requires a value.");
+            throw new ArgumentException($"Option '{name}' requires a value.", nameof(name));
         return args[++i];
     }
 }

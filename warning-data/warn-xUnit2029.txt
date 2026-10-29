@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\SolutionManagerTests.cs|301|13|Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029)

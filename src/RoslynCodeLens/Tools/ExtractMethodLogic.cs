@@ -162,7 +162,7 @@ public static class ExtractMethodLogic
             project, document, compilation,
             startLine, column: 1, endLine, endColumn: int.MaxValue, ct).ConfigureAwait(false);
 
-        var extractAction = actions.FirstOrDefault(a => a.EquivalenceKey == ExtractMethodEquivalenceKey);
+        var extractAction = actions.FirstOrDefault(a => string.Equals(a.EquivalenceKey, ExtractMethodEquivalenceKey));
         if (extractAction is not null)
             return extractAction;
 
@@ -279,7 +279,7 @@ public static class ExtractMethodLogic
             return "";
 
         var node = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault(m => m.Identifier.Text == methodName);
+            .FirstOrDefault(m => string.Equals(m.Identifier.Text, methodName));
         if (node is null)
             return "";
 

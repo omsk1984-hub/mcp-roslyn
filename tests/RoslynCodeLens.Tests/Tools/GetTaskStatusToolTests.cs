@@ -1,4 +1,4 @@
-using RoslynCodeLens;
+﻿using RoslynCodeLens;
 using RoslynCodeLens.BackgroundTasks;
 using RoslynCodeLens.Models;
 using RoslynCodeLens.Tools;
@@ -21,7 +21,7 @@ public class GetTaskStatusToolTests
     {
         using var store = new BackgroundTaskStore();
         var started = store.Start("test_tool", _ => Task.FromResult<object?>("done"));
-        await Task.Delay(100).ConfigureAwait(false);
+        await Task.Delay(100);
         var info = GetTaskStatusTool.Execute(store, started.TaskId);
         Assert.Equal(started.TaskId, info.TaskId);
     }

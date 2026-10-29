@@ -79,7 +79,7 @@ public class SolutionScannerTests
             .EnumerateTrees(loaded, resolver, projectFilter: (_, name) =>
             {
                 asked.Add(name);
-                return name == "ProjB";
+                return string.Equals(name, "ProjB");
             })
             .ToList();
 

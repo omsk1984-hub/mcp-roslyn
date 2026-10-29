@@ -8,7 +8,7 @@ public sealed class TrustStore
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private readonly string _filePath;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly HashSet<string> _sessionSolutions;
     private TrustStoreModel _persistent;
 
@@ -90,8 +90,8 @@ public sealed class TrustStore
         {
             return new TrustSnapshot(
                 _sessionSolutions.ToList(),
-                _persistent.TrustedSolutions.ToList(),
-                _persistent.TrustedRoots.ToList(),
+                _persistent.TrustedSolutions,
+                _persistent.TrustedRoots,
                 _persistent.AnalyzerPolicy);
         }
     }

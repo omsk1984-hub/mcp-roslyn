@@ -68,7 +68,7 @@ public class RazorGeneratedCodeTests
             _fixture.PathTo("Components", "Counter.razor"), CancellationToken.None);
 
         Assert.Equal("RazorLib", overview.Project);
-        Assert.Contains("Counter", overview.TypesDefined);
+        Assert.Contains("Counter", overview.TypesDefined, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -141,8 +141,8 @@ public class RazorGeneratedCodeTests
 
         var names = items.Select(i => i.SymbolName).ToList();
 
-        Assert.Contains("RazorLib.Components.MainLayout", names);
-        Assert.DoesNotContain("RazorLib.Components.NavMenu", names);
+        Assert.Contains("RazorLib.Components.MainLayout", names, StringComparer.Ordinal);
+        Assert.DoesNotContain("RazorLib.Components.NavMenu", names, StringComparer.Ordinal);
     }
 
     /// <summary>An unused component is only actionable once it names the .razor file to delete.</summary>

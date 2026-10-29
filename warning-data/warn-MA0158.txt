@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs|11|29|Use System.Threading.Lock (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0158.md)

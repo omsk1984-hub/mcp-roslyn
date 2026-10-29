@@ -13,7 +13,7 @@ public class BackgroundTaskStoreTests
         var info = store.Start("rebuild_solution",
             _ => Task.FromResult<object?>("done"));
         Assert.StartsWith("bg-rebuild_solution-", info.TaskId, StringComparison.Ordinal);
-        await WaitForTerminal(store, info.TaskId).ConfigureAwait(false);
+        await WaitForTerminal(store, info.TaskId);
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public class BackgroundTaskStoreTests
         var info = store.Start("test_tool",
             _ => Task.FromResult<object?>("payload"));
 
-        var terminal = await WaitForTerminal(store, info.TaskId).ConfigureAwait(false);
+        var terminal = await WaitForTerminal(store, info.TaskId);
         Assert.Equal(BackgroundTaskStatus.Succeeded, terminal.Status);
         Assert.Equal("payload", terminal.Result);
     }
@@ -36,7 +36,7 @@ public class BackgroundTaskStoreTests
             _ => throw new McpToolException(
                 ToolErrorCode.SymbolNotFound, "X"));
 
-        var terminal = await WaitForTerminal(store, info.TaskId).ConfigureAwait(false);
+        var terminal = await WaitForTerminal(store, info.TaskId);
         Assert.Equal(BackgroundTaskStatus.Failed, terminal.Status);
         Assert.Equal("SymbolNotFound", terminal.ErrorCode);
         Assert.Equal("X", terminal.ErrorMessage);
@@ -49,7 +49,7 @@ public class BackgroundTaskStoreTests
         var info = store.Start("test_tool",
             _ => throw new InvalidOperationException("boom"));
 
-        var terminal = await WaitForTerminal(store, info.TaskId).ConfigureAwait(false);
+        var terminal = await WaitForTerminal(store, info.TaskId);
         Assert.Equal(BackgroundTaskStatus.Failed, terminal.Status);
         Assert.Equal("Internal", terminal.ErrorCode);
         Assert.Equal("boom", terminal.ErrorMessage);
@@ -68,10 +68,10 @@ public class BackgroundTaskStoreTests
         using var store = new BackgroundTaskStore();
         var info = store.Start("test_tool",
             _ => Task.FromResult<object?>("done"));
-        var terminal = await WaitForTerminal(store, info.TaskId).ConfigureAwait(false);
+        var terminal = await WaitForTerminal(store, info.TaskId);
 
         // The just-completed task should still appear in ListRunning (within 5-min window).
-        Assert.Contains(store.ListRunning(), t => t.TaskId == info.TaskId);
+        Assert.Contains(store.ListRunning(), t => string.Equals(t.TaskId, info.TaskId));
     }
 
     private static async Task<BackgroundTaskInfo> WaitForTerminal(
@@ -82,7 +82,7 @@ public class BackgroundTaskStoreTests
         {
             var info = store.Get(taskId)!;
             if (info.Status != BackgroundTaskStatus.Running) return info;
-            await Task.Delay(20).ConfigureAwait(false);
+            await Task.Delay(20);
         }
         throw new InvalidOperationException($"Task {taskId} did not reach terminal state.");
     }

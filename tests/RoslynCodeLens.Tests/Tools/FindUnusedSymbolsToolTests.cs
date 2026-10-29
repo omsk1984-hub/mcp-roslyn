@@ -115,7 +115,7 @@ public class FindUnusedSymbolsToolTests
         // they should be counted under filteredOut.testMethod or testContainer.
         var (items, counts) = FindUnusedSymbolsLogic.Execute(_loaded, _resolver, "XUnitFixture", false);
 
-        var fixtureItems = items.Where(i => i.Project == "XUnitFixture").ToList();
+        var fixtureItems = items.Where(i => string.Equals(i.Project, "XUnitFixture")).ToList();
         Assert.True(
             fixtureItems.All(i => !i.SymbolName.Contains("Test", StringComparison.Ordinal)),
             $"XUnitFixture test methods leaked into unused list: {string.Join(",", fixtureItems.Select(i => i.SymbolName))}");

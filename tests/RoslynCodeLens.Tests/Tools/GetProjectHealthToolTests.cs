@@ -23,8 +23,8 @@ public class GetProjectHealthToolTests
     {
         var result = GetProjectHealthLogic.Execute(_loaded, _resolver, project: null, hotspotsPerDimension: 5);
 
-        Assert.Contains(result.Projects, p => p.Project == "TestLib");
-        Assert.Contains(result.Projects, p => p.Project == "TestLib2");
+        Assert.Contains(result.Projects, p => string.Equals(p.Project, "TestLib"));
+        Assert.Contains(result.Projects, p => string.Equals(p.Project, "TestLib2"));
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class GetProjectHealthToolTests
     {
         var result = GetProjectHealthLogic.Execute(_loaded, _resolver, project: null, hotspotsPerDimension: 5);
 
-        Assert.DoesNotContain(result.Projects, p => p.Project == "RoslynCodeLens.Tests");
+        Assert.DoesNotContain(result.Projects, p => string.Equals(p.Project, "RoslynCodeLens.Tests"));
     }
 
     [Fact]

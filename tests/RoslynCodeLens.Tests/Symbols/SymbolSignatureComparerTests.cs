@@ -24,11 +24,11 @@ public class SymbolSignatureComparerTests
 		// Compile Lib to an in-memory stream so Consumer can reference it as metadata
 		using var ms = new System.IO.MemoryStream();
 		var emitResult = libCompilation.Emit(ms);
-		Assert.True(emitResult.Success, string.Join("\n", emitResult.Diagnostics));
+		Assert.True(emitResult.Success, string.Join("\n", emitResult.Diagnostics.Select(d => d.ToString())));
 		ms.Position = 0;
 		var libMetadataRef = MetadataReference.CreateFromStream(ms);
 
-		var memberImpl = typeName == "IFoo" ? "public void Do() {}" : "";
+		var memberImpl = string.Equals(typeName, "IFoo") ? "public void Do() {}" : "";
 		var consumerTree = CSharpSyntaxTree.ParseText(
 			$"using Lib; public class Bar : {typeName} {{ {memberImpl} }}");
 		var consumerCompilation = CSharpCompilation.Create(
@@ -38,7 +38,7 @@ public class SymbolSignatureComparerTests
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
 		var sourceSymbol = libCompilation.GlobalNamespace
-			.GetNamespaceMembers().First(n => n.Name == "Lib")
+			.GetNamespaceMembers().First(n => string.Equals(n.Name, "Lib"))
 			.GetTypeMembers(typeName).Single();
 
 		var metadataSymbol = consumerCompilation.GetTypeByMetadataName($"Lib.{typeName}")!;

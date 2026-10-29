@@ -1,0 +1,145 @@
+MA0002 unique: 71
+tests\RoslynCodeLens.Tests\Analyzers\ShadowCopyAnalyzerAssemblyLoaderTests.cs:51 [NotEqual]
+  NEW: Assert.NotEqual(dir1, dir2, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ChangeSignatureBridgeTests.cs:48 [Contains]
+  NEW: Assert.All(ChangeSignatureBridge.Probe(), missing => Assert.Contains(missing, probed, StringComparer.Ordinal));
+tests\RoslynCodeLens.Tests\FindReferencesLogicTests.cs:40 [Equal]
+  NEW: Assert.Equal(["write", "read"], results.Select(r => r.ReferenceKind), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:415 [Contains]
+  NEW: Assert.Contains("Where", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:412 [Contains]
+  NEW: Assert.Contains("Slugify", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:380 [DoesNotContain]
+  NEW: Assert.DoesNotContain("Hidden", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:379 [Contains]
+  NEW: Assert.Contains("Boost", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:336 [DoesNotContain]
+  NEW: Assert.DoesNotContain("Boost", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:295 [Contains]
+  NEW: Assert.Contains("Chunk", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:294 [Contains]
+  NEW: Assert.Contains("Chunkify", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:259 [Contains]
+  NEW: Assert.Contains("First2", Names(Run("string?")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:252 [Contains]
+  NEW: Assert.Contains("Combine", Names(Run("(int, string)")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:246 [DoesNotContain]
+  NEW: Assert.DoesNotContain("Doubled", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:245 [Contains]
+  NEW: Assert.Contains("OrZero", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:237 [DoesNotContain]
+  NEW: Assert.DoesNotContain("Doubled", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:236 [Contains]
+  NEW: Assert.Contains("Where", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:234 [Contains]
+  NEW: Assert.Contains("Firsty", Names(results), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:224 [DoesNotContain]
+  NEW: Assert.DoesNotContain("get_Zero", Names(Run("int")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:223 [DoesNotContain]
+  NEW: Assert.DoesNotContain("get_Tripled", Names(Run("int")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:112 [Contains]
+  NEW: Assert.Contains("Join2", Names(Run("List<string>")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:111 [DoesNotContain]
+  NEW: Assert.DoesNotContain("Join2", Names(Run("string")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:103 [Contains]
+  NEW: Assert.Contains("First2", Names(Run("string")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:96 [Contains]
+  NEW: Assert.Contains("First2", Names(Run("List<int>")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:90 [DoesNotContain]
+  NEW: Assert.DoesNotContain("Doubled", Names(Run("string")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:84 [Contains]
+  NEW: Assert.Contains("Doubled", Names(Run("int")), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:355 [Contains]
+  NEW: Assert.Contains("Name", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:354 [Contains]
+  NEW: Assert.Contains("Age", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetMethodSourceLogicTests.cs:178 [NotEqual]
+  NEW: Assert.NotEqual(items[0].Source, items[1].Source, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetMethodSourceLogicTests.cs:139 [Contains]
+  NEW: Assert.Contains("Second.Dup", item.Candidates, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\GetMethodSourceLogicTests.cs:138 [Contains]
+  NEW: Assert.Contains("First.Dup", item.Candidates, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs:96 [OrderBy]
+  NEW: return solution.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs:39 [OrderBy]
+  NEW: .OrderBy(n => n, StringComparer.Ordinal)
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:105 [Equal]
+  NEW: Assert.Equal(new[] { "App.Api" }, result.Loaded.OrderBy(x => x), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:105 [OrderBy]
+  NEW: Assert.Equal(new[] { "App.Api" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal));
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:65 [Equal]
+  NEW: Assert.Equal(new[] { "A", "B" }, result.Loaded.OrderBy(x => x), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:65 [OrderBy]
+  NEW: Assert.Equal(new[] { "A", "B" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal));
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:52 [Equal]
+  NEW: Assert.Equal(new[] { "App.Api", "App.Domain", "Tools.CLI" }, result.Loaded.OrderBy(x => x), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:52 [OrderBy]
+  NEW: Assert.Equal(new[] { "App.Api", "App.Domain", "Tools.CLI" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal));
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:37 [Equal]
+  NEW: Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:37 [OrderBy]
+  NEW: Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal));
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:23 [Equal]
+  NEW: Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:23 [OrderBy]
+  NEW: Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal));
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:9 [ToDictionary]
+  NEW: => edges.ToDictionary(e => e.From, e => (IReadOnlyList<string>)e.To, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs:39 [Contains]
+  NEW: Assert.Contains(expectedShared, refs, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs:38 [Contains]
+  NEW: Assert.Contains(expectedDomain, refs, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs:82 [Contains]
+  NEW: Assert.Contains(path, result.StaleFiles, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs:63 [Contains]
+  NEW: Assert.Contains(pathB, result.StaleFiles, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\SolutionLoaderFilterTests.cs:41 [OrderBy]
+  NEW: var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+tests\RoslynCodeLens.Tests\SolutionLoaderFilterTests.cs:25 [OrderBy]
+  NEW: var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+tests\RoslynCodeLens.Tests\TargetProjectGraphTests.cs:83 [Equal]
+  NEW: Assert.Equal(["B", "A"], ordered.Select(p => p.Name), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TargetProjectGraphTests.cs:48 [Equal]
+  NEW: Assert.Equal(["Alpha", "Zeta"], ordered.Select(p => p.Name), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TestDiscovery\PropsFixtureDetectionTests.cs:32 [DoesNotContain]
+  NEW: Assert.DoesNotContain("PropsLib", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TestDiscovery\PropsFixtureDetectionTests.cs:31 [Contains]
+  NEW: Assert.Contains("PropsDrivenTests", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:41 [DoesNotContain]
+  NEW: Assert.DoesNotContain("TestLib2", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:40 [DoesNotContain]
+  NEW: Assert.DoesNotContain("TestLib", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:28 [Contains]
+  NEW: Assert.Contains("MSTestFixture", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:27 [Contains]
+  NEW: Assert.Contains("NUnitFixture", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\AnalyzeDataFlowToolTests.cs:31 [Contains]
+  NEW: Assert.Contains("greeter", result.DataFlowsIn, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\FindObsoleteUsageToolTests.cs:165 [NotEqual]
+  NEW: Assert.All(g.Usages, u => Assert.NotEqual("RoslynCodeLens.Tests", u.Project, StringComparer.Ordinal)));
+tests\RoslynCodeLens.Tests\Tools\FindReferencesToolTests.cs:127 [Equal]
+  NEW: Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\FindReferencesToolTests.cs:106 [Equal]
+  NEW: Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind), StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\FindTestsForSymbolToolTests.cs:98 [Contains]
+  NEW: Assert.Contains("HelperThatGreets", transitive.CallChain!, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\GetFileOverviewToolTests.cs:33 [Contains]
+  NEW: Assert.Contains("Greeter", result.TypesDefined, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:103 [Contains]
+  NEW: Assert.Contains("TKey", generic.TypeParameters, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:48 [Contains]
+  NEW: Assert.Contains("MSTest", msTestProject.ByFramework.Keys, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:38 [Contains]
+  NEW: Assert.Contains("NUnit", nUnitProject.ByFramework.Keys, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:28 [Contains]
+  NEW: Assert.Contains("XUnit", xUnitProject.ByFramework.Keys, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\RazorGeneratedCodeTests.cs:145 [DoesNotContain]
+  NEW: Assert.DoesNotContain("RazorLib.Components.NavMenu", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\RazorGeneratedCodeTests.cs:144 [Contains]
+  NEW: Assert.Contains("RazorLib.Components.MainLayout", names, StringComparer.Ordinal);
+tests\RoslynCodeLens.Tests\Tools\RazorGeneratedCodeTests.cs:71 [Contains]
+  NEW: Assert.Contains("Counter", overview.TypesDefined, StringComparer.Ordinal);
+
+==== SUMMARY: changed=70 skipped=1 ====
+==== SUSPICIOUS / SKIPPED ====
+ALREADY d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs:403 Equal

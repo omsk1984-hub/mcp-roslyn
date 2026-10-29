@@ -1,0 +1,5 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Analysis\MarkupDocumentMap.cs|48|19|Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStoreModel.cs|9|12|Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStoreModel.cs|10|12|Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeSafety.cs|216|19|Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs|77|25|Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)

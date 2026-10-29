@@ -1,0 +1,4 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Analyzers\GeneratorShadowLoadIntegrationTests.cs|62|55|string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Fixtures\TestSolutionFixture.cs|104|86|string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Symbols\SymbolSignatureComparerTests.cs|27|42|string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|268|72|string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>

@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\McpToolException.cs|5|21|Implement exception constructors (https://josefpihrt.github.io/docs/roslynator/analyzers/RCS1194)

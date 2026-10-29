@@ -1,0 +1,8 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\BackgroundTasks\BackgroundTaskStore.cs|56|37|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\MultiSolutionManager.cs|41|94|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs|109|109|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\Security\TrustStore.cs|115|111|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionChangeWriter.cs|72|21|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs|184|91|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs|485|90|Suspicious exception handling: only ex.Message is observed in exception block.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLoader.cs|487|41|Suspicious exception handling: only ex.Message is observed in exception block.

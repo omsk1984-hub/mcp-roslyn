@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using RoslynCodeLens;
 using RoslynCodeLens.Models;
 
@@ -12,7 +12,7 @@ public class CodeActionRunnerTests : IAsyncLifetime
     {
         var fixturePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
-        _loaded = await new SolutionLoader().LoadAsync(fixturePath).ConfigureAwait(false);
+        _loaded = await new SolutionLoader().LoadAsync(fixturePath);
     }
 
     public ValueTask DisposeAsync() => default;

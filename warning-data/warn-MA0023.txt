@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClassifier.cs|57|9|Use RegexOptions.ExplicitCapture or named groups to prevent capturing unneeded groups (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0023.md)

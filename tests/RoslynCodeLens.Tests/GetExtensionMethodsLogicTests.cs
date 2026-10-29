@@ -81,26 +81,26 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void SimpleExtension_AppliesToItsReceiver()
     {
-        Assert.Contains("Doubled", Names(Run("int")));
+        Assert.Contains("Doubled", Names(Run("int")), StringComparer.Ordinal);
     }
 
     [Fact]
     public void SimpleExtension_DoesNotApplyToOtherTypes()
     {
-        Assert.DoesNotContain("Doubled", Names(Run("string")));
+        Assert.DoesNotContain("Doubled", Names(Run("string")), StringComparer.Ordinal);
     }
 
     [Fact]
     public void GenericExtension_AppliesViaInference()
     {
-        Assert.Contains("First2", Names(Run("List<int>")));
+        Assert.Contains("First2", Names(Run("List<int>")), StringComparer.Ordinal);
     }
 
     [Fact]
     public void GenericExtension_AppliesToString()
     {
         // string is IEnumerable<char>, so `this IEnumerable<T>` binds with T = char.
-        Assert.Contains("First2", Names(Run("string")));
+        Assert.Contains("First2", Names(Run("string")), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -108,14 +108,14 @@ public class GetExtensionMethodsLogicTests
     {
         // `this IEnumerable<string>` must NOT apply to string (which is IEnumerable<char>).
         // The control assertion below keeps this from passing because nothing resolved at all.
-        Assert.DoesNotContain("Join2", Names(Run("string")));
-        Assert.Contains("Join2", Names(Run("List<string>")));
+        Assert.DoesNotContain("Join2", Names(Run("string")), StringComparer.Ordinal);
+        Assert.Contains("Join2", Names(Run("List<string>")), StringComparer.Ordinal);
     }
 
     [Fact]
     public void BclLinq_IsReported()
     {
-        var where = Run("List<int>").Where(i => i.Name == "Where").ToList();
+        var where = Run("List<int>").Where(i => string.Equals(i.Name, "Where")).ToList();
 
         Assert.NotEmpty(where);
         Assert.All(where, w => Assert.Equal("metadata", w.Origin));
@@ -125,7 +125,7 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void CSharp14BlockMethod_IsReported()
     {
-        var thrice = Assert.Single(Run("int"), i => i.Name == "Thrice");
+        var thrice = Assert.Single(Run("int"), i => string.Equals(i.Name, "Thrice"));
 
         Assert.Equal("method", thrice.Kind);
         Assert.Equal("Demo.BlockExtensions", thrice.DeclaringType);
@@ -136,7 +136,7 @@ public class GetExtensionMethodsLogicTests
     {
         // Extension properties surface only as `get_Tripled` with IsExtensionMethod == false,
         // so an IsExtensionMethod-only scan misses them entirely.
-        var tripled = Assert.Single(Run("int"), i => i.Name == "Tripled");
+        var tripled = Assert.Single(Run("int"), i => string.Equals(i.Name, "Tripled"));
 
         Assert.Equal("property", tripled.Kind);
         Assert.Equal("Demo.BlockExtensions", tripled.DeclaringType);
@@ -153,7 +153,7 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void StaticExtensionProperty_IsReportedAndMarkedStatic()
     {
-        var zero = Assert.Single(Run("int"), i => i.Name == "Zero");
+        var zero = Assert.Single(Run("int"), i => string.Equals(i.Name, "Zero"));
 
         Assert.Equal("property", zero.Kind);
         Assert.True(zero.IsStatic);
@@ -169,7 +169,7 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void ClassicExtension_IsNotMarkedStatic()
     {
-        var doubled = Assert.Single(Run("int"), i => i.Name == "Doubled");
+        var doubled = Assert.Single(Run("int"), i => string.Equals(i.Name, "Doubled"));
 
         Assert.False(doubled.IsStatic);
     }
@@ -177,7 +177,7 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void BlockInstanceMethod_IsNotMarkedStatic()
     {
-        var thrice = Assert.Single(Run("int"), i => i.Name == "Thrice");
+        var thrice = Assert.Single(Run("int"), i => string.Equals(i.Name, "Thrice"));
 
         Assert.False(thrice.IsStatic);
     }
@@ -186,7 +186,7 @@ public class GetExtensionMethodsLogicTests
     public void BclExtensions_AreNotMarkedStatic()
     {
         Assert.All(
-            Run("List<int>").Where(i => i.Origin == "metadata"),
+            Run("List<int>").Where(i => string.Equals(i.Origin, "metadata")),
             i => Assert.False(i.IsStatic, $"{i.Name} is called on an instance"));
     }
 
@@ -198,7 +198,7 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void StaticExtensionMethodInBlock_IsReportedAndMarkedStatic()
     {
-        var makeZero = Assert.Single(Run("int"), i => i.Name == "MakeZero");
+        var makeZero = Assert.Single(Run("int"), i => string.Equals(i.Name, "MakeZero"));
 
         Assert.Equal("method", makeZero.Kind);
         Assert.Equal("Demo.BlockExtensions", makeZero.DeclaringType);
@@ -214,14 +214,14 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void BlockInstanceMethod_IsReportedExactlyOnce()
     {
-        Assert.Equal(1, Run("int").Count(i => i.Name == "Thrice"));
+        Assert.Equal(1, Run("int").Count(i => string.Equals(i.Name, "Thrice")));
     }
 
     [Fact]
     public void BlockPropertyAccessors_AreNotReportedAsMethods()
     {
-        Assert.DoesNotContain("get_Tripled", Names(Run("int")));
-        Assert.DoesNotContain("get_Zero", Names(Run("int")));
+        Assert.DoesNotContain("get_Tripled", Names(Run("int")), StringComparer.Ordinal);
+        Assert.DoesNotContain("get_Zero", Names(Run("int")), StringComparer.Ordinal);
     }
 
     // ------------------------------------------------------------------ receiver shapes
@@ -231,10 +231,10 @@ public class GetExtensionMethodsLogicTests
     {
         var results = Run("string[]");
 
-        Assert.Contains("Firsty", Names(results));
+        Assert.Contains("Firsty", Names(results), StringComparer.Ordinal);
         // Arrays are IEnumerable<T>, so BCL LINQ applies too — the real reason someone asks.
-        Assert.Contains("Where", Names(results));
-        Assert.DoesNotContain("Doubled", Names(results));
+        Assert.Contains("Where", Names(results), StringComparer.Ordinal);
+        Assert.DoesNotContain("Doubled", Names(results), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -242,21 +242,21 @@ public class GetExtensionMethodsLogicTests
     {
         var results = Run("int?");
 
-        Assert.Contains("OrZero", Names(results));
-        Assert.DoesNotContain("Doubled", Names(results));
+        Assert.Contains("OrZero", Names(results), StringComparer.Ordinal);
+        Assert.DoesNotContain("Doubled", Names(results), StringComparer.Ordinal);
     }
 
     [Fact]
     public void TupleReceiver_IsSupported()
     {
-        Assert.Contains("Combine", Names(Run("(int, string)")));
+        Assert.Contains("Combine", Names(Run("(int, string)")), StringComparer.Ordinal);
     }
 
     [Fact]
     public void NullableReferenceReceiver_ResolvesToTheUnderlyingType()
     {
         // `string?` is `string`; there is no Nullable<string>.
-        Assert.Contains("First2", Names(Run("string?")));
+        Assert.Contains("First2", Names(Run("string?")), StringComparer.Ordinal);
     }
 
     // ------------------------------------------------------------------ signature shape
@@ -270,16 +270,16 @@ public class GetExtensionMethodsLogicTests
     {
         var results = Run("int");
 
-        Assert.Equal("int Tripled", Assert.Single(results, i => i.Name == "Tripled").Signature);
-        Assert.Equal("int Thrice()", Assert.Single(results, i => i.Name == "Thrice").Signature);
-        Assert.Equal("int Doubled()", Assert.Single(results, i => i.Name == "Doubled").Signature);
-        Assert.Equal("int Zero", Assert.Single(results, i => i.Name == "Zero").Signature);
+        Assert.Equal("int Tripled", Assert.Single(results, i => string.Equals(i.Name, "Tripled")).Signature);
+        Assert.Equal("int Thrice()", Assert.Single(results, i => string.Equals(i.Name, "Thrice")).Signature);
+        Assert.Equal("int Doubled()", Assert.Single(results, i => string.Equals(i.Name, "Doubled")).Signature);
+        Assert.Equal("int Zero", Assert.Single(results, i => string.Equals(i.Name, "Zero")).Signature);
     }
 
     [Fact]
     public void Signature_ShowsInferredTypeArguments()
     {
-        var where = Run("List<int>").First(i => i.Name == "Where");
+        var where = Run("List<int>").First(i => string.Equals(i.Name, "Where"));
 
         Assert.StartsWith("IEnumerable<int> Where<int>(", where.Signature);
     }
@@ -291,8 +291,8 @@ public class GetExtensionMethodsLogicTests
 
         Assert.NotEmpty(results);
         Assert.All(results, r => Assert.Contains("chunk", r.Name, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains("Chunkify", Names(results));
-        Assert.Contains("Chunk", Names(results));
+        Assert.Contains("Chunkify", Names(results), StringComparer.Ordinal);
+        Assert.Contains("Chunk", Names(results), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -300,8 +300,8 @@ public class GetExtensionMethodsLogicTests
     {
         var results = Run("List<int>").ToList();
 
-        var lastSource = results.FindLastIndex(r => r.Origin == "source");
-        var firstMetadata = results.FindIndex(r => r.Origin == "metadata");
+        var lastSource = results.FindLastIndex(r => string.Equals(r.Origin, "source"));
+        var firstMetadata = results.FindIndex(r => string.Equals(r.Origin, "metadata"));
 
         Assert.True(lastSource >= 0, "expected at least one source extension");
         Assert.True(firstMetadata >= 0, "expected at least one metadata extension");
@@ -333,7 +333,7 @@ public class GetExtensionMethodsLogicTests
         var results = GetExtensionMethodsLogic.Execute(
             loaded, resolver, new MetadataSymbolResolver(loaded, resolver), "Widget", null);
 
-        Assert.DoesNotContain("Boost", Names(results));
+        Assert.DoesNotContain("Boost", Names(results), StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -376,8 +376,8 @@ public class GetExtensionMethodsLogicTests
         var results = GetExtensionMethodsLogic.Execute(
             loaded, resolver, new MetadataSymbolResolver(loaded, resolver), "Widget", null);
 
-        Assert.Contains("Boost", Names(results));
-        Assert.DoesNotContain("Hidden", Names(results));
+        Assert.Contains("Boost", Names(results), StringComparer.Ordinal);
+        Assert.DoesNotContain("Hidden", Names(results), StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -409,10 +409,10 @@ public class GetExtensionMethodsLogicTests
         var results = GetExtensionMethodsLogic.Execute(
             loaded, resolver, new MetadataSymbolResolver(loaded, resolver), "string", null);
 
-        Assert.Contains("Slugify", Names(results));
+        Assert.Contains("Slugify", Names(results), StringComparer.Ordinal);
         // Both compilations reference the same BCL, so every LINQ member is found twice; scanning
         // more than one compilation is only correct if the results are deduplicated.
-        Assert.Contains("Where", Names(results));
+        Assert.Contains("Where", Names(results), StringComparer.Ordinal);
         Assert.Equal(results.Count, results.Distinct().Count());
     }
 
@@ -433,13 +433,13 @@ public class GetExtensionMethodsLogicTests
     [Fact]
     public void Origin_And_Location_AreCorrect()
     {
-        var doubled = Assert.Single(Run("int"), i => i.Name == "Doubled");
+        var doubled = Assert.Single(Run("int"), i => string.Equals(i.Name, "Doubled"));
         Assert.Equal("source", doubled.Origin);
         Assert.Equal("Extensions.cs", doubled.File);
         Assert.True(doubled.Line > 0);
         Assert.Equal("Doubles the value.", doubled.XmlDocSummary);
 
-        var where = Run("List<int>").First(i => i.Name == "Where");
+        var where = Run("List<int>").First(i => string.Equals(i.Name, "Where"));
         Assert.Equal("metadata", where.Origin);
         Assert.Null(where.File);
         Assert.Null(where.Line);

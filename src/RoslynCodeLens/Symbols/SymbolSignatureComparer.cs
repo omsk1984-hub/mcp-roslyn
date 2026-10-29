@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 
 namespace RoslynCodeLens.Symbols;
@@ -40,7 +41,7 @@ internal sealed class SymbolSignatureComparer : IEqualityComparer<ISymbol>
 	private static string ContainingTypeKey(ISymbol symbol)
 	{
 		if (symbol.ContainingType is { } ct)
-			return NamedTypeSignatureComparer.Instance.GetHashCode(ct).ToString();
+			return NamedTypeSignatureComparer.Instance.GetHashCode(ct).ToString(CultureInfo.InvariantCulture);
 		if (symbol.ContainingNamespace is { IsGlobalNamespace: false } ns)
 			return ns.ToDisplayString();
 		return string.Empty;

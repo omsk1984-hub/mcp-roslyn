@@ -1,0 +1,22 @@
+  Определение проектов для восстановления...
+  Все проекты обновлены для восстановления.
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(57,139): warning MA0015: 'port' is not a valid parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md) [d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\RoslynCodeLens.csproj]
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(63,98): warning MA0015: 'host' is not a valid parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md) [d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\RoslynCodeLens.csproj]
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(69,71): warning MA0015: 'arg' is not a valid parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md) [d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\RoslynCodeLens.csproj]
+  RoslynCodeLens -> d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\bin\Release\net10.0\RoslynCodeLens.dll
+  RoslynCodeLens.Benchmarks -> d:\work\MCP\mcp-roslyn\benchmarks\RoslynCodeLens.Benchmarks\bin\Release\net10.0\RoslynCodeLens.Benchmarks.dll
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs(113,26): warning xUnit3003: Class RoslynCodeLens.Tests.SolutionChangeWriterTests.WindowsOnlyFactAttribute extends FactAttribute. It should include a public constructor for source information. (https://xunit.net/xunit.analyzers/rules/xUnit3003) [d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\RoslynCodeLens.Tests.csproj]
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Tools\GetFileOverviewToolTests.cs(54,33): warning ZA0109: Allocation of zero-length 'string' array — use 'Array.Empty<string>()' to return a cached singleton instead [d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\RoslynCodeLens.Tests.csproj]
+  RoslynCodeLens.Tests -> d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\bin\Release\net10.0\RoslynCodeLens.Tests.dll
+
+Сборка успешно завершена.
+
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(57,139): warning MA0015: 'port' is not a valid parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md) [d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\RoslynCodeLens.csproj]
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(63,98): warning MA0015: 'host' is not a valid parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md) [d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\RoslynCodeLens.csproj]
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\CliOptions.cs(69,71): warning MA0015: 'arg' is not a valid parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md) [d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\RoslynCodeLens.csproj]
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs(113,26): warning xUnit3003: Class RoslynCodeLens.Tests.SolutionChangeWriterTests.WindowsOnlyFactAttribute extends FactAttribute. It should include a public constructor for source information. (https://xunit.net/xunit.analyzers/rules/xUnit3003) [d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\RoslynCodeLens.Tests.csproj]
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Tools\GetFileOverviewToolTests.cs(54,33): warning ZA0109: Allocation of zero-length 'string' array — use 'Array.Empty<string>()' to return a cached singleton instead [d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\RoslynCodeLens.Tests.csproj]
+    Предупреждений: 5
+    Ошибок: 0
+
+Прошло времени 00:00:22.06

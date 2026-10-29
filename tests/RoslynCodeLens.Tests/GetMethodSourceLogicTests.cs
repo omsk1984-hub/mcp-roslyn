@@ -135,8 +135,8 @@ public class GetMethodSourceLogicTests
         Assert.Null(item.Source);
         Assert.NotNull(item.Candidates);
         Assert.Equal(2, item.Candidates!.Count);
-        Assert.Contains("First.Dup", item.Candidates);
-        Assert.Contains("Second.Dup", item.Candidates);
+        Assert.Contains("First.Dup", item.Candidates, StringComparer.Ordinal);
+        Assert.Contains("Second.Dup", item.Candidates, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public class GetMethodSourceLogicTests
 
         Assert.Equal(2, items.Count);
         Assert.All(items, i => Assert.Equal("ok", i.Status));
-        Assert.NotEqual(items[0].Source, items[1].Source);
+        Assert.NotEqual(items[0].Source, items[1].Source, StringComparer.Ordinal);
         Assert.Contains(items, i => i.Source!.Contains("Run();", StringComparison.Ordinal));
         Assert.Contains(items, i => i.Source!.Contains("Run() { }", StringComparison.Ordinal));
     }

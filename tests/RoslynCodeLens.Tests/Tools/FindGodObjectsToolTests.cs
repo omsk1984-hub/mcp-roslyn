@@ -83,7 +83,7 @@ public class FindGodObjectsToolTests
         var bad = Assert.Single(result.Types, t =>
             t.TypeName.Contains("BadGodObject", StringComparison.Ordinal));
         Assert.DoesNotContain(bad.SampleIncoming, ns =>
-            ns == "TestLib.GodObjectSamples.Bad");
+            string.Equals(ns, "TestLib.GodObjectSamples.Bad"));
     }
 
     [Fact]
@@ -198,6 +198,6 @@ public class FindGodObjectsToolTests
             minLines: 1, minMembers: 1, minFields: 0,
             minIncomingNamespaces: 1, minOutgoingNamespaces: 0);
 
-        Assert.DoesNotContain(result.Types, t => t.Project == "RoslynCodeLens.Tests");
+        Assert.DoesNotContain(result.Types, t => string.Equals(t.Project, "RoslynCodeLens.Tests"));
     }
 }

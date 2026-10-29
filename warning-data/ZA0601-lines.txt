@@ -1,0 +1,63 @@
+src\RoslynCodeLens\Analysis\DiRegistrationScanner.cs|56|18|.Where(i => GetMethodName(i) is { } name && DiMethodNames.Contains(name))
+src\RoslynCodeLens\Analysis\DiRegistrationScanner.cs|57|18|.ToList();
+src\RoslynCodeLens\Analysis\MarkupDocumentMap.cs|55|18|.Where(d => IsMarkupPath(d.FilePath))
+src\RoslynCodeLens\Analysis\MarkupDocumentMap.cs|56|18|.ToList();
+src\RoslynCodeLens\Analysis\MarkupDocumentMap.cs|66|18|.Where(t => !string.IsNullOrEmpty(t.FilePath) && t.FilePath.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase))
+src\RoslynCodeLens\Analysis\MarkupDocumentMap.cs|67|18|.ToList();
+src\RoslynCodeLens\SolutionChangeSafety.cs|234|36|var afterDiags = group.ToList();
+src\RoslynCodeLens\SolutionChangeSafety.cs|243|57|var beforeLines = beforeDiags?.Select(Line).ToHashSet() ?? [];
+src\RoslynCodeLens\SolutionChangeSafety.cs|245|27|.OrderBy(d => beforeLines.Contains(Line(d)) ? 1 : 0)
+src\RoslynCodeLens\SolutionChangeSafety.cs|246|27|.Take(newCount))
+src\RoslynCodeLens\Tools\FindCircularDependenciesLogic.cs|94|75|filtered[ns] = deps.Where(d => definedNamespaces.Contains(d)).ToList();
+src\RoslynCodeLens\Tools\GenerateTestSkeletonLogic.cs|534|35|if (project.Documents.Any(d => d.FilePath == loc.SourceTree.FilePath))
+src\RoslynCodeLens\Tools\GetComplexityMetricsLogic.cs|52|41|var complexity = bodies.Max(ComplexityCalculator.Calculate);
+src\RoslynCodeLens\Tools\GetExtensionMethodsLogic.cs|445|18|.FirstOrDefault(n => string.Equals(n.Name, segment, StringComparison.Ordinal));
+src\RoslynCodeLens\Tools\GetFileOverviewLogic.cs|76|58|var additional = project.AdditionalDocuments.FirstOrDefault(
+src\RoslynCodeLens\Tools\GetFileOverviewLogic.cs|81|104|var generated = (await project.GetSourceGeneratedDocumentsAsync(ct).ConfigureAwait(false)).ToList();
+src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs|300|100|var declarations = scanTree.Root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>().ToList();
+src\RoslynCodeLens\Tools\GetOverloadsLogic.cs|73|70|if (type.GetMembers(".ctor").OfType<IMethodSymbol>().Any())
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|75|86|Complexity: pComplexity.OrderByDescending(c => c.Complexity).Take(n).ToList(),
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|76|82|LargeClasses: pLarge.OrderByDescending(c => c.LineCount).Take(n).ToList(),
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|77|41|Naming: pNaming.Take(n).ToList(),
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|78|41|Unused: pUnused.Take(n).ToList(),
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|79|49|Reflection: pReflection.Take(n).ToList(),
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|81|22|.OrderByDescending(a => (int)a.Severity)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|82|22|.ThenBy(a => a.FilePath, StringComparer.Ordinal)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|83|22|.ThenBy(a => a.Line)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|84|22|.Take(n)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|85|22|.ToList(),
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|87|22|.OrderByDescending(d => (int)d.Severity)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|88|22|.ThenBy(d => d.FilePath, StringComparer.Ordinal)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|89|22|.ThenBy(d => d.Line)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|90|22|.Take(n)
+src\RoslynCodeLens\Tools\GetProjectHealthLogic.cs|91|22|.ToList());
+src\RoslynCodeLens\Tools\GetTestSummaryLogic.cs|67|18|.GroupBy(t => t.Framework, StringComparer.Ordinal)
+src\RoslynCodeLens\Tools\GetTestSummaryLogic.cs|68|18|.ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+src\RoslynCodeLens\Tools\GetTestSummaryLogic.cs|70|18|.GroupBy(t => t.AttributeShortName, StringComparer.Ordinal)
+src\RoslynCodeLens\Tools\GetTestSummaryLogic.cs|71|18|.ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|118|87|var candidates = container.GetMembers(memberName).OfType<IMethodSymbol>().ToList();
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|143|90|var byCount = candidates.Where(c => c.Parameters.Length == paramTypes.Count).ToList();
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|255|22|.Select(ph => reader.GetParameter(ph))
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|256|22|.Where(p => p.SequenceNumber > 0)
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|257|22|.ToList();
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|276|22|.Select(ph => reader.GetParameter(ph))
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|277|22|.Where(p => p.SequenceNumber > 0)
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|278|22|.Select(p => reader.GetString(p.Name))
+src\RoslynCodeLens\Tools\PeekIlLogic.cs|279|22|.ToArray();
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs|63|92|var errors = diags.Where(d => d.Source == "compiler" && d.Severity == "Error").ToList();
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs|64|96|var warnings = diags.Where(d => d.Source == "compiler" && d.Severity == "Warning").ToList();
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs|65|105|var analyzer = diags.Where(d => d.Source.StartsWith("analyzer:", StringComparison.Ordinal)).ToList();
+tests\RoslynCodeLens.Tests\Fixtures\RenameTestWorkspace.cs|141|26|.Select(id => new ProjectReference(id)));
+tests\RoslynCodeLens.Tests\ToolDescriptionMdxSafetyTests.cs|23|18|.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() is not null);
+tests\RoslynCodeLens.Tests\ToolDescriptionMdxSafetyTests.cs|59|29|if (description.Count(c => c == '`') % 2 != 0)
+tests\RoslynCodeLens.Tests\Tools\FindAsyncViolationsToolTests.cs|125|44|var actual = result.Violations.Count(v => v.Pattern.ToString() == kvp.Key);
+tests\RoslynCodeLens.Tests\Tools\FindAsyncViolationsToolTests.cs|137|44|var actual = result.Violations.Count(v => v.Severity.ToString() == kvp.Key);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|180|41|var actual = result.Changes.Count(c => c.Kind.ToString() == kindName);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs|185|41|var actual = result.Changes.Count(c => c.Severity.ToString() == severityName);
+tests\RoslynCodeLens.Tests\Tools\FindDisposableMisuseToolTests.cs|118|44|var actual = result.Violations.Count(v => v.Pattern.ToString() == patternName);
+tests\RoslynCodeLens.Tests\Tools\FindDisposableMisuseToolTests.cs|129|44|var actual = result.Violations.Count(v => v.Severity.ToString() == severityName);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|197|41|var actual = result.Entries.Count(e => e.Kind.ToString() == kindName);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|209|41|var actual = result.Entries.Count(e => e.Project == projectName);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs|221|41|var actual = result.Entries.Count(e => e.Accessibility.ToString() == accName);
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|137|44|var actual = project.Tests.Count(t =>
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs|153|44|var actual = project.Tests.Count(t =>

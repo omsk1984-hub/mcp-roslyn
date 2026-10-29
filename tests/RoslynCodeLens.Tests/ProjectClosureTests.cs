@@ -6,7 +6,7 @@ public class ProjectClosureTests
 {
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> Graph(
         params (string From, string[] To)[] edges)
-        => edges.ToDictionary(e => e.From, e => (IReadOnlyList<string>)e.To);
+        => edges.ToDictionary(e => e.From, e => (IReadOnlyList<string>)e.To, StringComparer.Ordinal);
 
     [Fact]
     public void Closure_FromGlobSeeds_IncludesTransitiveDeps()
@@ -20,7 +20,7 @@ public class ProjectClosureTests
         var filter = new ProjectFilter(Include: new[] { "App.*" }, RootProjects: Array.Empty<string>());
         var result = ProjectClosure.Compute(filter, allProjectNames: graph.Keys, graph);
 
-        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x));
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class ProjectClosureTests
         var filter = new ProjectFilter(Include: Array.Empty<string>(), RootProjects: new[] { "App.Api" });
         var result = ProjectClosure.Compute(filter, allProjectNames: graph.Keys, graph);
 
-        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x));
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class ProjectClosureTests
         var filter = new ProjectFilter(Include: new[] { "Tools.*" }, RootProjects: new[] { "App.Api" });
         var result = ProjectClosure.Compute(filter, allProjectNames: graph.Keys, graph);
 
-        Assert.Equal(new[] { "App.Api", "App.Domain", "Tools.CLI" }, result.Loaded.OrderBy(x => x));
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Tools.CLI" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class ProjectClosureTests
         var filter = new ProjectFilter(Include: Array.Empty<string>(), RootProjects: new[] { "A" });
         var result = ProjectClosure.Compute(filter, allProjectNames: graph.Keys, graph);
 
-        Assert.Equal(new[] { "A", "B" }, result.Loaded.OrderBy(x => x));
+        Assert.Equal(new[] { "A", "B" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class ProjectClosureTests
         var filter = new ProjectFilter(Include: new[] { "app.*" }, RootProjects: Array.Empty<string>());
         var result = ProjectClosure.Compute(filter, allProjectNames: graph.Keys, graph);
 
-        Assert.Equal(new[] { "App.Api" }, result.Loaded.OrderBy(x => x));
+        Assert.Equal(new[] { "App.Api" }, result.Loaded.OrderBy(x => x, StringComparer.Ordinal), StringComparer.Ordinal);
     }
 
     [Fact]

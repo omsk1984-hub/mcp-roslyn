@@ -14,8 +14,8 @@ public class ProjectGraphReaderTests
 
         Assert.Equal(2, refs.Count);
         Assert.All(refs, r => Assert.True(Path.IsPathRooted(r)));
-        Assert.Contains(refs, r => r.EndsWith("App.Domain.csproj"));
-        Assert.Contains(refs, r => r.EndsWith("Shared.Common.csproj"));
+        Assert.Contains(refs, r => r.EndsWith("App.Domain.csproj", StringComparison.Ordinal));
+        Assert.Contains(refs, r => r.EndsWith("Shared.Common.csproj", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -35,8 +35,8 @@ public class ProjectGraphReaderTests
         var expectedDomain = Path.GetFullPath(Path.Combine(dir, "..", "App.Domain", "App.Domain.csproj"));
         var expectedShared = Path.GetFullPath(Path.Combine(dir, "..", "Shared.Common", "Shared.Common.csproj"));
 
-        Assert.Contains(expectedDomain, refs);
-        Assert.Contains(expectedShared, refs);
+        Assert.Contains(expectedDomain, refs, StringComparer.Ordinal);
+        Assert.Contains(expectedShared, refs, StringComparer.Ordinal);
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using RoslynCodeLens;
 using RoslynCodeLens.Symbols;
 using RoslynCodeLens.TestDiscovery;
@@ -42,12 +42,12 @@ public class TestSolutionFixture : IAsyncLifetime
 
         // Restore up front only when the assets are missing, so already-restored
         // runs (CI, warm local checkouts) pay nothing.
-        await EnsureFixturesRestoredAsync(force: false).ConfigureAwait(false);
+        await EnsureFixturesRestoredAsync(force: false);
 
         var problem = string.Empty;
         for (var attempt = 1; attempt <= MaxLoadAttempts; attempt++)
         {
-            Loaded = await new SolutionLoader().LoadAsync(SolutionPath).ConfigureAwait(false);
+            Loaded = await new SolutionLoader().LoadAsync(SolutionPath);
             var resolver = new SymbolResolver(Loaded);
             // Built before the probe rather than after it, because one of the invariants runs
             // through the metadata resolver — a path that was previously unprobed, and the one
@@ -101,7 +101,7 @@ public class TestSolutionFixture : IAsyncLifetime
         var missing = RequiredFrameworks.Where(f => !found.Contains(f)).ToList();
         if (missing.Count > 0)
         {
-            problem = $"discovery for Greeter.Greet is missing framework(s) [{string.Join(", ", missing)}] " +
+            problem = $"discovery for Greeter.Greet is missing framework(s) [{string.Join(", ", missing.Select(f => f.ToString()))}] " +
                       $"(found {discovery.DirectTests.Count} direct test caller(s))";
             return false;
         }
@@ -134,7 +134,7 @@ public class TestSolutionFixture : IAsyncLifetime
         if (!force && FixturesRestored())
             return;
 
-        await RunDotnetRestoreAsync(SolutionPath).ConfigureAwait(false);
+        await RunDotnetRestoreAsync(SolutionPath);
     }
 
     private bool FixturesRestored()
@@ -164,13 +164,13 @@ public class TestSolutionFixture : IAsyncLifetime
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+        await process.WaitForExitAsync(cts.Token);
 
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException(
                 $"'dotnet restore' for the test fixtures failed (exit {process.ExitCode}):\n" +
-                $"{await stdout.ConfigureAwait(false)}\n{await stderr.ConfigureAwait(false)}");
+                $"{await stdout}\n{await stderr}");
         }
     }
 

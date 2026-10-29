@@ -162,7 +162,7 @@ public class FindObsoleteUsageToolTests
         var result = FindObsoleteUsageLogic.Execute(_loaded, _resolver, project: null, errorOnly: false);
 
         Assert.All(result.Groups, g =>
-            Assert.All(g.Usages, u => Assert.NotEqual("RoslynCodeLens.Tests", u.Project)));
+            Assert.All(g.Usages, u => Assert.NotEqual("RoslynCodeLens.Tests", u.Project, StringComparer.Ordinal)));
     }
 
     [Fact]

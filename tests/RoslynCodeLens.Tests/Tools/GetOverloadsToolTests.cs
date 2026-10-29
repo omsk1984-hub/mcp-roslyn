@@ -15,7 +15,7 @@ public class GetOverloadsToolTests : IAsyncLifetime
     {
         var fixturePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
-        _loaded = await new SolutionLoader().LoadAsync(fixturePath).ConfigureAwait(false);
+        _loaded = await new SolutionLoader().LoadAsync(fixturePath);
         _resolver = new SymbolResolver(_loaded);
         _metadata = new MetadataSymbolResolver(_loaded, _resolver);
     }
@@ -89,7 +89,7 @@ public class GetOverloadsToolTests : IAsyncLifetime
         var result = GetOverloadsLogic.Execute(_resolver, _metadata, "OverloadSamples.Paint");
 
         var paint = Assert.Single(result.Overloads);
-        var color = paint.Parameters.Single(p => p.Name == "color");
+        var color = paint.Parameters.Single(p => string.Equals(p.Name, "color"));
         Assert.True(color.IsOptional);
         Assert.Equal("OverloadColor.Red", color.DefaultValue);
     }
@@ -100,7 +100,7 @@ public class GetOverloadsToolTests : IAsyncLifetime
         var result = GetOverloadsLogic.Execute(_resolver, _metadata, "OverloadSamples.Add");
 
         var generic = result.Overloads.Single(o => o.TypeParameters.Count > 0);
-        Assert.Contains("TKey", generic.TypeParameters);
+        Assert.Contains("TKey", generic.TypeParameters, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -150,16 +150,16 @@ public class GetOverloadsToolTests : IAsyncLifetime
         // Verify each RefKind variant survives BuildParameter — including `ref readonly`
         // (RefKind.RefReadOnlyParameter) which previously fell through to empty modifier.
         var tryParse = Assert.Single(GetOverloadsLogic.Execute(_resolver, _metadata, "OverloadSamples.TryParse").Overloads);
-        Assert.Equal("out", tryParse.Parameters.Single(p => p.Name == "value").Modifier);
+        Assert.Equal("out", tryParse.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
 
         var increment = Assert.Single(GetOverloadsLogic.Execute(_resolver, _metadata, "OverloadSamples.Increment").Overloads);
-        Assert.Equal("ref", increment.Parameters.Single(p => p.Name == "value").Modifier);
+        Assert.Equal("ref", increment.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
 
         var inspectIn = Assert.Single(GetOverloadsLogic.Execute(_resolver, _metadata, "OverloadSamples.InspectIn").Overloads);
-        Assert.Equal("in", inspectIn.Parameters.Single(p => p.Name == "value").Modifier);
+        Assert.Equal("in", inspectIn.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
 
         var inspectRefReadonly = Assert.Single(GetOverloadsLogic.Execute(_resolver, _metadata, "OverloadSamples.InspectRefReadonly").Overloads);
-        Assert.Equal("ref readonly", inspectRefReadonly.Parameters.Single(p => p.Name == "value").Modifier);
+        Assert.Equal("ref readonly", inspectRefReadonly.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
     }
 
     [Fact]

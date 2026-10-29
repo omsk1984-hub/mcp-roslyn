@@ -59,37 +59,37 @@ public class GetOperatorsToolTests
     public void BinaryAddition_KindIsPlus()
     {
         var result = GetOperatorsLogic.Execute(_fixture.Resolver, _fixture.Metadata, "Money");
-        Assert.Contains(result.Operators, op => op.Kind == "+" && !op.IsCheckedVariant);
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "+") && !op.IsCheckedVariant);
     }
 
     [Fact]
     public void Conversion_KindIsImplicitOrExplicit()
     {
         var result = GetOperatorsLogic.Execute(_fixture.Resolver, _fixture.Metadata, "Money");
-        Assert.Contains(result.Operators, op => op.Kind == "implicit");
-        Assert.Contains(result.Operators, op => op.Kind == "explicit");
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "implicit"));
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "explicit"));
     }
 
     [Fact]
     public void CheckedVariant_FlagSet()
     {
         var result = GetOperatorsLogic.Execute(_fixture.Resolver, _fixture.Metadata, "Money");
-        Assert.Contains(result.Operators, op => op.Kind == "+" && op.IsCheckedVariant);
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "+") && op.IsCheckedVariant);
     }
 
     [Fact]
     public void SynthesizedRecordEquality_Included()
     {
         var result = GetOperatorsLogic.Execute(_fixture.Resolver, _fixture.Metadata, "Money");
-        Assert.Contains(result.Operators, op => op.Kind == "==");
-        Assert.Contains(result.Operators, op => op.Kind == "!=");
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "=="));
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "!="));
     }
 
     [Fact]
     public void Parameters_PopulatedWithTypeAndName()
     {
         var result = GetOperatorsLogic.Execute(_fixture.Resolver, _fixture.Metadata, "Money");
-        var addition = result.Operators.First(op => op.Kind == "+" && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+        var addition = result.Operators.First(op => string.Equals(op.Kind, "+") && op.Parameters.Count == 2 && !op.IsCheckedVariant);
 
         Assert.Equal(2, addition.Parameters.Count);
         Assert.All(addition.Parameters, p =>
@@ -104,7 +104,7 @@ public class GetOperatorsToolTests
     {
         var result = GetOperatorsLogic.Execute(_fixture.Resolver, _fixture.Metadata, "Money");
         var addition = result.Operators.FirstOrDefault(op =>
-            op.Kind == "+" && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+            string.Equals(op.Kind, "+") && op.Parameters.Count == 2 && !op.IsCheckedVariant);
         Assert.NotNull(addition);
         Assert.Equal("Add two amounts in the same currency.", addition!.XmlDocSummary);
     }
@@ -132,7 +132,7 @@ public class GetOperatorsToolTests
         Assert.Contains("decimal", result.ContainingType, StringComparison.OrdinalIgnoreCase);
         Assert.True(result.Operators.Count >= 20,
             $"Expected ≥20 operators on System.Decimal, got {result.Operators.Count}");
-        Assert.Contains(result.Operators, op => op.Kind == "+");
-        Assert.Contains(result.Operators, op => op.Kind == "implicit");
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "+"));
+        Assert.Contains(result.Operators, op => string.Equals(op.Kind, "implicit"));
     }
 }

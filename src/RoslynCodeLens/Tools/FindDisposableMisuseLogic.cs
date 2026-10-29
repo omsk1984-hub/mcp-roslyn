@@ -225,12 +225,12 @@ public static class FindDisposableMisuseLogic
 
     private static bool ContainsIdentifier(SyntaxNode node, string name)
     {
-        if (node is IdentifierNameSyntax id && id.Identifier.Text == name)
+        if (node is IdentifierNameSyntax id && string.Equals(id.Identifier.Text, name))
             return true;
 
         foreach (var descendant in node.DescendantNodes().OfType<IdentifierNameSyntax>())
         {
-            if (descendant.Identifier.Text == name)
+            if (string.Equals(descendant.Identifier.Text, name))
                 return true;
         }
 

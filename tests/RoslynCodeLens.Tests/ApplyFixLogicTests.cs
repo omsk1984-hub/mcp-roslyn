@@ -70,7 +70,7 @@ public class ApplyFixLogicTests
     private static int FindCs0246Line(Compilation compilation)
     {
         var diag = compilation.GetDiagnostics()
-            .First(d => d.Id == "CS0246" && d.Location.IsInSource);
+            .First(d => string.Equals(d.Id, "CS0246") && d.Location.IsInSource);
         return diag.Location.GetLineSpan().StartLinePosition.Line + 1;
     }
 
@@ -119,7 +119,7 @@ public class ApplyFixLogicTests
             var doc = project.Documents.First(d => d.FilePath != null &&
                 d.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase));
             var diag = compilation.GetDiagnostics()
-                .First(d => d.Id == "CS0246" && d.Location.IsInSource);
+                .First(d => string.Equals(d.Id, "CS0246") && d.Location.IsInSource);
             var actions = await CodeActionRunner.GetCodeFixActionsAsync(
                 project, doc, compilation, diag, CancellationToken.None);
             var usingIndex = -1;
@@ -141,7 +141,7 @@ public class ApplyFixLogicTests
             var recomp = CSharpCompilation.Create("FixCheck",
                 [CSharpSyntaxTree.ParseText(onDisk)], FrameworkReferences.Value,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            Assert.DoesNotContain(recomp.GetDiagnostics(), d => d.Id == "CS0246");
+            Assert.DoesNotContain(recomp.GetDiagnostics(), d => string.Equals(d.Id, "CS0246"));
         }
         finally
         {

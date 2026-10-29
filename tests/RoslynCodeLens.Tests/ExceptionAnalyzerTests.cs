@@ -16,7 +16,7 @@ public class ExceptionAnalyzerTests
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(m => m.Identifier.Text == methodName);
+            .Single(m => string.Equals(m.Identifier.Text, methodName));
         return (method, comp.GetSemanticModel(tree));
     }
 

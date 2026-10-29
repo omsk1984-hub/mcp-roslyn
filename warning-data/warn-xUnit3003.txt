@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs|113|26|Class RoslynCodeLens.Tests.SolutionChangeWriterTests.WindowsOnlyFactAttribute extends FactAttribute. It should include a public constructor for source information. (https://xunit.net/xunit.analyzers/rules/xUnit3003)

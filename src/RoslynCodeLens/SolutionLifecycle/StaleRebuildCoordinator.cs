@@ -358,7 +358,7 @@ public sealed class StaleRebuildCoordinator
         {
             try
             {
-                await using var stream = new FileStream(
+                using var stream = new FileStream(
                     path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 return Microsoft.CodeAnalysis.Text.SourceText.From(stream);
             }

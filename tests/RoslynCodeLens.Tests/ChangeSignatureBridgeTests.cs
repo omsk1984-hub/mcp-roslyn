@@ -45,7 +45,7 @@ public class ChangeSignatureBridgeTests
         var probed = ChangeSignatureBridge.ProbedMembers();
 
         Assert.NotEmpty(probed);
-        Assert.All(ChangeSignatureBridge.Probe(), missing => Assert.Contains(missing, probed));
+        Assert.All(ChangeSignatureBridge.Probe(), missing => Assert.Contains(missing, probed, StringComparer.Ordinal));
     }
 
     [Fact]

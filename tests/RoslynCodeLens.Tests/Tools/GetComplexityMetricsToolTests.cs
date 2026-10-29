@@ -34,7 +34,7 @@ public class GetComplexityMetricsToolTests
     {
         var atDefaultThreshold = GetComplexityMetricsLogic.Execute(_loaded, _resolver, "TestLib", 10);
 
-        var classify = Assert.Single(atDefaultThreshold, m => m.MethodName == "Classify");
+        var classify = Assert.Single(atDefaultThreshold, m => string.Equals(m.MethodName, "Classify"));
         Assert.Equal(13, classify.Complexity);
         Assert.Equal("ComplexitySamples", classify.TypeName);
     }
@@ -50,7 +50,7 @@ public class GetComplexityMetricsToolTests
         var byCognitive = GetComplexityMetricsLogic.Execute(
             _loaded, _resolver, "TestLib", 10, ComplexityMetricKind.Cognitive);
 
-        var nested = Assert.Single(byCognitive, m => m.MethodName == "DeeplyNested");
+        var nested = Assert.Single(byCognitive, m => string.Equals(m.MethodName, "DeeplyNested"));
         // 1 + 2 + 3 + 4 + 5, one per nesting level — deliberately clear of the threshold
         // rather than sitting on it.
         Assert.Equal(15, nested.Cognitive);
@@ -81,8 +81,8 @@ public class GetComplexityMetricsToolTests
         var results = GetComplexityMetricsLogic.Execute(_loaded, _resolver, null, 0);
 
         // A constructor is named after its type, matching how the other tools render one.
-        Assert.Contains(results, r => r.MethodName == "OrderService" && r.TypeName == "OrderService");
-        Assert.Contains(results, r => r.MethodName == "FormalNameLength");
+        Assert.Contains(results, r => string.Equals(r.MethodName, "OrderService") && string.Equals(r.TypeName, "OrderService"));
+        Assert.Contains(results, r => string.Equals(r.MethodName, "FormalNameLength"));
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class GetComplexityMetricsToolTests
     {
         var results = GetComplexityMetricsLogic.Execute(_loaded, _resolver, null, 0);
 
-        var classify = results.Single(r => r.MethodName == "ClassifyName");
+        var classify = results.Single(r => string.Equals(r.MethodName, "ClassifyName"));
         // Four flat guard clauses: cyclomatic 1 + 4, cognitive 0 + 4, deepest nesting 1.
         // The three numbers disagree, so this cannot pass with the fields cross-wired.
         Assert.Equal(5, classify.Complexity);
@@ -106,8 +106,8 @@ public class GetComplexityMetricsToolTests
         var byCognitive = GetComplexityMetricsLogic.Execute(_loaded, _resolver, null, 5, ComplexityMetricKind.Cognitive);
         var byCyclomatic = GetComplexityMetricsLogic.Execute(_loaded, _resolver, null, 5, ComplexityMetricKind.Cyclomatic);
 
-        Assert.Contains(byCognitive, r => r.MethodName == "SumPositives");
-        Assert.DoesNotContain(byCyclomatic, r => r.MethodName == "SumPositives");
+        Assert.Contains(byCognitive, r => string.Equals(r.MethodName, "SumPositives"));
+        Assert.DoesNotContain(byCyclomatic, r => string.Equals(r.MethodName, "SumPositives"));
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class GetComplexityMetricsToolTests
 
         var results = GetComplexityMetricsLogic.Execute(loaded, resolver, null, 0);
 
-        Assert.Single(results, r => r.MethodName == "Shared");
+        Assert.Single(results, r => string.Equals(r.MethodName, "Shared"));
     }
 
     /// <summary>
@@ -187,7 +187,7 @@ public class GetComplexityMetricsToolTests
 
         var results = GetComplexityMetricsLogic.Execute(loaded, resolver, "ProjB", 0);
 
-        var shared = Assert.Single(results, r => r.MethodName == "Shared");
+        var shared = Assert.Single(results, r => string.Equals(r.MethodName, "Shared"));
         Assert.Equal("ProjB", shared.Project);
     }
 

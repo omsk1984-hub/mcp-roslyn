@@ -95,7 +95,7 @@ public class FindTestsForSymbolToolTests
 
         Assert.NotNull(transitive);
         Assert.NotNull(transitive!.CallChain);
-        Assert.Contains("HelperThatGreets", transitive.CallChain!);
+        Assert.Contains("HelperThatGreets", transitive.CallChain!, StringComparer.Ordinal);
         Assert.Equal("Greet", transitive.CallChain![^1]);  // target last
     }
 

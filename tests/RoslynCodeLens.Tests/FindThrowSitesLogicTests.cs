@@ -68,8 +68,8 @@ public class FindThrowSitesLogicTests
         var sites = Run("System.InvalidOperationException", includeDerived: true);
 
         Assert.Equal(2, sites.Count);
-        Assert.Contains(sites, s => s.ExceptionType == "System.InvalidOperationException");
-        Assert.Contains(sites, s => s.ExceptionType == "Demo.CustomException");
+        Assert.Contains(sites, s => string.Equals(s.ExceptionType, "System.InvalidOperationException"));
+        Assert.Contains(sites, s => string.Equals(s.ExceptionType, "Demo.CustomException"));
     }
 
     [Fact]

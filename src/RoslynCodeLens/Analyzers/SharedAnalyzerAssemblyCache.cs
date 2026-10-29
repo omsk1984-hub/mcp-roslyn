@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -194,7 +195,7 @@ public sealed class SharedAnalyzerAssemblyCache : IDisposable
 
                 var rest = name.AsSpan("pid-".Length);
                 var dash = rest.IndexOf('-');
-                if (dash <= 0 || !int.TryParse(rest[..dash], out var pid))
+                if (dash <= 0 || !int.TryParse(rest[..dash], CultureInfo.InvariantCulture, out var pid))
                     continue;
 
                 if (pid == Environment.ProcessId || IsProcessAlive(pid))

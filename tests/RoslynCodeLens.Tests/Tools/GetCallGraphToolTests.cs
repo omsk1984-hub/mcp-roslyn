@@ -89,8 +89,8 @@ public class GetCallGraphToolTests
         var aKey = Assert.Single(result.Callees, kv => kv.Key.Contains("CycleA", StringComparison.Ordinal)).Key;
         var bKey = Assert.Single(result.Callees, kv => kv.Key.Contains("CycleB", StringComparison.Ordinal)).Key;
 
-        Assert.Contains(result.Callees[aKey].Edges, e => e.Target == bKey);
-        Assert.Contains(result.Callees[bKey].Edges, e => e.Target == aKey);
+        Assert.Contains(result.Callees[aKey].Edges, e => string.Equals(e.Target, bKey));
+        Assert.Contains(result.Callees[bKey].Edges, e => string.Equals(e.Target, aKey));
     }
 
     [Fact]

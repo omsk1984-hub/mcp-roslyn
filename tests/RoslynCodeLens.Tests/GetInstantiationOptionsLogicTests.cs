@@ -31,7 +31,7 @@ public class GetInstantiationOptionsLogicTests
 
         Assert.True(r.Instantiable);
         Assert.Equal(3, r.Constructors.Count);
-        Assert.Contains(r.Constructors, c => c.Accessibility == "private");
+        Assert.Contains(r.Constructors, c => string.Equals(c.Accessibility, "private"));
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class GetInstantiationOptionsLogicTests
 
         var r = GetInstantiationOptionsLogic.Execute(loaded, resolver, "Svc", "Tests");
 
-        Assert.True(Assert.Single(r.Constructors, c => c.Accessibility == "internal").Accessible);
+        Assert.True(Assert.Single(r.Constructors, c => string.Equals(c.Accessibility, "internal")).Accessible);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class GetInstantiationOptionsLogicTests
 
         var r = GetInstantiationOptionsLogic.Execute(loaded, resolver, "Svc", "Stranger");
 
-        Assert.False(Assert.Single(r.Constructors, c => c.Accessibility == "internal").Accessible);
+        Assert.False(Assert.Single(r.Constructors, c => string.Equals(c.Accessibility, "internal")).Accessible);
     }
 
     /// <summary>
@@ -131,7 +131,7 @@ public class GetInstantiationOptionsLogicTests
 
         var r = GetInstantiationOptionsLogic.Execute(loaded, resolver, "Svc", "Stranger");
 
-        Assert.True(Assert.Single(r.Constructors, c => c.Accessibility == "public").Accessible);
+        Assert.True(Assert.Single(r.Constructors, c => string.Equals(c.Accessibility, "public")).Accessible);
     }
 
     [Fact]
@@ -322,8 +322,8 @@ public class GetInstantiationOptionsLogicTests
     {
         var f = RunFactories("FactoryOnly").Factories;
 
-        Assert.Contains(f, x => x.Kind == "property" && x.Signature.Contains("Instance", StringComparison.Ordinal));
-        Assert.Contains(f, x => x.Kind == "field" && x.Signature.Contains("Default", StringComparison.Ordinal));
+        Assert.Contains(f, x => string.Equals(x.Kind, "property") && x.Signature.Contains("Instance", StringComparison.Ordinal));
+        Assert.Contains(f, x => string.Equals(x.Kind, "field") && x.Signature.Contains("Default", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -351,8 +351,8 @@ public class GetInstantiationOptionsLogicTests
         // and GetMembers() on the derived type alone never mentions it.
         var names = RunRequired("DerivedReq").RequiredMembers.Select(m => m.Name).ToList();
 
-        Assert.Contains("Age", names);
-        Assert.Contains("Name", names);
+        Assert.Contains("Age", names, StringComparer.Ordinal);
+        Assert.Contains("Name", names, StringComparer.Ordinal);
     }
 
     [Fact]

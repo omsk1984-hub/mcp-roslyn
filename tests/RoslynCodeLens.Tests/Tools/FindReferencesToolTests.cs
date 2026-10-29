@@ -103,7 +103,7 @@ public class FindReferencesToolTests
     {
         var result = FindReferencesTool.BuildResult(SampleRefs(), ["write", "readwrite"], limit: 500);
 
-        Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind));
+        Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind), StringComparer.Ordinal);
         Assert.Equal(2, result.TotalCount);
     }
 
@@ -124,7 +124,7 @@ public class FindReferencesToolTests
         FindReferencesTool.ValidateKinds(["Write", "READWRITE"]);
         var result = FindReferencesTool.BuildResult(SampleRefs(), ["Write", "READWRITE"], limit: 500);
 
-        Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind));
+        Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind), StringComparer.Ordinal);
         Assert.Equal(2, result.TotalCount);
     }
 

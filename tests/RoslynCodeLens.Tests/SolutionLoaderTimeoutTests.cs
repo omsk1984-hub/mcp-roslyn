@@ -1,4 +1,4 @@
-using RoslynCodeLens;
+﻿using RoslynCodeLens;
 
 namespace RoslynCodeLens.Tests;
 
@@ -18,7 +18,7 @@ public class SolutionLoaderTimeoutTests
     public async Task RunWithTimeoutAsync_SlowTask_ReturnsNull()
     {
         var result = await SolutionLoader.RunWithTimeoutAsync<string>(
-            async ct => { await Task.Delay(2000, ct).ConfigureAwait(false); return "late"; },
+            async ct => { await Task.Delay(2000, ct); return "late"; },
             timeoutSec: 1,
             outerCt: default);
         Assert.Null(result);
@@ -31,7 +31,7 @@ public class SolutionLoaderTimeoutTests
         cts.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await SolutionLoader.RunWithTimeoutAsync<string>(
-                async ct => { await Task.Delay(5000, ct).ConfigureAwait(false); return "never"; },
+                async ct => { await Task.Delay(5000, ct); return "never"; },
                 timeoutSec: 60,
                 outerCt: cts.Token));
     }

@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs|171|73|Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031)

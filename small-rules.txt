@@ -1,0 +1,182 @@
+========== MA0011 (8) ==========
+src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs:197  Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    if (dash <= 0 || !int.TryParse(rest[..dash], out var pid))
+src\RoslynCodeLens\CliOptions.cs:54  Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    if (!int.TryParse(portValue, out port) || port is < 1 or > 65535)
+src\RoslynCodeLens\SolutionLoader.cs:16  Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    int.TryParse(
+src\RoslynCodeLens\SolutionLoader.cs:29  Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    int.TryParse(
+src\RoslynCodeLens\SolutionLoader.cs:45  Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    int.TryParse(
+src\RoslynCodeLens\SolutionLoader.cs:56  Use an overload of 'TryParse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    int.TryParse(
+src\RoslynCodeLens\Symbols\SymbolSignatureComparer.cs:43  Use an overload of 'ToString' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    return NamedTypeSignatureComparer.Instance.GetHashCode(ct).ToString();
+tests\RoslynCodeLens.Tests\Security\TrustStoreModelTests.cs:17  Use an overload of 'Parse' that has a 'System.IFormatProvider' parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0011.md)
+    new TrustedSolution("c:\\repos\\foo.sln", DateTimeOffset.Parse("2026-05-11T10:00:00Z"))
+
+========== EPC12 (8) ==========
+src\RoslynCodeLens\BackgroundTasks\BackgroundTaskStore.cs:56  Suspicious exception handling: only ex.Message is observed in exception block.
+    task.ErrorMessage = ex.Message;
+src\RoslynCodeLens\MultiSolutionManager.cs:41  Suspicious exception handling: only ex.Message is observed in exception block.
+    $"[roslyn-codelens] Skipping solution '{Path.GetFileName(normalised)}': {ex.Message}").ConfigureAwait(false);
+src\RoslynCodeLens\ProjectClassifier.cs:109  Suspicious exception handling: only ex.Message is observed in exception block.
+    return new ClassifiedProject(absolutePath, name, ProjectKind.Unknown, $"Failed to read csproj: {ex.Message}");
+src\RoslynCodeLens\Security\TrustStore.cs:115  Suspicious exception handling: only ex.Message is observed in exception block.
+    Console.Error.WriteLine($"[roslyn-codelens] trust.json could not be loaded ({ex.GetType().Name}: {ex.Message}); treating as empty.");
+src\RoslynCodeLens\SolutionChangeWriter.cs:72  Suspicious exception handling: only ex.Message is observed in exception block.
+    $"({ex.Message}); queries may briefly see stale text until the file watcher " +
+src\RoslynCodeLens\SolutionLoader.cs:184  Suspicious exception handling: only ex.Message is observed in exception block.
+    $"[roslyn-codelens] Solution-level load failed ({ex.GetType().Name}: {ex.Message}); falling back to per-project loading.")
+src\RoslynCodeLens\SolutionLoader.cs:485  Suspicious exception handling: only ex.Message is observed in exception block.
+    $"[roslyn-codelens] Skipping project {entry.Name}: {ex.GetType().Name}: {ex.Message}").ConfigureAwait(false);
+src\RoslynCodeLens\SolutionLoader.cs:487  Suspicious exception handling: only ex.Message is observed in exception block.
+    $"{ex.GetType().Name}: {ex.Message}");
+
+========== EPS05 (8) ==========
+src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs:258  Use in-modifier for passing readonly struct 'TaskSymbols'
+    private static bool HasTaskResultProperty(ITypeSymbol? type, TaskSymbols symbols)
+src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs:378  Use in-modifier for passing readonly struct 'TaskSymbols'
+    private static bool IsTaskOrValueTaskType(ITypeSymbol type, TaskSymbols symbols)
+src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs:101  Use in-modifier for passing readonly struct 'AnalyzerAssemblyHandle'
+    public void Release(AnalyzerAssemblyHandle handle)
+src\RoslynCodeLens\FileChangeTracker.cs:119  Use in-modifier for passing readonly struct 'StaleSnapshot'
+    public void RestoreStale(StaleSnapshot snapshot)
+src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs:259  Use in-modifier for passing readonly struct 'ResolvedReference'
+    ResolvedReference reference,
+src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs:316  Use in-modifier for passing readonly struct 'ResolvedReference'
+    private static string? TryMatchAllowOnly(ArchitectureRule rule, ResolvedReference reference)
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs:57  Use in-modifier for passing readonly struct 'Thresholds'
+    LoadedSolution loaded, SymbolResolver resolver, string? project, Thresholds thresholds)
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs:100  Use in-modifier for passing readonly struct 'Thresholds'
+    Thresholds thresholds)
+
+========== MA0015 (6) ==========
+src\RoslynCodeLens\CliOptions.cs:55  Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+    throw new ArgumentException($"Invalid value for --port: '{portValue}'. Expected an integer between 1 and 65535.");
+src\RoslynCodeLens\CliOptions.cs:61  Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+    throw new ArgumentException("Invalid value for --host: value is empty.");
+src\RoslynCodeLens\CliOptions.cs:65  Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+    throw new ArgumentException(
+src\RoslynCodeLens\CliOptions.cs:83  Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+    throw new ArgumentException($"Option '{name}' does not take a value.");
+src\RoslynCodeLens\CliOptions.cs:89  Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+    throw new ArgumentException($"Option '{name}' requires a value.");
+src\RoslynCodeLens\ProjectClosure.cs:139  Use an overload of 'System.ArgumentException' with the parameter name (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0015.md)
+    throw new ArgumentException("character classes '[…]' are not supported");
+
+========== MA0016 (5) ==========
+src\RoslynCodeLens\Analysis\MarkupDocumentMap.cs:48  Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+    public static Dictionary<string, string> BuildGeneratedToMarkup(LoadedSolution loaded)
+src\RoslynCodeLens\Security\TrustStoreModel.cs:9  Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+    public List<string> TrustedRoots { get; set; } = [];
+src\RoslynCodeLens\Security\TrustStoreModel.cs:10  Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+    public List<TrustedSolution> TrustedSolutions { get; set; } = [];
+src\RoslynCodeLens\SolutionChangeSafety.cs:216  Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+    public static List<RenameConflict> DiffNewErrors(
+src\RoslynCodeLens\SolutionChangeWriter.cs:77  Prefer using collection abstraction instead of implementation (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0016.md)
+    public static async Task<List<TextEdit>> ExtractTextEditsAsync(
+
+========== ZA0501 (6) ==========
+src\RoslynCodeLens\SolutionChangeSafety.cs:168  Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Diagnostic>' inside a loop — consider using a generic overload or caching
+    conflicts.AddRange(DiffNewErrors(before, after));
+src\RoslynCodeLens\SolutionChangeSafety.cs:168  Value type 'ImmutableArray<Diagnostic>?' is boxed to 'IEnumerable<Diagnostic>' inside a loop — consider using a generic overload or caching
+    conflicts.AddRange(DiffNewErrors(before, after));
+src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs:446  Value type 'CancellationToken' is boxed to 'IImmutableSet<Project>?' inside a loop — consider using a generic overload or caching
+    root, loaded.Solution, cancellationToken: ct).ConfigureAwait(false));
+src\RoslynCodeLens\Tools\ChangeSignatureLogic.cs:448  Value type 'CancellationToken' is boxed to 'IImmutableSet<Project>?' inside a loop — consider using a generic overload or caching
+    root, loaded.Solution, cancellationToken: ct).ConfigureAwait(false));
+src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs:416  Value type 'ImmutableArray<IParameterSymbol>' is boxed to 'IEnumerable<IParameterSymbol>' inside a loop — consider using a generic overload or caching
+    Parameters: BuildParameters(ctor.Parameters),
+src\RoslynCodeLens\Tools\GetMethodSourceLogic.cs:144  Value type 'ImmutableArray<IMethodSymbol>' is boxed to 'IEnumerable<IMethodSymbol>' inside a loop — consider using a generic overload or caching
+    foreach (var ctor in type.InstanceConstructors.Concat(type.StaticConstructors))
+
+========== EPS06 (4) ==========
+src\RoslynCodeLens\Analyzers\SharedAnalyzerAssemblyCache.cs:196  Expression 'IndexOf' causes a hidden copy of a struct 'ReadOnlySpan'
+    var dash = rest.IndexOf('-');
+src\RoslynCodeLens\Tools\CheckArchitectureLogic.cs:611  Expression 'All' causes a hidden copy of a struct 'ImmutableArray'
+    && declarations.All(r => GeneratedCodeDetector.IsGenerated(r.SyntaxTree));
+src\RoslynCodeLens\Tools\GetInstantiationOptionsLogic.cs:497  Expression 'Any' causes a hidden copy of a struct 'ImmutableArray'
+    => symbol.GetAttributes().Any(a =>
+src\RoslynCodeLens\Tools\PeekIlLogic.cs:281  Expression 'SequenceEqual' causes a hidden copy of a struct 'ReadOnlySpan'
+    if (roslynParamNames.SequenceEqual(peParamNames, StringComparer.Ordinal))
+
+========== ZA0208 (4) ==========
+tests\RoslynCodeLens.Tests\Analyzers\GeneratorShadowLoadIntegrationTests.cs:62  string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+    "generator failed to compile:\n" + string.Join("\n", emit.Diagnostics));
+tests\RoslynCodeLens.Tests\Fixtures\TestSolutionFixture.cs:104  string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+    problem = $"discovery for Greeter.Greet is missing framework(s) [{string.Join(", ", missing)}] " +
+tests\RoslynCodeLens.Tests\Symbols\SymbolSignatureComparerTests.cs:27  string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+    Assert.True(emitResult.Success, string.Join("\n", emitResult.Diagnostics));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:268  string.Join resolves to the 'params object[]' overload — each element is boxed; use .Select(x => x.ToString()) or cast to IEnumerable<string>
+    Assert.True(emitResult.Success, $"Emit failed: {string.Join(", ", emitResult.Diagnostics)}");
+
+========== MA0008 (2) ==========
+src\RoslynCodeLens\Analysis\CognitiveComplexityCalculator.cs:40  Add StructLayoutAttribute (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0008.md)
+    public readonly record struct CognitiveResult(int Cognitive, int MaxNesting);
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs:48  Add StructLayoutAttribute (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0008.md)
+    private readonly record struct Thresholds(
+
+========== MA0074 (2) ==========
+tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs:17  Use an overload of 'EndsWith' that has a StringComparison parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0074.md)
+    Assert.Contains(refs, r => r.EndsWith("App.Domain.csproj"));
+tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs:18  Use an overload of 'EndsWith' that has a StringComparison parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0074.md)
+    Assert.Contains(refs, r => r.EndsWith("Shared.Common.csproj"));
+
+========== ZA0108 (2) ==========
+src\RoslynCodeLens\Security\TrustStore.cs:93  '_persistent.TrustedSolutions' is already a List<TrustedSolution> — 'ToList' allocates a new collection unnecessarily; use the original directly
+    _persistent.TrustedSolutions.ToList(),
+src\RoslynCodeLens\Security\TrustStore.cs:94  '_persistent.TrustedRoots' is already a List<string> — 'ToList' allocates a new collection unnecessarily; use the original directly
+    _persistent.TrustedRoots.ToList(),
+
+========== xUnit2013 (2) ==========
+tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs:281  Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013)
+    Assert.Equal(1, violation.Sites.Count);
+tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs:419  Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013)
+    Assert.Equal(1, violation.ReferenceCount);
+
+========== ZA0109 (1) ==========
+tests\RoslynCodeLens.Tests\Tools\GetFileOverviewToolTests.cs:54  Allocation of zero-length 'string' array — use 'Array.Empty<string>()' to return a cached singleton instead
+    [InlineData("Index.cshtml", new string[0], "Index_cshtml.g.cs")]
+
+========== xUnit3003 (1) ==========
+tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs:113  Class RoslynCodeLens.Tests.SolutionChangeWriterTests.WindowsOnlyFactAttribute extends FactAttribute. It should include a public constructor for source information. (https://xunit.net/xunit.analyzers/rules/xUnit3003)
+    private sealed class WindowsOnlyFactAttribute : FactAttribute
+
+========== xUnit2029 (1) ==========
+tests\RoslynCodeLens.Tests\SolutionManagerTests.cs:301  Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029)
+    Assert.Empty(manager.GetLoadedSolution().Solution.Projects
+
+========== RCS1194 (1) ==========
+src\RoslynCodeLens\McpToolException.cs:5  Implement exception constructors (https://josefpihrt.github.io/docs/roslynator/analyzers/RCS1194)
+    public sealed class McpToolException : Exception
+
+========== xUnit1031 (1) ==========
+tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs:171  Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031)
+    Assert.DoesNotContain("using", repo.GetTextAsync().GetAwaiter().GetResult().ToString(),
+
+========== MA0004 (1) ==========
+src\RoslynCodeLens\SolutionLifecycle\StaleRebuildCoordinator.cs:361  Use Task.ConfigureAwait(false) if the current SynchronizationContext is not needed (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0004.md)
+    await using var stream = new FileStream(
+
+========== MA0158 (1) ==========
+src\RoslynCodeLens\Security\TrustStore.cs:11  Use System.Threading.Lock (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0158.md)
+    private readonly object _lock = new();
+
+========== MA0054 (1) ==========
+src\RoslynCodeLens\ProjectClosure.cs:89  Embed the caught exception as innerException (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0054.md)
+    throw new InvalidOperationException(
+
+========== MA0023 (1) ==========
+src\RoslynCodeLens\ProjectClassifier.cs:57  Use RegexOptions.ExplicitCapture or named groups to prevent capturing unneeded groups (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0023.md)
+    RegexOptions.Compiled | RegexOptions.Multiline);
+
+========== xUnit2017 (1) ==========
+tests\RoslynCodeLens.Tests\TargetProjectGraphTests.cs:115  Do not use Assert.False() to check if a value exists in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2017)
+    Assert.False(graph.TargetPaths.Contains(outside));
+
+========== MA0061 (1) ==========
+src\RoslynCodeLens\StructuredErrorToolWrapper.cs:10  Method overrides should not change default values (original: null; current: <no default value>) (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0061.md)
+    CancellationToken cancellationToken)
+

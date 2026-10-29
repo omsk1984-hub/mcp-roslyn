@@ -60,7 +60,7 @@ public class SolutionChangeWriterTests : IDisposable
             changed, loaded.Solution, CancellationToken.None);
 
         Assert.False(result.Written);
-        Assert.Contains(pathB, result.StaleFiles);
+        Assert.Contains(pathB, result.StaleFiles, StringComparer.Ordinal);
         Assert.Empty(result.Documents);
         // The whole batch aborts: A (which WAS fresh) must not have been written either.
         Assert.Equal(Source("Alpha"), await File.ReadAllTextAsync(pathA));
@@ -79,7 +79,7 @@ public class SolutionChangeWriterTests : IDisposable
             changed, loaded.Solution, CancellationToken.None);
 
         Assert.False(result.Written);
-        Assert.Contains(path, result.StaleFiles);
+        Assert.Contains(path, result.StaleFiles, StringComparer.Ordinal);
         Assert.False(File.Exists(path));
     }
 
@@ -112,7 +112,8 @@ public class SolutionChangeWriterTests : IDisposable
     /// </summary>
     private sealed class WindowsOnlyFactAttribute : FactAttribute
     {
-        public WindowsOnlyFactAttribute()
+        public WindowsOnlyFactAttribute(string? sourceFilePath = null, int sourceLineNumber = -1)
+            : base(sourceFilePath, sourceLineNumber)
         {
             if (!OperatingSystem.IsWindows())
                 Skip = "File sharing-violation semantics are Windows-only (POSIX rename ignores open handles).";

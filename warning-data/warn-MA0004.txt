@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\SolutionLifecycle\StaleRebuildCoordinator.cs|361|33|Use Task.ConfigureAwait(false) if the current SynchronizationContext is not needed (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0004.md)

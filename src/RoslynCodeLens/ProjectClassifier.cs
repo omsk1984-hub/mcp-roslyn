@@ -53,8 +53,8 @@ internal static class ProjectClassifier
     }
 
     private static readonly Regex SlnProjectLine = new(
-        @"^Project\([""']\{[0-9A-Fa-f-]+\}[""']\)\s*=\s*[""']([^""']+)[""']\s*,\s*[""']([^""']+)[""']",
-        RegexOptions.Compiled | RegexOptions.Multiline);
+        @"^Project\([""']\{[0-9A-Fa-f-]+\}[""']\)\s*=\s*[""'](?<name>[^""']+)[""']\s*,\s*[""'](?<path>[^""']+)[""']",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.ExplicitCapture);
 
     private static IReadOnlyList<string> ParseSln(string slnPath)
     {

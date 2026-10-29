@@ -531,7 +531,7 @@ public static class GenerateTestSkeletonLogic
         foreach (var loc in type.Locations)
         {
             if (!loc.IsInSource || loc.SourceTree is null) continue;
-            if (project.Documents.Any(d => d.FilePath == loc.SourceTree.FilePath))
+            if (project.Documents.Any(d => string.Equals(d.FilePath, loc.SourceTree.FilePath)))
                 return true;
         }
         return false;

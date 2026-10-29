@@ -122,7 +122,7 @@ public class FindAsyncViolationsToolTests
 
         foreach (var kvp in result.Summary.ByPattern)
         {
-            var actual = result.Violations.Count(v => v.Pattern.ToString() == kvp.Key);
+            var actual = result.Violations.Count(v => string.Equals(v.Pattern.ToString(), kvp.Key));
             Assert.Equal(actual, kvp.Value);
         }
     }
@@ -134,7 +134,7 @@ public class FindAsyncViolationsToolTests
 
         foreach (var kvp in result.Summary.BySeverity)
         {
-            var actual = result.Violations.Count(v => v.Severity.ToString() == kvp.Key);
+            var actual = result.Violations.Count(v => string.Equals(v.Severity.ToString(), kvp.Key));
             Assert.Equal(actual, kvp.Value);
         }
     }

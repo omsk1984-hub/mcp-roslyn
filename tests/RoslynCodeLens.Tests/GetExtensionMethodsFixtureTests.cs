@@ -30,7 +30,7 @@ public class GetExtensionMethodsFixtureTests
         // a hand-built AdhocWorkspace.
         var results = Run("string", "chunk");
 
-        var chunk = Assert.Single(results, r => r.Name == "Chunk");
+        var chunk = Assert.Single(results, r => string.Equals(r.Name, "Chunk"));
         Assert.Equal("metadata", chunk.Origin);
         Assert.Equal("System.Linq", chunk.Namespace);
         Assert.Equal("System.Linq.Enumerable", chunk.DeclaringType);
@@ -44,7 +44,7 @@ public class GetExtensionMethodsFixtureTests
         // half of applicability, over the real solution.
         var results = Run("Greeter");
 
-        Assert.DoesNotContain(results, r => r.Namespace == "System.Linq");
+        Assert.DoesNotContain(results, r => string.Equals(r.Namespace, "System.Linq"));
         Assert.All(results, r => Assert.Contains(r.Kind, ["method", "property"], StringComparer.Ordinal));
     }
 

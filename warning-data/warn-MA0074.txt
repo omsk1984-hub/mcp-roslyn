@@ -1,0 +1,2 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs|17|36|Use an overload of 'EndsWith' that has a StringComparison parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0074.md)
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs|18|36|Use an overload of 'EndsWith' that has a StringComparison parameter (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0074.md)

@@ -37,7 +37,7 @@ public class FindReferencesLogicTests
 
         var results = (await FindAsync(source, "C._x")).OrderBy(r => r.Column).ToList();
 
-        Assert.Equal(["write", "read"], results.Select(r => r.ReferenceKind));
+        Assert.Equal(["write", "read"], results.Select(r => r.ReferenceKind), StringComparer.Ordinal);
         Assert.True(results[0].Column < results[1].Column);
     }
 

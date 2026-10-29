@@ -45,13 +45,13 @@ public class GetPublicApiSurfaceToolTests
     {
         var result = GetPublicApiSurfaceLogic.Execute(_loaded, _resolver);
 
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.Greeter" && e.Kind == PublicApiKind.Class);
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.IGreeter" && e.Kind == PublicApiKind.Interface);
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.FancyGreeter" && e.Kind == PublicApiKind.Class);
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.OrderRecord" && e.Kind == PublicApiKind.Record);
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.PointStruct" && e.Kind == PublicApiKind.RecordStruct);
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.PriorityLevel" && e.Kind == PublicApiKind.Enum);
-        Assert.Contains(result.Entries, e => e.Name == "TestLib.OrderProcessedHandler" && e.Kind == PublicApiKind.Delegate);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.Greeter") && e.Kind == PublicApiKind.Class);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.IGreeter") && e.Kind == PublicApiKind.Interface);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.FancyGreeter") && e.Kind == PublicApiKind.Class);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.OrderRecord") && e.Kind == PublicApiKind.Record);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.PointStruct") && e.Kind == PublicApiKind.RecordStruct);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.PriorityLevel") && e.Kind == PublicApiKind.Enum);
+        Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.OrderProcessedHandler") && e.Kind == PublicApiKind.Delegate);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class GetPublicApiSurfaceToolTests
 
         foreach (var (kindName, count) in result.Summary.ByKind)
         {
-            var actual = result.Entries.Count(e => e.Kind.ToString() == kindName);
+            var actual = result.Entries.Count(e => string.Equals(e.Kind.ToString(), kindName));
             Assert.Equal(actual, count);
         }
     }
@@ -206,7 +206,7 @@ public class GetPublicApiSurfaceToolTests
 
         foreach (var (projectName, count) in result.Summary.ByProject)
         {
-            var actual = result.Entries.Count(e => e.Project == projectName);
+            var actual = result.Entries.Count(e => string.Equals(e.Project, projectName));
             Assert.Equal(actual, count);
         }
     }
@@ -218,7 +218,7 @@ public class GetPublicApiSurfaceToolTests
 
         foreach (var (accName, count) in result.Summary.ByAccessibility)
         {
-            var actual = result.Entries.Count(e => e.Accessibility.ToString() == accName);
+            var actual = result.Entries.Count(e => string.Equals(e.Accessibility.ToString(), accName));
             Assert.Equal(actual, count);
         }
     }

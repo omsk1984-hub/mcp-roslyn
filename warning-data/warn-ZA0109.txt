@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\Tools\GetFileOverviewToolTests.cs|54|33|Allocation of zero-length 'string' array — use 'Array.Empty<string>()' to return a cached singleton instead

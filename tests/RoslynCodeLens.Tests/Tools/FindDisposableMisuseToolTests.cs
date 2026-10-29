@@ -115,7 +115,7 @@ public class FindDisposableMisuseToolTests
         var result = FindDisposableMisuseLogic.Execute(_loaded, _resolver);
         foreach (var (patternName, count) in result.Summary.ByPattern)
         {
-            var actual = result.Violations.Count(v => v.Pattern.ToString() == patternName);
+            var actual = result.Violations.Count(v => string.Equals(v.Pattern.ToString(), patternName));
             Assert.Equal(actual, count);
         }
     }
@@ -126,7 +126,7 @@ public class FindDisposableMisuseToolTests
         var result = FindDisposableMisuseLogic.Execute(_loaded, _resolver);
         foreach (var (severityName, count) in result.Summary.BySeverity)
         {
-            var actual = result.Violations.Count(v => v.Severity.ToString() == severityName);
+            var actual = result.Violations.Count(v => string.Equals(v.Severity.ToString(), severityName));
             Assert.Equal(actual, count);
         }
     }

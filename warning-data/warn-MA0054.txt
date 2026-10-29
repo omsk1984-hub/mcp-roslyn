@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\ProjectClosure.cs|89|23|Embed the caught exception as innerException (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0054.md)

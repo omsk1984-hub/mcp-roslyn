@@ -1,0 +1,214 @@
+MA0002 unique: 71
+tests\RoslynCodeLens.Tests\ChangeSignatureBridgeTests.cs:48 (col 69)
+        Assert.All(ChangeSignatureBridge.Probe(), missing => Assert.Contains(missing, probed));
+                                                                    ^
+tests\RoslynCodeLens.Tests\Analyzers\ShadowCopyAnalyzerAssemblyLoaderTests.cs:51 (col 16)
+        Assert.NotEqual(dir1, dir2);
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:84 (col 16)
+        Assert.Contains("Doubled", Names(Run("int")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:90 (col 16)
+        Assert.DoesNotContain("Doubled", Names(Run("string")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:96 (col 16)
+        Assert.Contains("First2", Names(Run("List<int>")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:111 (col 16)
+        Assert.DoesNotContain("Join2", Names(Run("string")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:103 (col 16)
+        Assert.Contains("First2", Names(Run("string")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:112 (col 16)
+        Assert.Contains("Join2", Names(Run("List<string>")));
+               ^
+tests\RoslynCodeLens.Tests\FindReferencesLogicTests.cs:40 (col 16)
+        Assert.Equal(["write", "read"], results.Select(r => r.ReferenceKind));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:234 (col 16)
+        Assert.Contains("Firsty", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:236 (col 16)
+        Assert.Contains("Where", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:237 (col 16)
+        Assert.DoesNotContain("Doubled", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:9 (col 18)
+        => edges.ToDictionary(e => e.From, e => (IReadOnlyList<string>)e.To);
+                 ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:223 (col 16)
+        Assert.DoesNotContain("get_Tripled", Names(Run("int")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:224 (col 16)
+        Assert.DoesNotContain("get_Zero", Names(Run("int")));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:23 (col 16)
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:23 (col 88)
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x));
+                                                                                       ^
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs:39 (col 14)
+            .OrderBy(n => n)
+             ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:52 (col 16)
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Tools.CLI" }, result.Loaded.OrderBy(x => x));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:52 (col 84)
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Tools.CLI" }, result.Loaded.OrderBy(x => x));
+                                                                                   ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:37 (col 16)
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:37 (col 88)
+        Assert.Equal(new[] { "App.Api", "App.Domain", "Shared.Common" }, result.Loaded.OrderBy(x => x));
+                                                                                       ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:252 (col 16)
+        Assert.Contains("Combine", Names(Run("(int, string)")));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:259 (col 16)
+        Assert.Contains("First2", Names(Run("string?")));
+               ^
+tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs:38 (col 16)
+        Assert.Contains(expectedDomain, refs);
+               ^
+tests\RoslynCodeLens.Tests\ProjectGraphReaderTests.cs:39 (col 16)
+        Assert.Contains(expectedShared, refs);
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:245 (col 16)
+        Assert.Contains("OrZero", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:246 (col 16)
+        Assert.DoesNotContain("Doubled", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:294 (col 16)
+        Assert.Contains("Chunkify", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:295 (col 16)
+        Assert.Contains("Chunk", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:65 (col 16)
+        Assert.Equal(new[] { "A", "B" }, result.Loaded.OrderBy(x => x));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:65 (col 56)
+        Assert.Equal(new[] { "A", "B" }, result.Loaded.OrderBy(x => x));
+                                                       ^
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs:96 (col 58)
+            return solution.Projects.Select(p => p.Name).OrderBy(n => n).ToArray();
+                                                         ^
+tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs:403 (col 16)
+        Assert.Equal(
+               ^
+tests\RoslynCodeLens.Tests\GetMethodSourceLogicTests.cs:138 (col 16)
+        Assert.Contains("First.Dup", item.Candidates);
+               ^
+tests\RoslynCodeLens.Tests\GetMethodSourceLogicTests.cs:139 (col 16)
+        Assert.Contains("Second.Dup", item.Candidates);
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:105 (col 16)
+        Assert.Equal(new[] { "App.Api" }, result.Loaded.OrderBy(x => x));
+               ^
+tests\RoslynCodeLens.Tests\ProjectClosureTests.cs:105 (col 57)
+        Assert.Equal(new[] { "App.Api" }, result.Loaded.OrderBy(x => x));
+                                                        ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:379 (col 16)
+        Assert.Contains("Boost", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:380 (col 16)
+        Assert.DoesNotContain("Hidden", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:336 (col 16)
+        Assert.DoesNotContain("Boost", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:412 (col 16)
+        Assert.Contains("Slugify", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:415 (col 16)
+        Assert.Contains("Where", Names(results));
+               ^
+tests\RoslynCodeLens.Tests\GetMethodSourceLogicTests.cs:178 (col 16)
+        Assert.NotEqual(items[0].Source, items[1].Source);
+               ^
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:354 (col 16)
+        Assert.Contains("Age", names);
+               ^
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:355 (col 16)
+        Assert.Contains("Name", names);
+               ^
+tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs:63 (col 16)
+        Assert.Contains(pathB, result.StaleFiles);
+               ^
+tests\RoslynCodeLens.Tests\SolutionChangeWriterTests.cs:82 (col 16)
+        Assert.Contains(path, result.StaleFiles);
+               ^
+tests\RoslynCodeLens.Tests\SolutionLoaderFilterTests.cs:25 (col 65)
+        var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x).ToArray();
+                                                                ^
+tests\RoslynCodeLens.Tests\SolutionLoaderFilterTests.cs:41 (col 65)
+        var loadedNames = solution.Projects.Select(p => p.Name).OrderBy(x => x).ToArray();
+                                                                ^
+tests\RoslynCodeLens.Tests\Tools\RazorGeneratedCodeTests.cs:71 (col 16)
+        Assert.Contains("Counter", overview.TypesDefined);
+               ^
+tests\RoslynCodeLens.Tests\TargetProjectGraphTests.cs:48 (col 16)
+        Assert.Equal(["Alpha", "Zeta"], ordered.Select(p => p.Name));
+               ^
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:27 (col 16)
+        Assert.Contains("NUnitFixture", names);
+               ^
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:28 (col 16)
+        Assert.Contains("MSTestFixture", names);
+               ^
+tests\RoslynCodeLens.Tests\TargetProjectGraphTests.cs:83 (col 16)
+        Assert.Equal(["B", "A"], ordered.Select(p => p.Name));
+               ^
+tests\RoslynCodeLens.Tests\Tools\RazorGeneratedCodeTests.cs:144 (col 16)
+        Assert.Contains("RazorLib.Components.MainLayout", names);
+               ^
+tests\RoslynCodeLens.Tests\Tools\RazorGeneratedCodeTests.cs:145 (col 16)
+        Assert.DoesNotContain("RazorLib.Components.NavMenu", names);
+               ^
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:40 (col 16)
+        Assert.DoesNotContain("TestLib", names);
+               ^
+tests\RoslynCodeLens.Tests\TestDiscovery\TestProjectDetectorTests.cs:41 (col 16)
+        Assert.DoesNotContain("TestLib2", names);
+               ^
+tests\RoslynCodeLens.Tests\Tools\AnalyzeDataFlowToolTests.cs:31 (col 16)
+        Assert.Contains("greeter", result.DataFlowsIn);
+               ^
+tests\RoslynCodeLens.Tests\TestDiscovery\PropsFixtureDetectionTests.cs:31 (col 16)
+        Assert.Contains("PropsDrivenTests", names);
+               ^
+tests\RoslynCodeLens.Tests\TestDiscovery\PropsFixtureDetectionTests.cs:32 (col 16)
+        Assert.DoesNotContain("PropsLib", names);
+               ^
+tests\RoslynCodeLens.Tests\Tools\FindTestsForSymbolToolTests.cs:98 (col 16)
+        Assert.Contains("HelperThatGreets", transitive.CallChain!);
+               ^
+tests\RoslynCodeLens.Tests\Tools\FindObsoleteUsageToolTests.cs:165 (col 46)
+            Assert.All(g.Usages, u => Assert.NotEqual("RoslynCodeLens.Tests", u.Project)));
+                                             ^
+tests\RoslynCodeLens.Tests\Tools\GetFileOverviewToolTests.cs:33 (col 16)
+        Assert.Contains("Greeter", result.TypesDefined);
+               ^
+tests\RoslynCodeLens.Tests\Tools\FindReferencesToolTests.cs:106 (col 16)
+        Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind));
+               ^
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:103 (col 16)
+        Assert.Contains("TKey", generic.TypeParameters);
+               ^
+tests\RoslynCodeLens.Tests\Tools\FindReferencesToolTests.cs:127 (col 16)
+        Assert.Equal(["write", "readwrite"], result.Items.Select(r => r.ReferenceKind));
+               ^
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:38 (col 16)
+        Assert.Contains("NUnit", nUnitProject.ByFramework.Keys);
+               ^
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:28 (col 16)
+        Assert.Contains("XUnit", xUnitProject.ByFramework.Keys);
+               ^
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:48 (col 16)
+        Assert.Contains("MSTest", msTestProject.ByFramework.Keys);
+               ^

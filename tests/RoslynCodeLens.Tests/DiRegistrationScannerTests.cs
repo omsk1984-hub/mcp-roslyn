@@ -57,7 +57,7 @@ public class DiRegistrationScannerTests
     [Fact]
     public void Finds_two_type_generic_registration()
     {
-        var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Singleton" && x.Service == "Demo.IFoo"
+        var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Singleton") && string.Equals(x.Service, "Demo.IFoo")
                                                 && x.Line == 11);
         Assert.Equal("Demo.Foo", r.Implementation);
     }
@@ -65,7 +65,7 @@ public class DiRegistrationScannerTests
     [Fact]
     public void Finds_single_generic_registration()
     {
-        var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Scoped");
+        var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Scoped"));
         Assert.Equal("Demo.Foo", r.Service);
         Assert.Equal("Demo.Foo", r.Implementation);
     }
@@ -73,7 +73,7 @@ public class DiRegistrationScannerTests
     [Fact]
     public void Finds_typeof_pair_registration()
     {
-        var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Transient");
+        var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Transient"));
         Assert.Equal("Demo.IFoo", r.Service);
         Assert.Equal("Demo.Foo", r.Implementation);
     }
@@ -81,7 +81,7 @@ public class DiRegistrationScannerTests
     [Fact]
     public void Finds_factory_lambda_registration()
     {
-        var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Singleton" && x.Line == 14);
+        var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Singleton") && x.Line == 14);
         Assert.Equal("Demo.IFoo", r.Service);
         Assert.Equal("Demo.Foo", r.Implementation);
     }
@@ -124,7 +124,7 @@ public class DiRegistrationScannerTests
 
         var results = DiRegistrationScanner.Scan(loaded, resolver, "Foo");
 
-        Assert.Equal(2, results.Count(r => r.Lifetime == "Scoped"));
+        Assert.Equal(2, results.Count(r => string.Equals(r.Lifetime, "Scoped")));
     }
 
     [Fact]

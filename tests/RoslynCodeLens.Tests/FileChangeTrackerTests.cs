@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 
 namespace RoslynCodeLens.Tests;
 
@@ -11,7 +11,7 @@ public class FileChangeTrackerTests : IAsyncLifetime
     {
         _solutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
-        _loaded = await new SolutionLoader().LoadAsync(_solutionPath).ConfigureAwait(false);
+        _loaded = await new SolutionLoader().LoadAsync(_solutionPath);
     }
 
     public ValueTask DisposeAsync() => default;

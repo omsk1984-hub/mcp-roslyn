@@ -252,7 +252,7 @@ internal static class AsyncViolationDetector
     }
 
     private static bool IsResultMemberAccess(MemberAccessExpressionSyntax memberAccess) =>
-        memberAccess.Name.Identifier.Text == "Result" &&
+        string.Equals(memberAccess.Name.Identifier.Text, "Result") &&
         memberAccess.Parent is not InvocationExpressionSyntax;
 
     private static bool HasTaskResultProperty(ITypeSymbol? type, TaskSymbols symbols)
@@ -318,7 +318,7 @@ internal static class AsyncViolationDetector
     private static bool IsGetResultOnAwaiter(InvocationExpressionSyntax invocation, IMethodSymbol symbol)
     {
         if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return false;
-        if (memberAccess.Name.Identifier.Text != "GetResult") return false;
+        if (!string.Equals(memberAccess.Name.Identifier.Text, "GetResult")) return false;
 
         var containingType = symbol.ContainingType?.OriginalDefinition;
         if (containingType is null) return false;

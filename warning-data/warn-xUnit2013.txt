@@ -1,0 +1,2 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs|281|9|Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013)
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\CheckArchitectureLogicTests.cs|419|9|Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013)

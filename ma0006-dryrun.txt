@@ -1,0 +1,432 @@
+MA0006 unique (file,line,col) tuples: 147
+src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs:255
+  OLD: memberAccess.Name.Identifier.Text == "Result" &&
+  NEW: string.Equals(memberAccess.Name.Identifier.Text, "Result") &&
+src\RoslynCodeLens\Analysis\AsyncViolationDetector.cs:321
+  OLD: if (memberAccess.Name.Identifier.Text != "GetResult") return false;
+  NEW: if (!string.Equals(memberAccess.Name.Identifier.Text, "GetResult")) return false;
+src\RoslynCodeLens\SolutionLoadFailure.cs:28
+  OLD: if (current.GetType().FullName == "Microsoft.Build.Exceptions.InvalidProjectFileException"
+  NEW: if (string.Equals(current.GetType().FullName, "Microsoft.Build.Exceptions.InvalidProjectFileException")
+src\RoslynCodeLens\Tools\ExtractMethodLogic.cs:165
+  OLD: var extractAction = actions.FirstOrDefault(a => a.EquivalenceKey == ExtractMethodEquivalenceKey);
+  NEW: var extractAction = actions.FirstOrDefault(a => string.Equals(a.EquivalenceKey, ExtractMethodEquivalenceKey));
+src\RoslynCodeLens\Tools\ExtractMethodLogic.cs:282
+  OLD: .FirstOrDefault(m => m.Identifier.Text == methodName);
+  NEW: .FirstOrDefault(m => string.Equals(m.Identifier.Text, methodName));
+src\RoslynCodeLens\Tools\FindDisposableMisuseLogic.cs:228
+  OLD: if (node is IdentifierNameSyntax id && id.Identifier.Text == name)
+  NEW: if (node is IdentifierNameSyntax id && string.Equals(id.Identifier.Text, name))
+src\RoslynCodeLens\Tools\FindDisposableMisuseLogic.cs:233
+  OLD: if (descendant.Identifier.Text == name)
+  NEW: if (string.Equals(descendant.Identifier.Text, name))
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs:14
+  OLD: => ns == "System"
+  NEW: => string.Equals(ns, "System")
+src\RoslynCodeLens\Tools\FindGodObjectsLogic.cs:15
+  OLD: || ns == "Microsoft"
+  NEW: || string.Equals(ns, "Microsoft")
+src\RoslynCodeLens\Tools\GenerateTestSkeletonLogic.cs:534
+  OLD: if (project.Documents.Any(d => d.FilePath == loc.SourceTree.FilePath))
+  NEW: if (project.Documents.Any(d => string.Equals(d.FilePath, loc.SourceTree.FilePath)))
+src\RoslynCodeLens\Tools\ObsoleteUsageCollector.cs:79
+  OLD: if (attr.AttributeClass?.ToDisplayString() != "System.ObsoleteAttribute") continue;
+  NEW: if (!string.Equals(attr.AttributeClass?.ToDisplayString(), "System.ObsoleteAttribute")) continue;
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs:63
+  OLD: var errors = diags.Where(d => d.Source == "compiler" && d.Severity == "Error").ToList();
+  NEW: var errors = diags.Where(d => string.Equals(d.Source, "compiler") && string.Equals(d.Severity, "Error")).ToList();
+src\RoslynCodeLens\Tools\ValidateEditLogic.cs:64
+  OLD: var warnings = diags.Where(d => d.Source == "compiler" && d.Severity == "Warning").ToList();
+  NEW: var warnings = diags.Where(d => string.Equals(d.Source, "compiler") && string.Equals(d.Severity, "Warning")).ToList();
+tests\RoslynCodeLens.Tests\Analysis\SolutionScannerTests.cs:82
+  OLD: return name == "ProjB";
+  NEW: return string.Equals(name, "ProjB");
+tests\RoslynCodeLens.Tests\ApplyFixLogicTests.cs:73
+  OLD: .First(d => d.Id == "CS0246" && d.Location.IsInSource);
+  NEW: .First(d => string.Equals(d.Id, "CS0246") && d.Location.IsInSource);
+tests\RoslynCodeLens.Tests\ApplyFixLogicTests.cs:122
+  OLD: .First(d => d.Id == "CS0246" && d.Location.IsInSource);
+  NEW: .First(d => string.Equals(d.Id, "CS0246") && d.Location.IsInSource);
+tests\RoslynCodeLens.Tests\ApplyFixLogicTests.cs:144
+  OLD: Assert.DoesNotContain(recomp.GetDiagnostics(), d => d.Id == "CS0246");
+  NEW: Assert.DoesNotContain(recomp.GetDiagnostics(), d => string.Equals(d.Id, "CS0246"));
+tests\RoslynCodeLens.Tests\BackgroundTasks\BackgroundTaskStoreTests.cs:74
+  OLD: Assert.Contains(store.ListRunning(), t => t.TaskId == info.TaskId);
+  NEW: Assert.Contains(store.ListRunning(), t => string.Equals(t.TaskId, info.TaskId));
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs:60
+  OLD: var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Singleton" && x.Service == "Demo.IFoo"
+  NEW: var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Singleton") && string.Equals(x.Service, "Demo.IFoo")
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs:68
+  OLD: var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Scoped");
+  NEW: var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Scoped"));
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs:76
+  OLD: var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Transient");
+  NEW: var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Transient"));
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs:84
+  OLD: var r = Assert.Single(Scan("Foo"), x => x.Lifetime == "Singleton" && x.Line == 14);
+  NEW: var r = Assert.Single(Scan("Foo"), x => string.Equals(x.Lifetime, "Singleton") && x.Line == 14);
+tests\RoslynCodeLens.Tests\DiRegistrationScannerTests.cs:127
+  OLD: Assert.Equal(2, results.Count(r => r.Lifetime == "Scoped"));
+  NEW: Assert.Equal(2, results.Count(r => string.Equals(r.Lifetime, "Scoped")));
+tests\RoslynCodeLens.Tests\ExceptionAnalyzerTests.cs:19
+  OLD: .Single(m => m.Identifier.Text == methodName);
+  NEW: .Single(m => string.Equals(m.Identifier.Text, methodName));
+tests\RoslynCodeLens.Tests\FindThrowSitesLogicTests.cs:71
+  OLD: Assert.Contains(sites, s => s.ExceptionType == "System.InvalidOperationException");
+  NEW: Assert.Contains(sites, s => string.Equals(s.ExceptionType, "System.InvalidOperationException"));
+tests\RoslynCodeLens.Tests\FindThrowSitesLogicTests.cs:72
+  OLD: Assert.Contains(sites, s => s.ExceptionType == "Demo.CustomException");
+  NEW: Assert.Contains(sites, s => string.Equals(s.ExceptionType, "Demo.CustomException"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsFixtureTests.cs:33
+  OLD: var chunk = Assert.Single(results, r => r.Name == "Chunk");
+  NEW: var chunk = Assert.Single(results, r => string.Equals(r.Name, "Chunk"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsFixtureTests.cs:47
+  OLD: Assert.DoesNotContain(results, r => r.Namespace == "System.Linq");
+  NEW: Assert.DoesNotContain(results, r => string.Equals(r.Namespace, "System.Linq"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:118
+  OLD: var where = Run("List<int>").Where(i => i.Name == "Where").ToList();
+  NEW: var where = Run("List<int>").Where(i => string.Equals(i.Name, "Where")).ToList();
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:128
+  OLD: var thrice = Assert.Single(Run("int"), i => i.Name == "Thrice");
+  NEW: var thrice = Assert.Single(Run("int"), i => string.Equals(i.Name, "Thrice"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:139
+  OLD: var tripled = Assert.Single(Run("int"), i => i.Name == "Tripled");
+  NEW: var tripled = Assert.Single(Run("int"), i => string.Equals(i.Name, "Tripled"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:156
+  OLD: var zero = Assert.Single(Run("int"), i => i.Name == "Zero");
+  NEW: var zero = Assert.Single(Run("int"), i => string.Equals(i.Name, "Zero"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:172
+  OLD: var doubled = Assert.Single(Run("int"), i => i.Name == "Doubled");
+  NEW: var doubled = Assert.Single(Run("int"), i => string.Equals(i.Name, "Doubled"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:180
+  OLD: var thrice = Assert.Single(Run("int"), i => i.Name == "Thrice");
+  NEW: var thrice = Assert.Single(Run("int"), i => string.Equals(i.Name, "Thrice"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:189
+  OLD: Run("List<int>").Where(i => i.Origin == "metadata"),
+  NEW: Run("List<int>").Where(i => string.Equals(i.Origin, "metadata")),
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:201
+  OLD: var makeZero = Assert.Single(Run("int"), i => i.Name == "MakeZero");
+  NEW: var makeZero = Assert.Single(Run("int"), i => string.Equals(i.Name, "MakeZero"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:217
+  OLD: Assert.Equal(1, Run("int").Count(i => i.Name == "Thrice"));
+  NEW: Assert.Equal(1, Run("int").Count(i => string.Equals(i.Name, "Thrice")));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:273
+  OLD: Assert.Equal("int Tripled", Assert.Single(results, i => i.Name == "Tripled").Signature);
+  NEW: Assert.Equal("int Tripled", Assert.Single(results, i => string.Equals(i.Name, "Tripled")).Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:274
+  OLD: Assert.Equal("int Thrice()", Assert.Single(results, i => i.Name == "Thrice").Signature);
+  NEW: Assert.Equal("int Thrice()", Assert.Single(results, i => string.Equals(i.Name, "Thrice")).Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:275
+  OLD: Assert.Equal("int Doubled()", Assert.Single(results, i => i.Name == "Doubled").Signature);
+  NEW: Assert.Equal("int Doubled()", Assert.Single(results, i => string.Equals(i.Name, "Doubled")).Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:276
+  OLD: Assert.Equal("int Zero", Assert.Single(results, i => i.Name == "Zero").Signature);
+  NEW: Assert.Equal("int Zero", Assert.Single(results, i => string.Equals(i.Name, "Zero")).Signature);
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:282
+  OLD: var where = Run("List<int>").First(i => i.Name == "Where");
+  NEW: var where = Run("List<int>").First(i => string.Equals(i.Name, "Where"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:303
+  OLD: var lastSource = results.FindLastIndex(r => r.Origin == "source");
+  NEW: var lastSource = results.FindLastIndex(r => string.Equals(r.Origin, "source"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:304
+  OLD: var firstMetadata = results.FindIndex(r => r.Origin == "metadata");
+  NEW: var firstMetadata = results.FindIndex(r => string.Equals(r.Origin, "metadata"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:436
+  OLD: var doubled = Assert.Single(Run("int"), i => i.Name == "Doubled");
+  NEW: var doubled = Assert.Single(Run("int"), i => string.Equals(i.Name, "Doubled"));
+tests\RoslynCodeLens.Tests\GetExtensionMethodsLogicTests.cs:442
+  OLD: var where = Run("List<int>").First(i => i.Name == "Where");
+  NEW: var where = Run("List<int>").First(i => string.Equals(i.Name, "Where"));
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:34
+  OLD: Assert.Contains(r.Constructors, c => c.Accessibility == "private");
+  NEW: Assert.Contains(r.Constructors, c => string.Equals(c.Accessibility, "private"));
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:109
+  OLD: Assert.True(Assert.Single(r.Constructors, c => c.Accessibility == "internal").Accessible);
+  NEW: Assert.True(Assert.Single(r.Constructors, c => string.Equals(c.Accessibility, "internal")).Accessible);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:119
+  OLD: Assert.False(Assert.Single(r.Constructors, c => c.Accessibility == "internal").Accessible);
+  NEW: Assert.False(Assert.Single(r.Constructors, c => string.Equals(c.Accessibility, "internal")).Accessible);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:134
+  OLD: Assert.True(Assert.Single(r.Constructors, c => c.Accessibility == "public").Accessible);
+  NEW: Assert.True(Assert.Single(r.Constructors, c => string.Equals(c.Accessibility, "public")).Accessible);
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:325
+  OLD: Assert.Contains(f, x => x.Kind == "property" && x.Signature.Contains("Instance", StringComparison.Ordinal));
+  NEW: Assert.Contains(f, x => string.Equals(x.Kind, "property") && x.Signature.Contains("Instance", StringComparison.Ordinal));
+tests\RoslynCodeLens.Tests\GetInstantiationOptionsLogicTests.cs:326
+  OLD: Assert.Contains(f, x => x.Kind == "field" && x.Signature.Contains("Default", StringComparison.Ordinal));
+  NEW: Assert.Contains(f, x => string.Equals(x.Kind, "field") && x.Signature.Contains("Default", StringComparison.Ordinal));
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs:32
+  OLD: var api = solution.Projects.Single(p => p.Name == "App.Api");
+  NEW: var api = solution.Projects.Single(p => string.Equals(p.Name, "App.Api"));
+tests\RoslynCodeLens.Tests\ParallelLoaderTests.cs:54
+  OLD: var api = solution.Projects.Single(p => p.Name == "App.Api");
+  NEW: var api = solution.Projects.Single(p => string.Equals(p.Name, "App.Api"));
+tests\RoslynCodeLens.Tests\SolutionLoaderFilterTests.cs:29
+  OLD: Assert.Single(skipped, s => s.Name == "Sample.Unrelated");
+  NEW: Assert.Single(skipped, s => string.Equals(s.Name, "Sample.Unrelated"));
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs:38
+  OLD: Assert.Contains(symbolIndex.FindNamedTypes("Greeter"), t => t.Name == "Greeter");
+  NEW: Assert.Contains(symbolIndex.FindNamedTypes("Greeter"), t => string.Equals(t.Name, "Greeter"));
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs:67
+  OLD: Assert.Contains(typeIndex.GetDerivedTypes(greeter), t => t.Name == "FancyGreeter");
+  NEW: Assert.Contains(typeIndex.GetDerivedTypes(greeter), t => string.Equals(t.Name, "FancyGreeter"));
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs:73
+  OLD: Assert.Contains(implementors, t => t.Name == "Greeter");
+  NEW: Assert.Contains(implementors, t => string.Equals(t.Name, "Greeter"));
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs:74
+  OLD: Assert.Contains(implementors, t => t.Name == "CrossProjectGreeter");
+  NEW: Assert.Contains(implementors, t => string.Equals(t.Name, "CrossProjectGreeter"));
+tests\RoslynCodeLens.Tests\SymbolIndexDecompositionTests.cs:98
+  OLD: var owningProject = _loaded.Solution.Projects.Single(p => p.Name == projectName);
+  NEW: var owningProject = _loaded.Solution.Projects.Single(p => string.Equals(p.Name, projectName));
+tests\RoslynCodeLens.Tests\SymbolResolverTests.cs:84
+  OLD: Assert.Contains(results, t => t.ToDisplayString() == "Data.Repository<T>");
+  NEW: Assert.Contains(results, t => string.Equals(t.ToDisplayString(), "Data.Repository<T>"));
+tests\RoslynCodeLens.Tests\SymbolResolverTests.cs:85
+  OLD: Assert.Contains(results, t => t.ToDisplayString() == "Data.Repository<T1, T2>");
+  NEW: Assert.Contains(results, t => string.Equals(t.ToDisplayString(), "Data.Repository<T1, T2>"));
+tests\RoslynCodeLens.Tests\Symbols\SymbolSignatureComparerTests.cs:31
+  OLD: var memberImpl = typeName == "IFoo" ? "public void Do() {}" : "";
+  NEW: var memberImpl = string.Equals(typeName, "IFoo") ? "public void Do() {}" : "";
+tests\RoslynCodeLens.Tests\Symbols\SymbolSignatureComparerTests.cs:41
+  OLD: .GetNamespaceMembers().First(n => n.Name == "Lib")
+  NEW: .GetNamespaceMembers().First(n => string.Equals(n.Name, "Lib"))
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs:20
+  OLD: .Single(p => p.Name == "XUnitFixture");
+  NEW: .Single(p => string.Equals(p.Name, "XUnitFixture"));
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs:31
+  OLD: .Single(p => p.Name == "NUnitFixture");
+  NEW: .Single(p => string.Equals(p.Name, "NUnitFixture"));
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs:42
+  OLD: .Single(p => p.Name == "MSTestFixture");
+  NEW: .Single(p => string.Equals(p.Name, "MSTestFixture"));
+tests\RoslynCodeLens.Tests\TestDiscovery\TestFrameworkDetectorTests.cs:53
+  OLD: .Single(p => p.Name == "TestLib");
+  NEW: .Single(p => string.Equals(p.Name, "TestLib"));
+tests\RoslynCodeLens.Tests\Tools\FindAsyncViolationsToolTests.cs:125
+  OLD: var actual = result.Violations.Count(v => v.Pattern.ToString() == kvp.Key);
+  NEW: var actual = result.Violations.Count(v => string.Equals(v.Pattern.ToString(), kvp.Key));
+tests\RoslynCodeLens.Tests\Tools\FindAsyncViolationsToolTests.cs:137
+  OLD: var actual = result.Violations.Count(v => v.Severity.ToString() == kvp.Key);
+  NEW: var actual = result.Violations.Count(v => string.Equals(v.Severity.ToString(), kvp.Key));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:46
+  OLD: var removed = Assert.Single(result.Changes, c => c.Name == "Fake.Removed.Method()");
+  NEW: var removed = Assert.Single(result.Changes, c => string.Equals(c.Name, "Fake.Removed.Method()"));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:54
+  OLD: var dropped = _currentSurface.First(e => e.Name == "TestLib.Greeter");
+  NEW: var dropped = _currentSurface.First(e => string.Equals(e.Name, "TestLib.Greeter"));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:55
+  OLD: var baseline = _currentSurface.Where(e => e.Name != dropped.Name).ToList();
+  NEW: var baseline = _currentSurface.Where(e => !string.Equals(e.Name, dropped.Name)).ToList();
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:59
+  OLD: var added = Assert.Single(result.Changes, c => c.Name == dropped.Name);
+  NEW: var added = Assert.Single(result.Changes, c => string.Equals(c.Name, dropped.Name));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:67
+  OLD: var greeter = _currentSurface.First(e => e.Name == "TestLib.Greeter");
+  NEW: var greeter = _currentSurface.First(e => string.Equals(e.Name, "TestLib.Greeter"));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:69
+  OLD: .Where(e => e.Name != greeter.Name)
+  NEW: .Where(e => !string.Equals(e.Name, greeter.Name))
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:75
+  OLD: var change = Assert.Single(result.Changes, c => c.Name == "TestLib.Greeter");
+  NEW: var change = Assert.Single(result.Changes, c => string.Equals(c.Name, "TestLib.Greeter"));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:86
+  OLD: .Where(e => e.Name != processProtected.Name)
+  NEW: .Where(e => !string.Equals(e.Name, processProtected.Name))
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:92
+  OLD: var change = Assert.Single(result.Changes, c => c.Name == processProtected.Name);
+  NEW: var change = Assert.Single(result.Changes, c => string.Equals(c.Name, processProtected.Name));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:100
+  OLD: var greet = _currentSurface.First(e => e.Name == "TestLib.Greeter.Greet(string)");
+  NEW: var greet = _currentSurface.First(e => string.Equals(e.Name, "TestLib.Greeter.Greet(string)"));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:102
+  OLD: .Where(e => e.Name != greet.Name)
+  NEW: .Where(e => !string.Equals(e.Name, greet.Name))
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:108
+  OLD: var change = Assert.Single(result.Changes, c => c.Name == greet.Name);
+  NEW: var change = Assert.Single(result.Changes, c => string.Equals(c.Name, greet.Name));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:180
+  OLD: var actual = result.Changes.Count(c => c.Kind.ToString() == kindName);
+  NEW: var actual = result.Changes.Count(c => string.Equals(c.Kind.ToString(), kindName));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:185
+  OLD: var actual = result.Changes.Count(c => c.Severity.ToString() == severityName);
+  NEW: var actual = result.Changes.Count(c => string.Equals(c.Severity.ToString(), severityName));
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:202
+  OLD: var matches = result.Changes.Where(c => c.Name == "Fake.Dup.Method()").ToList();
+  NEW: var matches = result.Changes.Where(c => string.Equals(c.Name, "Fake.Dup.Method()")).ToList();
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:217
+  OLD: var matches = result.Changes.Where(c => c.Name == "Fake.NewDup.Method()").ToList();
+  NEW: var matches = result.Changes.Where(c => string.Equals(c.Name, "Fake.NewDup.Method()")).ToList();
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:274
+  OLD: c.Name == "BaselineProbe.Foo" && c.Kind == BreakingChangeKind.Removed);
+  NEW: string.Equals(c.Name, "BaselineProbe.Foo") && c.Kind == BreakingChangeKind.Removed);
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:283
+  OLD: c.Name == "BaselineProbe.Foo.Echo(string, int)" &&
+  NEW: string.Equals(c.Name, "BaselineProbe.Foo.Echo(string, int)") &&
+tests\RoslynCodeLens.Tests\Tools\FindBreakingChangesToolTests.cs:286
+  OLD: c.Name == "BaselineProbe.Foo.Counted(int)" &&
+  NEW: string.Equals(c.Name, "BaselineProbe.Foo.Counted(int)") &&
+tests\RoslynCodeLens.Tests\Tools\FindDisposableMisuseToolTests.cs:118
+  OLD: var actual = result.Violations.Count(v => v.Pattern.ToString() == patternName);
+  NEW: var actual = result.Violations.Count(v => string.Equals(v.Pattern.ToString(), patternName));
+tests\RoslynCodeLens.Tests\Tools\FindDisposableMisuseToolTests.cs:129
+  OLD: var actual = result.Violations.Count(v => v.Severity.ToString() == severityName);
+  NEW: var actual = result.Violations.Count(v => string.Equals(v.Severity.ToString(), severityName));
+tests\RoslynCodeLens.Tests\Tools\FindGodObjectsToolTests.cs:86
+  OLD: ns == "TestLib.GodObjectSamples.Bad");
+  NEW: string.Equals(ns, "TestLib.GodObjectSamples.Bad"));
+tests\RoslynCodeLens.Tests\Tools\FindGodObjectsToolTests.cs:201
+  OLD: Assert.DoesNotContain(result.Types, t => t.Project == "RoslynCodeLens.Tests");
+  NEW: Assert.DoesNotContain(result.Types, t => string.Equals(t.Project, "RoslynCodeLens.Tests"));
+tests\RoslynCodeLens.Tests\Tools\FindUnusedSymbolsToolTests.cs:118
+  OLD: var fixtureItems = items.Where(i => i.Project == "XUnitFixture").ToList();
+  NEW: var fixtureItems = items.Where(i => string.Equals(i.Project, "XUnitFixture")).ToList();
+tests\RoslynCodeLens.Tests\Tools\GetCallGraphToolTests.cs:92
+  OLD: Assert.Contains(result.Callees[aKey].Edges, e => e.Target == bKey);
+  NEW: Assert.Contains(result.Callees[aKey].Edges, e => string.Equals(e.Target, bKey));
+tests\RoslynCodeLens.Tests\Tools\GetCallGraphToolTests.cs:93
+  OLD: Assert.Contains(result.Callees[bKey].Edges, e => e.Target == aKey);
+  NEW: Assert.Contains(result.Callees[bKey].Edges, e => string.Equals(e.Target, aKey));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:37
+  OLD: var classify = Assert.Single(atDefaultThreshold, m => m.MethodName == "Classify");
+  NEW: var classify = Assert.Single(atDefaultThreshold, m => string.Equals(m.MethodName, "Classify"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:53
+  OLD: var nested = Assert.Single(byCognitive, m => m.MethodName == "DeeplyNested");
+  NEW: var nested = Assert.Single(byCognitive, m => string.Equals(m.MethodName, "DeeplyNested"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:84
+  OLD: Assert.Contains(results, r => r.MethodName == "OrderService" && r.TypeName == "OrderService");
+  NEW: Assert.Contains(results, r => string.Equals(r.MethodName, "OrderService") && string.Equals(r.TypeName, "OrderService"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:85
+  OLD: Assert.Contains(results, r => r.MethodName == "FormalNameLength");
+  NEW: Assert.Contains(results, r => string.Equals(r.MethodName, "FormalNameLength"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:93
+  OLD: var classify = results.Single(r => r.MethodName == "ClassifyName");
+  NEW: var classify = results.Single(r => string.Equals(r.MethodName, "ClassifyName"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:109
+  OLD: Assert.Contains(byCognitive, r => r.MethodName == "SumPositives");
+  NEW: Assert.Contains(byCognitive, r => string.Equals(r.MethodName, "SumPositives"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:110
+  OLD: Assert.DoesNotContain(byCyclomatic, r => r.MethodName == "SumPositives");
+  NEW: Assert.DoesNotContain(byCyclomatic, r => string.Equals(r.MethodName, "SumPositives"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:173
+  OLD: Assert.Single(results, r => r.MethodName == "Shared");
+  NEW: Assert.Single(results, r => string.Equals(r.MethodName, "Shared"));
+tests\RoslynCodeLens.Tests\Tools\GetComplexityMetricsToolTests.cs:190
+  OLD: var shared = Assert.Single(results, r => r.MethodName == "Shared");
+  NEW: var shared = Assert.Single(results, r => string.Equals(r.MethodName, "Shared"));
+tests\RoslynCodeLens.Tests\Tools\GetDiagnosticsToolTests.cs:265
+  OLD: var param = method.GetParameters().Single(p => p.Name == "includeAnalyzers");
+  NEW: var param = method.GetParameters().Single(p => string.Equals(p.Name, "includeAnalyzers"));
+tests\RoslynCodeLens.Tests\Tools\GetDiagnosticsToolTests.cs:274
+  OLD: var param = method.GetParameters().Single(p => p.Name == "limit");
+  NEW: var param = method.GetParameters().Single(p => string.Equals(p.Name, "limit"));
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:62
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "+" && !op.IsCheckedVariant);
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "+") && !op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:69
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "implicit");
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "implicit"));
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:70
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "explicit");
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "explicit"));
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:77
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "+" && op.IsCheckedVariant);
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "+") && op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:84
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "==");
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "=="));
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:85
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "!=");
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "!="));
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:92
+  OLD: var addition = result.Operators.First(op => op.Kind == "+" && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+  NEW: var addition = result.Operators.First(op => string.Equals(op.Kind, "+") && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:107
+  OLD: op.Kind == "+" && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+  NEW: string.Equals(op.Kind, "+") && op.Parameters.Count == 2 && !op.IsCheckedVariant);
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:135
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "+");
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "+"));
+tests\RoslynCodeLens.Tests\Tools\GetOperatorsToolTests.cs:136
+  OLD: Assert.Contains(result.Operators, op => op.Kind == "implicit");
+  NEW: Assert.Contains(result.Operators, op => string.Equals(op.Kind, "implicit"));
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:92
+  OLD: var color = paint.Parameters.Single(p => p.Name == "color");
+  NEW: var color = paint.Parameters.Single(p => string.Equals(p.Name, "color"));
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:153
+  OLD: Assert.Equal("out", tryParse.Parameters.Single(p => p.Name == "value").Modifier);
+  NEW: Assert.Equal("out", tryParse.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:156
+  OLD: Assert.Equal("ref", increment.Parameters.Single(p => p.Name == "value").Modifier);
+  NEW: Assert.Equal("ref", increment.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:159
+  OLD: Assert.Equal("in", inspectIn.Parameters.Single(p => p.Name == "value").Modifier);
+  NEW: Assert.Equal("in", inspectIn.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetOverloadsToolTests.cs:162
+  OLD: Assert.Equal("ref readonly", inspectRefReadonly.Parameters.Single(p => p.Name == "value").Modifier);
+  NEW: Assert.Equal("ref readonly", inspectRefReadonly.Parameters.Single(p => string.Equals(p.Name, "value")).Modifier);
+tests\RoslynCodeLens.Tests\Tools\GetProjectHealthToolTests.cs:26
+  OLD: Assert.Contains(result.Projects, p => p.Project == "TestLib");
+  NEW: Assert.Contains(result.Projects, p => string.Equals(p.Project, "TestLib"));
+tests\RoslynCodeLens.Tests\Tools\GetProjectHealthToolTests.cs:27
+  OLD: Assert.Contains(result.Projects, p => p.Project == "TestLib2");
+  NEW: Assert.Contains(result.Projects, p => string.Equals(p.Project, "TestLib2"));
+tests\RoslynCodeLens.Tests\Tools\GetProjectHealthToolTests.cs:35
+  OLD: Assert.DoesNotContain(result.Projects, p => p.Project == "RoslynCodeLens.Tests");
+  NEW: Assert.DoesNotContain(result.Projects, p => string.Equals(p.Project, "RoslynCodeLens.Tests"));
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:48
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.Greeter" && e.Kind == PublicApiKind.Class);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.Greeter") && e.Kind == PublicApiKind.Class);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:49
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.IGreeter" && e.Kind == PublicApiKind.Interface);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.IGreeter") && e.Kind == PublicApiKind.Interface);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:50
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.FancyGreeter" && e.Kind == PublicApiKind.Class);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.FancyGreeter") && e.Kind == PublicApiKind.Class);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:51
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.OrderRecord" && e.Kind == PublicApiKind.Record);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.OrderRecord") && e.Kind == PublicApiKind.Record);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:52
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.PointStruct" && e.Kind == PublicApiKind.RecordStruct);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.PointStruct") && e.Kind == PublicApiKind.RecordStruct);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:53
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.PriorityLevel" && e.Kind == PublicApiKind.Enum);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.PriorityLevel") && e.Kind == PublicApiKind.Enum);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:54
+  OLD: Assert.Contains(result.Entries, e => e.Name == "TestLib.OrderProcessedHandler" && e.Kind == PublicApiKind.Delegate);
+  NEW: Assert.Contains(result.Entries, e => string.Equals(e.Name, "TestLib.OrderProcessedHandler") && e.Kind == PublicApiKind.Delegate);
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:197
+  OLD: var actual = result.Entries.Count(e => e.Kind.ToString() == kindName);
+  NEW: var actual = result.Entries.Count(e => string.Equals(e.Kind.ToString(), kindName));
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:209
+  OLD: var actual = result.Entries.Count(e => e.Project == projectName);
+  NEW: var actual = result.Entries.Count(e => string.Equals(e.Project, projectName));
+tests\RoslynCodeLens.Tests\Tools\GetPublicApiSurfaceToolTests.cs:221
+  OLD: var actual = result.Entries.Count(e => e.Accessibility.ToString() == accName);
+  NEW: var actual = result.Entries.Count(e => string.Equals(e.Accessibility.ToString(), accName));
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:26
+  OLD: var xUnitProject = Assert.Single(result.Projects, p => p.Project == "XUnitFixture");
+  NEW: var xUnitProject = Assert.Single(result.Projects, p => string.Equals(p.Project, "XUnitFixture"));
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:36
+  OLD: var nUnitProject = Assert.Single(result.Projects, p => p.Project == "NUnitFixture");
+  NEW: var nUnitProject = Assert.Single(result.Projects, p => string.Equals(p.Project, "NUnitFixture"));
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:46
+  OLD: var msTestProject = Assert.Single(result.Projects, p => p.Project == "MSTestFixture");
+  NEW: var msTestProject = Assert.Single(result.Projects, p => string.Equals(p.Project, "MSTestFixture"));
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:100
+  OLD: Assert.False(symbol.StartsWith("System.", StringComparison.Ordinal) || symbol == "System",
+  NEW: Assert.False(symbol.StartsWith("System.", StringComparison.Ordinal) || string.Equals(symbol, "System"),
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:102
+  OLD: Assert.False(symbol.StartsWith("Microsoft.", StringComparison.Ordinal) || symbol == "Microsoft",
+  NEW: Assert.False(symbol.StartsWith("Microsoft.", StringComparison.Ordinal) || string.Equals(symbol, "Microsoft"),
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:124
+  OLD: Assert.DoesNotContain(result.Projects, p => p.Project == "TestLib");
+  NEW: Assert.DoesNotContain(result.Projects, p => string.Equals(p.Project, "TestLib"));
+tests\RoslynCodeLens.Tests\Tools\GetTestSummaryToolTests.cs:125
+  OLD: Assert.DoesNotContain(result.Projects, p => p.Project == "TestLib2");
+  NEW: Assert.DoesNotContain(result.Projects, p => string.Equals(p.Project, "TestLib2"));
+tests\RoslynCodeLens.Tests\Tools\ListRunningTasksToolTests.cs:27
+  OLD: Assert.Contains(result.Items, t => t.TaskId == started.TaskId);
+  NEW: Assert.Contains(result.Items, t => string.Equals(t.TaskId, started.TaskId));
+
+==== SUMMARY: ops=147 skipped=0 ====

@@ -298,9 +298,9 @@ public class SolutionManagerTests : IAsyncLifetime
             // the snapshot (resolver + metadata) and the loaded solution.
             Assert.Empty(manager.GetAnalysisContext().Resolver.FindSymbols("StaleProbe"));
             Assert.Null(manager.GetAnalysisContext().Metadata.Resolve("StaleProbe"));
-            Assert.Empty(manager.GetLoadedSolution().Solution.Projects
-                .SelectMany(p => p.Documents)
-                .Where(d => d.Name.Contains("StaleProbe", StringComparison.Ordinal)));
+            Assert.DoesNotContain(
+                manager.GetLoadedSolution().Solution.Projects.SelectMany(p => p.Documents),
+                d => d.Name.Contains("StaleProbe", StringComparison.Ordinal));
 
             await File.WriteAllTextAsync(
                 consumerPath,

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using RoslynCodeLens.Security;
 
@@ -14,7 +15,7 @@ public class TrustStoreModelTests
             TrustedRoots = ["c:\\projects\\", "c:\\work\\"],
             TrustedSolutions =
             [
-                new TrustedSolution("c:\\repos\\foo.sln", DateTimeOffset.Parse("2026-05-11T10:00:00Z"))
+                new TrustedSolution("c:\\repos\\foo.sln", DateTimeOffset.Parse("2026-05-11T10:00:00Z", CultureInfo.InvariantCulture))
             ],
             AnalyzerPolicy = "nuget-and-solution-bin"
         };

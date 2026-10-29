@@ -25,7 +25,7 @@ internal static class SolutionLoadFailure
             if (current is FileNotFoundException && MentionsLegacyMsBuildArtifact(current.Message))
                 return true;
 
-            if (current.GetType().FullName == "Microsoft.Build.Exceptions.InvalidProjectFileException"
+            if (string.Equals(current.GetType().FullName, "Microsoft.Build.Exceptions.InvalidProjectFileException")
                 && MentionsLegacyMsBuildArtifact(current.Message))
                 return true;
         }

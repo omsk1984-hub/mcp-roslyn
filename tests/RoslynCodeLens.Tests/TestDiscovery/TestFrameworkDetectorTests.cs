@@ -17,7 +17,7 @@ public class TestFrameworkDetectorTests
     public void DetectFramework_XUnitProject_ReturnsXUnit()
     {
         var project = _fixture.Loaded.Solution.Projects
-            .Single(p => p.Name == "XUnitFixture");
+            .Single(p => string.Equals(p.Name, "XUnitFixture"));
 
         var framework = TestFrameworkDetector.DetectFramework(project);
 
@@ -28,7 +28,7 @@ public class TestFrameworkDetectorTests
     public void DetectFramework_NUnitProject_ReturnsNUnit()
     {
         var project = _fixture.Loaded.Solution.Projects
-            .Single(p => p.Name == "NUnitFixture");
+            .Single(p => string.Equals(p.Name, "NUnitFixture"));
 
         var framework = TestFrameworkDetector.DetectFramework(project);
 
@@ -39,7 +39,7 @@ public class TestFrameworkDetectorTests
     public void DetectFramework_MSTestProject_ReturnsMSTest()
     {
         var project = _fixture.Loaded.Solution.Projects
-            .Single(p => p.Name == "MSTestFixture");
+            .Single(p => string.Equals(p.Name, "MSTestFixture"));
 
         var framework = TestFrameworkDetector.DetectFramework(project);
 
@@ -50,7 +50,7 @@ public class TestFrameworkDetectorTests
     public void DetectFramework_ProductionProject_ReturnsNull()
     {
         var project = _fixture.Loaded.Solution.Projects
-            .Single(p => p.Name == "TestLib");
+            .Single(p => string.Equals(p.Name, "TestLib"));
 
         var framework = TestFrameworkDetector.DetectFramework(project);
 

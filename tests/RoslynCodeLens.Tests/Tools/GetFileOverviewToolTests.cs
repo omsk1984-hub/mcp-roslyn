@@ -30,7 +30,7 @@ public class GetFileOverviewToolTests
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.TypesDefined);
-        Assert.Contains("Greeter", result.TypesDefined);
+        Assert.Contains("Greeter", result.TypesDefined, StringComparer.Ordinal);
         Assert.NotNull(result.Project);
     }
 

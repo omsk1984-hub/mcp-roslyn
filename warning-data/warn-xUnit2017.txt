@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\tests\RoslynCodeLens.Tests\TargetProjectGraphTests.cs|115|13|Do not use Assert.False() to check if a value exists in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2017)

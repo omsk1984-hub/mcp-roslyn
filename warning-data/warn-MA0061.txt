@@ -1,0 +1,1 @@
+d:\work\MCP\mcp-roslyn\src\RoslynCodeLens\StructuredErrorToolWrapper.cs|10|27|Method overrides should not change default values (original: null; current: <no default value>) (https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0061.md)

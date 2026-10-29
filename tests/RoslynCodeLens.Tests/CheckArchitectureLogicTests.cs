@@ -160,7 +160,7 @@ public class CheckArchitectureLogicTests
 
     // 8 — the test that justifies a semantic tool over the usings-based one. Do not weaken.
     [Fact]
-    public void FullyQualifiedReference_WithNoUsing_IsDetected()
+    public async Task FullyQualifiedReference_WithNoUsing_IsDetected()
     {
         var workspace = Layered();
 
@@ -168,7 +168,8 @@ public class CheckArchitectureLogicTests
         var repo = workspace.Loaded.Solution.Projects
             .SelectMany(p => p.Documents)
             .Single(d => string.Equals(d.Name, "Repo.cs", StringComparison.Ordinal));
-        Assert.DoesNotContain("using", repo.GetTextAsync().GetAwaiter().GetResult().ToString(),
+        var repoText = await repo.GetTextAsync();
+        Assert.DoesNotContain("using", repoText.ToString(),
             StringComparison.Ordinal);
 
         var violation = Assert.Single(Run(workspace, [Forbid("Demo.Infrastructure.*", "Demo.Domain.*")]));
@@ -278,7 +279,7 @@ public class CheckArchitectureLogicTests
                 [Forbid("Demo.Infrastructure.*", "Demo.Domain.*")]));
 
         Assert.Equal(1, violation.ReferenceCount);
-        Assert.Equal(1, violation.Sites.Count);
+        Assert.Single(violation.Sites);
     }
 
     // 8f — nested and `with` initializers take the same path: the member being assigned belongs
@@ -402,7 +403,8 @@ public class CheckArchitectureLogicTests
         Assert.Equal(2, violations.Count);
         Assert.Equal(
             new[] { "App.A", "App.B" },
-            violations.Select(v => v.SourceScope).OrderBy(s => s, StringComparer.Ordinal));
+            violations.Select(v => v.SourceScope).OrderBy(s => s, StringComparer.Ordinal),
+            StringComparer.Ordinal);
         Assert.All(violations, v => Assert.Equal("Domain", v.TargetScope));
     }
 
@@ -416,7 +418,7 @@ public class CheckArchitectureLogicTests
             Run(LinkedFileWorkspace(), [Forbid("Demo.Infrastructure.*", "Demo.Domain.*")]));
 
         Assert.Equal(1, violation.ReferenceCount);
-        Assert.Equal(1, violation.Sites.Count);
+        Assert.Single(violation.Sites);
     }
 
     /// <summary>

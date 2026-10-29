@@ -87,7 +87,7 @@ public static class ProjectClosure
             catch (ArgumentException ex)
             {
                 throw new InvalidOperationException(
-                    $"Invalid include glob '{pattern}': {ex.Message}");
+                    $"Invalid include glob '{pattern}': {ex.Message}", ex);
             }
         }
 
@@ -136,7 +136,7 @@ public static class ProjectClosure
         // Reject bracket characters explicitly — we don't support character classes,
         // and unescaped `[` would silently become a literal that never matches.
         if (glob.Contains('['))
-            throw new ArgumentException("character classes '[…]' are not supported");
+            throw new ArgumentException("character classes '[…]' are not supported", nameof(glob));
 
         var pattern = "^" + Regex.Escape(glob).Replace("\\*", ".*").Replace("\\?", ".") + "$";
         return new Regex(pattern, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);

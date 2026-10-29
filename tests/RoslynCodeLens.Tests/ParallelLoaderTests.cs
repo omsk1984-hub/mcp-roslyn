@@ -29,14 +29,14 @@ public class ParallelLoaderTests
         var (solution, workspace, _) = await loader.OpenAsync(Slnx(), filter);
         using var _ws = workspace;
 
-        var api = solution.Projects.Single(p => p.Name == "App.Api");
+        var api = solution.Projects.Single(p => string.Equals(p.Name, "App.Api"));
 
         // Re-stitch must rebuild App.Api's two direct ProjectReferences as live
         // references that resolve to the in-solution App.Domain / App.Infrastructure
         // projects — not dangling ids from the worker workspace they were loaded in.
         var referencedNames = api.ProjectReferences
             .Select(r => solution.GetProject(r.ProjectId)?.Name)
-            .OrderBy(n => n)
+            .OrderBy(n => n, StringComparer.Ordinal)
             .ToArray();
 
         Assert.Equal(new[] { "App.Domain", "App.Infrastructure" }, referencedNames);
@@ -51,7 +51,7 @@ public class ParallelLoaderTests
         var (solution, workspace, _) = await loader.OpenAsync(Slnx(), filter);
         using var _ws = workspace;
 
-        var api = solution.Projects.Single(p => p.Name == "App.Api");
+        var api = solution.Projects.Single(p => string.Equals(p.Name, "App.Api"));
         var compilation = await api.GetCompilationAsync();
         Assert.NotNull(compilation);
 
@@ -93,7 +93,7 @@ public class ParallelLoaderTests
         {
             var (solution, workspace, _) = await loader.OpenAsync(Slnx(), filter);
             using var _ws = workspace;
-            return solution.Projects.Select(p => p.Name).OrderBy(n => n).ToArray();
+            return solution.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray();
         }
         finally
         {

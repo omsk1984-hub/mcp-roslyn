@@ -45,7 +45,7 @@ public sealed class TargetProjectGraphTests
 
         var ordered = TargetProjectGraph.OrderRootsFirst(targets, graph);
 
-        Assert.Equal(["Alpha", "Zeta"], ordered.Select(p => p.Name));
+        Assert.Equal(["Alpha", "Zeta"], ordered.Select(p => p.Name), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class TargetProjectGraphTests
 
         var ordered = TargetProjectGraph.OrderRootsFirst(targets, graph);
 
-        Assert.Equal(["B", "A"], ordered.Select(p => p.Name));
+        Assert.Equal(["B", "A"], ordered.Select(p => p.Name), StringComparer.Ordinal);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class TargetProjectGraphTests
             Assert.Equal([b], graph.References[a]);
             Assert.Empty(graph.References[b]);
             Assert.Equal(2, graph.TargetPaths.Count);
-            Assert.False(graph.TargetPaths.Contains(outside));
+            Assert.DoesNotContain(outside, graph.TargetPaths);
         }
         finally
         {

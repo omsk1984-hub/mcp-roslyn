@@ -24,6 +24,6 @@ public class ListRunningTasksToolTests
             ct => Task.Delay(5000, ct).ContinueWith(_ => (object?)"done"));
 
         var result = ListRunningTasksTool.Execute(store);
-        Assert.Contains(result.Items, t => t.TaskId == started.TaskId);
+        Assert.Contains(result.Items, t => string.Equals(t.TaskId, started.TaskId));
     }
 }

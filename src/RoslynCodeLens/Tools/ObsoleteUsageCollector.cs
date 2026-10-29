@@ -76,7 +76,7 @@ internal static class ObsoleteUsageCollector
 
             foreach (var (symbol, attr) in entries)
             {
-                if (attr.AttributeClass?.ToDisplayString() != "System.ObsoleteAttribute") continue;
+                if (!string.Equals(attr.AttributeClass?.ToDisplayString(), "System.ObsoleteAttribute")) continue;
                 if (obsoleteSymbols.ContainsKey(symbol)) continue;
 
                 obsoleteSymbols[symbol] = ObsoleteAttributeData.FromAttribute(attr);

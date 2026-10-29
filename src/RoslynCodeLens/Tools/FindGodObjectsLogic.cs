@@ -11,8 +11,8 @@ namespace RoslynCodeLens.Tools;
 public static class FindGodObjectsLogic
 {
     private static bool IsBclNamespace(string ns)
-        => ns == "System"
-           || ns == "Microsoft"
+        => string.Equals(ns, "System")
+           || string.Equals(ns, "Microsoft")
            || ns.StartsWith("System.", StringComparison.Ordinal)
            || ns.StartsWith("Microsoft.", StringComparison.Ordinal);
 
