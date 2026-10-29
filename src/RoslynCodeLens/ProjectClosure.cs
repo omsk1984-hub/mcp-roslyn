@@ -25,32 +25,37 @@ public static class ProjectClosure
         IEnumerable<string> allProjectNames,
         IReadOnlyDictionary<string, IReadOnlyList<string>> graph)
     {
-        var allSet = allProjectNames is HashSet<string> hs && hs.Comparer.Equals(StringComparer.Ordinal)
+        var allSet = ToOrdinalSet(allProjectNames);
+
+        var seeds = CollectSeeds(filter, allSet);
+        ThrowIfNoSeeds(seeds, allSet);
+
+        return new Result(WalkClosure(seeds, allSet, graph));
+    }
+
+    /// <summary>
+    /// Reuses an existing ordinal-comparer set instead of copying it; any other enumerable is
+    /// materialised once so the repeated lookups below stay cheap.
+    /// </summary>
+    private static HashSet<string> ToOrdinalSet(IEnumerable<string> allProjectNames)
+        => allProjectNames is HashSet<string> hs && hs.Comparer.Equals(StringComparer.Ordinal)
             ? hs
             : new HashSet<string>(allProjectNames, StringComparer.Ordinal);
 
-        var includeRegexes = new List<Regex>(filter.Include.Count);
-        foreach (var pattern in filter.Include)
-        {
-            try
-            {
-                includeRegexes.Add(GlobToRegex(pattern));
-            }
-            catch (ArgumentException ex)
-            {
-                throw new InvalidOperationException(
-                    $"Invalid include glob '{pattern}': {ex.Message}");
-            }
-        }
-
+    /// <summary>
+    /// Seeds = glob matches of <see cref="ProjectFilter.Include"/>
+    /// ∪ literal matches of <see cref="ProjectFilter.RootProjects"/>.
+    /// A root that names no project aborts the load rather than being silently dropped.
+    /// </summary>
+    private static HashSet<string> CollectSeeds(ProjectFilter filter, HashSet<string> allSet)
+    {
+        var includeRegexes = CompileIncludeGlobs(filter.Include);
         var seeds = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var name in allSet)
         {
-            foreach (var rx in includeRegexes)
-            {
-                if (rx.IsMatch(name)) { seeds.Add(name); break; }
-            }
+            if (includeRegexes.Exists(rx => rx.IsMatch(name)))
+                seeds.Add(name);
         }
 
         var missingRoots = new List<string>();
@@ -67,14 +72,49 @@ public static class ProjectClosure
                 string.Join(", ", missingRoots) + ".");
         }
 
-        if (seeds.Count == 0)
+        return seeds;
+    }
+
+    private static List<Regex> CompileIncludeGlobs(IReadOnlyList<string> include)
+    {
+        var includeRegexes = new List<Regex>(include.Count);
+        foreach (var pattern in include)
         {
-            var available = string.Join(", ", allSet.OrderBy(n => n, StringComparer.Ordinal).Take(10));
-            throw new InvalidOperationException(
-                $"Filter matched 0 projects. Available project names (first 10): {available}. " +
-                "Call list_solutions after loading without a filter to enumerate all.");
+            try
+            {
+                includeRegexes.Add(GlobToRegex(pattern));
+            }
+            catch (ArgumentException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Invalid include glob '{pattern}': {ex.Message}");
+            }
         }
 
+        return includeRegexes;
+    }
+
+    private static void ThrowIfNoSeeds(HashSet<string> seeds, HashSet<string> allSet)
+    {
+        if (seeds.Count > 0)
+            return;
+
+        var available = string.Join(", ", allSet.OrderBy(n => n, StringComparer.Ordinal).Take(10));
+        throw new InvalidOperationException(
+            $"Filter matched 0 projects. Available project names (first 10): {available}. " +
+            "Call list_solutions after loading without a filter to enumerate all.");
+    }
+
+    /// <summary>
+    /// Transitive BFS closure over <paramref name="graph"/>. Edges to names outside the
+    /// solution are ignored: the graph may mention projects that were not loaded, and those
+    /// must not enter the result.
+    /// </summary>
+    private static HashSet<string> WalkClosure(
+        HashSet<string> seeds,
+        HashSet<string> allSet,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> graph)
+    {
         var loaded = new HashSet<string>(seeds, StringComparer.Ordinal);
         var queue = new Queue<string>(seeds);
         while (queue.Count > 0)
@@ -88,7 +128,7 @@ public static class ProjectClosure
             }
         }
 
-        return new Result(loaded);
+        return loaded;
     }
 
     private static Regex GlobToRegex(string glob)

@@ -78,50 +78,72 @@ public static class InspectExternalAssemblyLogic
             NamespaceTree: [], Types: typeInfos);
     }
 
+    /// <summary>
+    /// Maps a Roslyn type symbol to the DTO the tool returns. Each facet of the DTO has one
+    /// dedicated reader below (kind, modifiers, base type, members, attributes), so this
+    /// method only composes them.
+    /// </summary>
     private static ExternalTypeInfo ToTypeInfo(INamedTypeSymbol t)
+        => new(
+            TypeKindName(t),
+            t.ToDisplayString(),
+            ReadModifiers(t),
+            ReadBaseType(t),
+            t.Interfaces.Select(i => i.ToDisplayString()).ToList(),
+            ReadMembers(t),
+            ReadAttributes(t),
+            SummaryFromXmlDoc(t));
+
+    /// <summary>Roslyn's <see cref="TypeKind"/> mapped to the tool's lowercase kind strings.</summary>
+    private static string TypeKindName(INamedTypeSymbol t) => t.TypeKind switch
     {
-        var kind = t.TypeKind switch
-        {
-            TypeKind.Interface => "interface",
-            TypeKind.Struct => "struct",
-            TypeKind.Enum => "enum",
-            TypeKind.Delegate => "delegate",
-            _ => "class"
-        };
+        TypeKind.Interface => "interface",
+        TypeKind.Struct => "struct",
+        TypeKind.Enum => "enum",
+        TypeKind.Delegate => "delegate",
+        _ => "class"
+    };
+
+    /// <summary>
+    /// C# modifier keywords, ordered abstract → sealed → static. Static classes report
+    /// only <c>static</c>: Roslyn marks them both abstract and sealed, which would otherwise
+    /// print the impossible <c>abstract sealed static</c>. Interfaces never report
+    /// <c>abstract</c>, which they are implicitly.
+    /// </summary>
+    private static List<string> ReadModifiers(INamedTypeSymbol t)
+    {
         var modifiers = new List<string>();
         if (t.IsAbstract && !t.IsStatic && t.TypeKind != TypeKind.Interface) modifiers.Add("abstract");
         if (t.IsSealed && !t.IsStatic) modifiers.Add("sealed");
         if (t.IsStatic) modifiers.Add("static");
+        return modifiers;
+    }
 
-        var baseType = t.BaseType is { SpecialType: not SpecialType.System_Object }
-            ? t.BaseType.ToDisplayString() : null;
-        var interfaces = t.Interfaces.Select(i => i.ToDisplayString()).ToList();
+    /// <summary>
+    /// The declared base type, unless it is <see cref="object"/> — every reference type has
+    /// one, so reporting it would add noise to every entry.
+    /// </summary>
+    private static string? ReadBaseType(INamedTypeSymbol t)
+        => t.BaseType is { SpecialType: not SpecialType.System_Object }
+            ? t.BaseType.ToDisplayString()
+            : null;
 
+    /// <summary>
+    /// Public, non-implicit members, deduplicated by display signature. Interfaces also
+    /// contribute their inherited members, because pure-marker interfaces (IServiceCollection)
+    /// declare none of their own and would otherwise come back empty.
+    /// </summary>
+    private static List<ExternalMemberInfo> ReadMembers(INamedTypeSymbol t)
+    {
         var isInterface = t.TypeKind == TypeKind.Interface;
         var members = new List<ExternalMemberInfo>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        // Collect members from the type itself, then from base interfaces (for pure-marker
-        // interfaces like IServiceCollection that define no own members but inherit from
-        // IList<T>, ICollection<T>, etc.).
-        var memberSources = isInterface
-            ? new[] { t }.Concat(t.AllInterfaces.Cast<ITypeSymbol>())
-            : new[] { (ITypeSymbol)t };
-
-        foreach (var source in memberSources)
+        foreach (var source in EnumerateMemberSources(t, isInterface))
         {
             foreach (var m in source.GetMembers())
             {
-                // Interface members are implicitly public; DeclaredAccessibility is NotApplicable.
-                var accessible = m.DeclaredAccessibility == Accessibility.Public
-                    || (isInterface && m.DeclaredAccessibility == Accessibility.NotApplicable);
-                if (!accessible || m.IsImplicitlyDeclared)
-                    continue;
-                if (m is IMethodSymbol { MethodKind:
-                    MethodKind.PropertyGet or MethodKind.PropertySet or
-                    MethodKind.EventAdd or MethodKind.EventRemove or
-                    MethodKind.EventRaise or MethodKind.StaticConstructor or
-                    MethodKind.DelegateInvoke })
+                if (!IsVisibleMember(m, isInterface))
                     continue;
                 var sig = m.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
                 if (!seen.Add(sig))
@@ -130,15 +152,43 @@ public static class InspectExternalAssemblyLogic
             }
         }
 
+        return members;
+    }
+
+    private static IEnumerable<ITypeSymbol> EnumerateMemberSources(INamedTypeSymbol t, bool isInterface)
+        => isInterface
+            ? new[] { t }.Concat(t.AllInterfaces.Cast<ITypeSymbol>())
+            : new[] { (ITypeSymbol)t };
+
+    /// <summary>
+    /// Whether the member is part of the type's public surface. Interface members are
+    /// implicitly public, so their <see cref="Accessibility"/> is <c>NotApplicable</c>.
+    /// Accessors, event plumbing, static constructors and delegate <c>Invoke</c> are
+    /// skipped: they are reachable through the member that declares them.
+    /// </summary>
+    private static bool IsVisibleMember(ISymbol m, bool isInterface)
+    {
+        var accessible = m.DeclaredAccessibility == Accessibility.Public
+            || (isInterface && m.DeclaredAccessibility == Accessibility.NotApplicable);
+        if (!accessible || m.IsImplicitlyDeclared)
+            return false;
+
+        return m is not IMethodSymbol
+        {
+            MethodKind:
+                MethodKind.PropertyGet or MethodKind.PropertySet or
+                MethodKind.EventAdd or MethodKind.EventRemove or
+                MethodKind.EventRaise or MethodKind.StaticConstructor or
+                MethodKind.DelegateInvoke
+        };
+    }
+
 #pragma warning disable EPS06 // ImmutableArray<T> is a small struct; copy is intentional and cheap
-        var attributes = t.GetAttributes()
+    private static List<string> ReadAttributes(INamedTypeSymbol t)
+        => t.GetAttributes()
             .Select(a => a.AttributeClass?.Name ?? "Attribute")
             .ToList();
 #pragma warning restore EPS06
-
-        return new ExternalTypeInfo(kind, t.ToDisplayString(), modifiers, baseType,
-            interfaces, members, attributes, SummaryFromXmlDoc(t));
-    }
 
     private static string MemberKind(ISymbol s) => s switch
     {

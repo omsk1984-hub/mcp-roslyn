@@ -311,81 +311,84 @@ public static class GetExtensionMethodsLogic
         return ResolveSyntax(compilation, resolver, syntax);
     }
 
+    /// <summary>
+    /// Resolves one type syntax to a symbol. The cases are mutually exclusive by syntax kind,
+    /// so their order carries no meaning; composite forms delegate to their own resolver.
+    /// </summary>
     private static ITypeSymbol? ResolveSyntax(
         Compilation compilation, SymbolResolver resolver, TypeSyntax syntax)
-    {
-        switch (syntax)
+        => syntax switch
         {
-            case ArrayTypeSyntax array:
-            {
-                if (ResolveSyntax(compilation, resolver, array.ElementType) is not { } element)
-                    return null;
-
-                // Rank specifiers are written outermost-first: `string[][]` is an array of
-                // `string[]`, so they have to be applied inside out.
-                var result = element;
-                for (var i = array.RankSpecifiers.Count - 1; i >= 0; i--)
-                    result = compilation.CreateArrayTypeSymbol(result, array.RankSpecifiers[i].Rank);
-                return result;
-            }
-
-            case NullableTypeSyntax nullable:
-            {
-                if (ResolveSyntax(compilation, resolver, nullable.ElementType) is not { } element)
-                    return null;
-
-                // `string?` is `string` — a nullable reference annotation, not `Nullable<string>`,
-                // and annotations do not change which extensions apply.
-                return element.IsValueType
-                    ? compilation.GetSpecialType(SpecialType.System_Nullable_T).Construct(element)
-                    : element;
-            }
-
-            case TupleTypeSyntax tuple:
-            {
-                if (tuple.Elements.Count < 2) return null;
-
-                var types = ImmutableArray.CreateBuilder<ITypeSymbol>(tuple.Elements.Count);
-                var names = ImmutableArray.CreateBuilder<string?>(tuple.Elements.Count);
-                var named = false;
-                foreach (var element in tuple.Elements)
-                {
-                    if (ResolveSyntax(compilation, resolver, element.Type) is not { } elementType)
-                        return null;
-                    types.Add(elementType);
-                    var elementName = element.Identifier.ValueText;
-                    named |= elementName.Length > 0;
-                    names.Add(elementName.Length > 0 ? elementName : null);
-                }
-
-                return compilation.CreateTupleTypeSymbol(
-                    types.MoveToImmutable(), named ? names.MoveToImmutable() : default);
-            }
-
-            case PredefinedTypeSyntax predefined:
-                return Keywords.TryGetValue(predefined.Keyword.ValueText, out var special)
-                    ? compilation.GetSpecialType(special)
-                    : null;
-
-            case GenericNameSyntax generic:
-                return ResolveGeneric(compilation, resolver, generic, generic.Identifier.ValueText);
-
-            case QualifiedNameSyntax { Right: GenericNameSyntax rightGeneric } qualified:
-                return ResolveGeneric(
+            ArrayTypeSyntax array => ResolveArray(compilation, resolver, array),
+            NullableTypeSyntax nullable => ResolveNullable(compilation, resolver, nullable),
+            TupleTypeSyntax tuple => ResolveTuple(compilation, resolver, tuple),
+            PredefinedTypeSyntax predefined => ResolvePredefined(compilation, predefined),
+            GenericNameSyntax generic =>
+                ResolveGeneric(compilation, resolver, generic, generic.Identifier.ValueText),
+            QualifiedNameSyntax { Right: GenericNameSyntax rightGeneric } qualified =>
+                ResolveGeneric(
                     compilation, resolver, rightGeneric,
-                    $"{qualified.Left}.{rightGeneric.Identifier.ValueText}");
+                    $"{qualified.Left}.{rightGeneric.Identifier.ValueText}"),
+            QualifiedNameSyntax or AliasQualifiedNameSyntax =>
+                ResolveNamedType(compilation, resolver, syntax.ToString(), arity: 0),
+            IdentifierNameSyntax identifier =>
+                ResolveNamedType(compilation, resolver, identifier.Identifier.ValueText, arity: 0),
+            _ => null,
+        };
 
-            case QualifiedNameSyntax or AliasQualifiedNameSyntax:
-                return ResolveNamedType(compilation, resolver, syntax.ToString(), arity: 0);
+    private static ITypeSymbol? ResolveArray(
+        Compilation compilation, SymbolResolver resolver, ArrayTypeSyntax array)
+    {
+        if (ResolveSyntax(compilation, resolver, array.ElementType) is not { } element)
+            return null;
 
-            case IdentifierNameSyntax identifier:
-                return ResolveNamedType(
-                    compilation, resolver, identifier.Identifier.ValueText, arity: 0);
-
-            default:
-                return null;
-        }
+        // Rank specifiers are written outermost-first: `string[][]` is an array of
+        // `string[]`, so they have to be applied inside out.
+        var result = element;
+        for (var i = array.RankSpecifiers.Count - 1; i >= 0; i--)
+            result = compilation.CreateArrayTypeSymbol(result, array.RankSpecifiers[i].Rank);
+        return result;
     }
+
+    private static ITypeSymbol? ResolveNullable(
+        Compilation compilation, SymbolResolver resolver, NullableTypeSyntax nullable)
+    {
+        if (ResolveSyntax(compilation, resolver, nullable.ElementType) is not { } element)
+            return null;
+
+        // `string?` is `string` — a nullable reference annotation, not `Nullable<string>`,
+        // and annotations do not change which extensions apply.
+        return element.IsValueType
+            ? compilation.GetSpecialType(SpecialType.System_Nullable_T).Construct(element)
+            : element;
+    }
+
+    private static ITypeSymbol? ResolveTuple(
+        Compilation compilation, SymbolResolver resolver, TupleTypeSyntax tuple)
+    {
+        if (tuple.Elements.Count < 2) return null;
+
+        var types = ImmutableArray.CreateBuilder<ITypeSymbol>(tuple.Elements.Count);
+        var names = ImmutableArray.CreateBuilder<string?>(tuple.Elements.Count);
+        var named = false;
+        foreach (var element in tuple.Elements)
+        {
+            if (ResolveSyntax(compilation, resolver, element.Type) is not { } elementType)
+                return null;
+            types.Add(elementType);
+            var elementName = element.Identifier.ValueText;
+            named |= elementName.Length > 0;
+            names.Add(elementName.Length > 0 ? elementName : null);
+        }
+
+        return compilation.CreateTupleTypeSymbol(
+            types.MoveToImmutable(), named ? names.MoveToImmutable() : default);
+    }
+
+    private static ITypeSymbol? ResolvePredefined(Compilation compilation, PredefinedTypeSyntax predefined)
+        => Keywords.TryGetValue(predefined.Keyword.ValueText, out var special)
+            ? compilation.GetSpecialType(special)
+            : null;
 
     private static ITypeSymbol? ResolveGeneric(
         Compilation compilation, SymbolResolver resolver, GenericNameSyntax generic, string name)

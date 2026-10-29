@@ -85,10 +85,25 @@ public static class ReferenceClassifier
     private static string ClassifyValueContext(
         SimpleNameSyntax name, ISymbol symbol, Func<SemanticModel?> semanticModel)
     {
-        // The effective expression: the outermost expression whose value *is* this reference.
+        var expr = ClimbToEffectiveExpression(name);
+
+        // Methods are never read or written: the only question is whether the reference
+        // names a call target (`M()`) or a value (`M` as a delegate).
+        if (symbol is IMethodSymbol)
+            return IsInvocationTarget(expr) ? "invocation" : "method_group";
+
+        return ClassifyByParent(expr, semanticModel);
+    }
+
+    /// <summary>
+    /// The effective expression: the outermost expression whose value *is* this reference.
+    /// Climbing stops at the first parent that does not extend the same value, which is why
+    /// the cases are tried in this order and each has its own justification.
+    /// </summary>
+    private static ExpressionSyntax ClimbToEffectiveExpression(SimpleNameSyntax name)
+    {
         ExpressionSyntax expr = name;
-        var climbing = true;
-        while (climbing)
+        while (true)
         {
             switch (expr.Parent)
             {
@@ -117,46 +132,55 @@ public static class ReferenceClassifier
                     expr = tuple;
                     break;
                 default:
-                    climbing = false;
-                    break;
+                    return expr;
             }
         }
+    }
 
-        if (symbol is IMethodSymbol)
-        {
-            return expr.Parent is InvocationExpressionSyntax inv && inv.Expression == expr
-                ? "invocation"
-                : "method_group";
-        }
+    private static bool IsInvocationTarget(ExpressionSyntax expr)
+        => expr.Parent is InvocationExpressionSyntax inv && inv.Expression == expr;
 
-        switch (expr.Parent)
+    /// <summary>
+    /// Reads the syntactic position the reference occupies. Each branch consumes a distinct
+    /// node kind, so the order carries no meaning except for <see cref="ArgumentSyntax"/>,
+    /// which is the only form that needs the semantic model.
+    /// </summary>
+    private static string ClassifyByParent(ExpressionSyntax expr, Func<SemanticModel?> semanticModel)
+        => expr.Parent switch
         {
-            case AssignmentExpressionSyntax assignment when assignment.Left == expr:
-                return assignment.IsKind(SyntaxKind.SimpleAssignmentExpression) ? "write" : "readwrite";
-            case PrefixUnaryExpressionSyntax pre
-                when pre.IsKind(SyntaxKind.PreIncrementExpression) || pre.IsKind(SyntaxKind.PreDecrementExpression):
-                return "readwrite";
-            case PostfixUnaryExpressionSyntax post
-                when post.IsKind(SyntaxKind.PostIncrementExpression) || post.IsKind(SyntaxKind.PostDecrementExpression):
-                return "readwrite";
-            case ArgumentSyntax arg:
-                if (arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword)) return "write";
-                if (arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)) return "readwrite";
-                // C# requires `out`/`ref` at the call site, so the semantic model is consulted
-                // only for the cases that may omit it (COM interop). Resolving it lazily keeps
-                // whole-solution scans from building a model for every document they touch.
-                return ResolveArgRefKind(arg, semanticModel()) switch
-                {
-                    RefKind.Out => "write",
-                    RefKind.Ref => "readwrite",
-                    _ => "read",
-                };
+            AssignmentExpressionSyntax assignment when assignment.Left == expr =>
+                assignment.IsKind(SyntaxKind.SimpleAssignmentExpression) ? "write" : "readwrite",
+            PrefixUnaryExpressionSyntax pre when IsIncrementOrDecrement(pre) => "readwrite",
+            PostfixUnaryExpressionSyntax post when IsIncrementOrDecrement(post) => "readwrite",
+            ArgumentSyntax arg => ClassifyArgument(arg, semanticModel),
             // `ref int r = ref _x;` hands out an alias that can write through to _x.
-            case RefExpressionSyntax:
-                return "readwrite";
-        }
+            RefExpressionSyntax => "readwrite",
+            _ => "read",
+        };
 
-        return "read";
+    private static bool IsIncrementOrDecrement(SyntaxNode node)
+        => node.IsKind(SyntaxKind.PreIncrementExpression)
+            || node.IsKind(SyntaxKind.PreDecrementExpression)
+            || node.IsKind(SyntaxKind.PostIncrementExpression)
+            || node.IsKind(SyntaxKind.PostDecrementExpression);
+
+    /// <summary>
+    /// An argument is <c>write</c> for <c>out</c>, <c>readwrite</c> for <c>ref</c>, otherwise
+    /// a read. C# requires <c>out</c>/<c>ref</c> at the call site, so the semantic model is
+    /// consulted only for the cases that may omit it (COM interop). Resolving it lazily keeps
+    /// whole-solution scans from building a model for every document they touch.
+    /// </summary>
+    private static string ClassifyArgument(ArgumentSyntax arg, Func<SemanticModel?> semanticModel)
+    {
+        if (arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword)) return "write";
+        if (arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)) return "readwrite";
+
+        return ResolveArgRefKind(arg, semanticModel()) switch
+        {
+            RefKind.Out => "write",
+            RefKind.Ref => "readwrite",
+            _ => "read",
+        };
     }
 
     /// <summary>

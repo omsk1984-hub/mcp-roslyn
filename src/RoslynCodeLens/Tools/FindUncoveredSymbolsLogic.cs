@@ -159,6 +159,11 @@ public static class FindUncoveredSymbolsLogic
 
     private sealed record CandidateInfo(ISymbol Symbol, string ProjectName);
 
+    /// <summary>
+    /// Enumerates the public, source-declared members of every non-test project — the
+    /// universe the coverage diff is taken against. Structured as the pipeline it is:
+    /// walk projects, keep eligible types, keep eligible members, classify each survivor.
+    /// </summary>
     private static IReadOnlyList<CandidateInfo> EnumerateCandidates(
         LoadedSolution loaded,
         SymbolResolver source,
@@ -171,48 +176,73 @@ public static class FindUncoveredSymbolsLogic
             if (testProjectIds.Contains(projectId))
                 continue;
 
-            var projectName = source.GetProjectName(projectId);
-
-            foreach (var type in EnumerateTypes(compilation.Assembly.GlobalNamespace))
-            {
-                if (type.DeclaredAccessibility != Accessibility.Public)
-                    continue;
-                if (!type.Locations.Any(l => l.IsInSource))
-                    continue;
-
-                foreach (var member in type.GetMembers())
-                {
-                    if (member.DeclaredAccessibility != Accessibility.Public)
-                        continue;
-                    if (!member.Locations.Any(l => l.IsInSource))
-                        continue;
-                    if (member.IsImplicitlyDeclared)
-                        continue;
-
-                    if (member is IMethodSymbol method)
-                    {
-                        if (method.MethodKind != MethodKind.Ordinary)
-                            continue;
-                        if (method.IsAbstract)
-                            continue;
-                        candidates.Add(new CandidateInfo(method, projectName));
-                    }
-                    else if (member is IPropertySymbol property)
-                    {
-                        if (property.IsIndexer)
-                            continue;
-                        if (property.IsAbstract)
-                            continue;
-                        if (property.GetMethod is null && property.SetMethod is null)
-                            continue;
-                        candidates.Add(new CandidateInfo(property, projectName));
-                    }
-                }
-            }
+            CollectCandidatesFromCompilation(
+                compilation, source.GetProjectName(projectId), candidates);
         }
 
         return candidates;
     }
+
+    private static void CollectCandidatesFromCompilation(
+        Compilation compilation, string projectName, List<CandidateInfo> candidates)
+    {
+        foreach (var type in EnumerateTypes(compilation.Assembly.GlobalNamespace))
+        {
+            if (!IsEligibleType(type))
+                continue;
+
+            foreach (var member in type.GetMembers())
+            {
+                if (ClassifyCandidateMember(member) is { } symbol)
+                    candidates.Add(new CandidateInfo(symbol, projectName));
+            }
+        }
+    }
+
+    /// <summary>
+    /// A type contributes candidates only when it is public and actually declared in
+    /// source: metadata-only types (referenced assemblies) have no lines to report.
+    /// </summary>
+    private static bool IsEligibleType(INamedTypeSymbol type)
+        => type.DeclaredAccessibility == Accessibility.Public
+            && type.Locations.Any(l => l.IsInSource);
+
+    /// <summary>
+    /// Returns the symbol to report for this member, or <c>null</c> when the member is
+    /// not a coverage candidate. Only ordinary, non-abstract, source-declared methods and
+    /// non-indexer, non-abstract properties with at least one accessor qualify — implicit
+    /// members (auto-property backing fields, accessors) are never reported on their own.
+    /// </summary>
+    private static ISymbol? ClassifyCandidateMember(ISymbol member)
+    {
+        if (member.DeclaredAccessibility != Accessibility.Public)
+            return null;
+        if (!member.Locations.Any(l => l.IsInSource))
+            return null;
+        if (member.IsImplicitlyDeclared)
+            return null;
+
+        return member switch
+        {
+            IMethodSymbol method => IsCandidateMethod(method) ? method : null,
+            IPropertySymbol property => IsCandidateProperty(property) ? property : null,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Abstract methods are excluded because they have no body to cover — the override
+    /// that a test would actually reach is reported separately. Non-ordinary methods
+    /// (accessors, operators, constructors, local functions) are covered through their
+    /// owning member.
+    /// </summary>
+    private static bool IsCandidateMethod(IMethodSymbol method)
+        => method.MethodKind == MethodKind.Ordinary && !method.IsAbstract;
+
+    private static bool IsCandidateProperty(IPropertySymbol property)
+        => !property.IsIndexer
+            && !property.IsAbstract
+            && (property.GetMethod is not null || property.SetMethod is not null);
 
     private static IEnumerable<INamedTypeSymbol> EnumerateTypes(INamespaceSymbol ns)
     {

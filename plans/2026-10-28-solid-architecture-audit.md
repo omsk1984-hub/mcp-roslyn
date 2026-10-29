@@ -957,13 +957,122 @@ linked-file dedupe, event-handler исключение, conditional access, qual
 Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1296 passed, 0 failed** (8 m 57 s).
 Подробности — [`decision/2026-10-29T00-27-stage5-5-three-more-methods.md`](../decision/2026-10-29T00-27-stage5-5-three-more-methods.md).
 
+#### 5.6. Пять следующих методов по сложности — выполнено 2026-10-29
+
+Продолжение 5.4–5.5. Заход начат с **самого тяжёлого по когнитивной сложности метода
+во всём решении** — `EnumerateCandidates` (cognitive 57 при CC всего 17). Подход тот же:
+извлечение **по ответственностям**, тесты-контракт **не правятся**, неизменность
+поведения доказывается зелёными существующими тестами (91 тест в шести наборах).
+
+| Метод | CC до | CC после | Cognitive до | Cognitive после | Вложенность до |
+|---|---|---|---|---|---|
+| `FindUncoveredSymbolsLogic.EnumerateCandidates` | 17 | **2** | **57** | **3** | 5 |
+| `InspectExternalAssemblyLogic.ToTypeInfo` | **22** | **1** (выражение-композиция) | 23 | **1** | 3 |
+| `ReferenceClassifier.ClassifyValueContext` | **21** | **3** | 18 | **3** | 2 |
+| `GetExtensionMethodsLogic.ResolveSyntax` | 19 | **1** (`switch`-выражение) | 24 | **2** | 3 |
+| `ProjectClosure.Compute` | 17 | **1** | 28 | **1** | 3 |
+
+**`EnumerateCandidates` — по этапам пайплайна.** Метод смешивал четыре шага: обход
+проектов, фильтр типов, фильтр членов и их классификацию. Теперь:
+
+| Извлечённый метод | Ответственность | CC | Cognitive |
+|---|---|---|---|
+| `CollectCandidatesFromCompilation` | обход типов одного компиляции | 5 | 8 |
+| `IsEligibleType` | «публичный и объявлен в исходнике» | 2 | 2 |
+| `ClassifyCandidateMember` | член → кандидат или `null` (три общих фильтра + `switch`) | 8 | 8 |
+| `IsCandidateMethod` | `Ordinary && !IsAbstract` | 2 | 1 |
+| `IsCandidateProperty` | `!Indexer && !Abstract && есть хотя бы один аксессор` | 4 | 4 |
+
+Ключевое: `EnumerateCandidates` из четырёхуровневого гнезда стало одним циклом
+с одним `if` (CC 2 / cognitive 3). Порядок фильтров сохранён дословно: сначала
+`DeclaredAccessibility`, затем `Locations.Any(IsInSource)`, затем `IsImplicitlyDeclared` —
+именно в этом порядке отсекаются accessor'ы авто-свойств, у которых accessibility
+публичная, а сами они неявные.
+
+**`ToTypeInfo` — по фасетам DTO.** Метод читал восемь независимых граней
+`ExternalTypeInfo`. Каждая грань получила свой ридер (`TypeKindName`, `ReadModifiers`,
+`ReadBaseType`, `ReadMembers`, `ReadAttributes`, `EnumerateMemberSources`,
+`IsVisibleMember`), а `ToTypeInfo` стал выражением-композицией (CC 1). Сохранены
+два тонких правила, зафиксированных в XML-doc рядом с кодом: static-классы отдают
+только `static` (иначе получилось бы невозможное `abstract sealed static`), а
+интерфейсы — не `abstract`, которым они являются неявно.
+
+**`ClassifyValueContext` — критичный контракт `find_references`.** На классификаторе
+построены виды ссылок в главном инструменте, поэтому правка сделана с максимальной
+осторожностью: **сигнатура и синхронность не тронуты** (`Func<SemanticModel?>` остаётся
+ленивым, метод остаётся чистым), `ReferenceClassifier.Classify` не менялся, все 4
+вызова на месте. Тело разнесено так, что каждый шаг отвечает на свой вопрос:
+
+| Извлечённый метод | Ответственность | CC |
+|---|---|---|
+| `ClimbToEffectiveExpression` | подъём до «эффективного выражения» (4 case, порядок обоснован) | 6 |
+| `IsInvocationTarget` | `expr.Parent is Invocation && inv.Expression == expr` | 3 |
+| `ClassifyByParent` | `switch`-выражение по родителю | 9 |
+| `ClassifyArgument` | `out` → `write`, `ref` → `readwrite`, иначе ленивая модель | 5 |
+| `IsIncrementOrDecrement` | общий предикат для префикса и постфикса | 5 |
+
+**Порядок в `ClimbToEffectiveExpression` несёт смысл** (как в 5.5): `MemberBinding`
+снимается до `MemberAccess`, а `ArgumentSyntax` внутри `TupleExpression` поднимается
+к кортежу — только так деструктуризация `(a, b) = (1, 2)` попадает в ветку присваивания,
+а не в ветку аргумента. Случай «не поднимать элемент доступа от приёмника» сохранён
+дословно вместе с комментарием: `_dict[key] = value` читает `_dict`, а не пишет.
+
+**`ResolveSyntax` — по виду синтаксиса типа.** Рекурсивный `switch` с четырьмя
+многострочными блоками превратился в `switch`-выражение (CC 1), а составные формы
+получили своих резолверов: `ResolveArray` (ранги изнутри наружу), `ResolveNullable`
+(value-type → `Nullable<T>`, ссылочный остаётся собой), `ResolveTuple` (имена только если
+хоть одно названо), `ResolvePredefined` (по таблице ключевых слов). Ветви
+**взаимоисключающи по синтаксическому виду**, порядок смысла не несёт.
+
+**`ProjectClosure.Compute` — сиды, валидация, обход.** Метод смешивал подготовку
+множества, компиляцию глобов, сбор сидов, две проверки и BFS:
+
+| Извлечённый метод | Ответственность | CC |
+|---|---|---|
+| `ToOrdinalSet` | переиспользование `HashSet<string>` вместо копирования | 3 |
+| `CollectSeeds` | include-глобы ∪ rootProjects + пропущенные корни | 6 |
+| `CompileIncludeGlobs` | компиляция глобов с обёрткой ошибки | 3 |
+| `ThrowIfNoSeeds` | диагностика «0 проектов» с первыми 10 именами | 2 |
+| `WalkClosure` | транзитивный BFS по графу | 6 |
+
+Тесты `ProjectClosureTests` фиксируют и порядок «сначала unknown roots, потом пустые
+сиды», и текст исключений — оба инварианта сохранены, поэтому набор остался зелёным
+**без правок**.
+
+**Поведение не изменилось — доказательство.** Тесты-контракт зелёные **без единой
+правки**: `FindUncoveredSymbolsToolTests` 11, `InspectExternalAssemblyToolTests`,
+`ReferenceClassifierTests`, `GetExtensionMethodsLogicTests` + `GetExtensionMethodsFixtureTests`,
+`ProjectClosureTests` — итого **91/91**. Новых тестов не добавлялось: пункт — чистый
+перенос, и именно неизменность набора находок и видов ссылок является доказательством.
+
+| Метрика | До | После |
+|---|---|---|
+| Методов `src/` в `get_complexity_metrics(threshold=15)` | 19 | **15** |
+| Максимальный cognitive в решении | 57 (`EnumerateCandidates`) | **37** (`FindNamespaceCycles`) |
+| Пять методов пункта в рейтинге | все присутствовали | **ни одного** |
+| Максимальный CC среди новых методов | — | **9** (`ClassifyByParent`) |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| `dotnet test RoslynCodeLens.slnx` | 1296 passed | **1296 passed, 0 failed** |
+
+**Инструменты:** извлечение выполнено **вручную** (`apply_diff`), Roslyn-рефакторинги
+не вызывались — на диск через MCP ничего не писалось. Обоснование то же, что в 5.4–5.5:
+`extract_method` вырезает один связный диапазон строк, а здесь требовалась
+предварительная переформулировка тела в именованную цепочку (в `EnumerateCandidates` шаг
+не совпадает с диапазоном строк, в `ToTypeInfo` и `ResolveSyntax` — тело вообще
+превратилось в `switch`/композицию), а каскад `rename_symbol` по общим именам
+(`Read`, `Resolve`) рискованнее самой правки.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1296 passed, 0 failed** (8 m 20 s).
+Подробности — [`decision/2026-10-29T00-54-stage5-6-five-more-methods.md`](../decision/2026-10-29T00-54-stage5-6-five-more-methods.md).
+
 ⚠️ **Остаток этапа 5:** `GenerateTestSkeletonLogic` (530 LOC / 18 членов) не тронут — это
 декомпозиция типа, а не метода, отдельный заход. Из методов с CC ≥ 16 остаются
-`InspectExternalAssemblyLogic.ToTypeInfo` (22), `ChangeSignatureBridge.Members.Resolve` (21),
-`CognitiveComplexityCalculator.Walker.Visit` (21), `ReferenceClassifier.ClassifyValueContext` (21),
-`GetExtensionMethodsLogic.ResolveSyntax` (19), `ProjectClosure.Compute` (17),
-`DeadCodeFilters.Classify` (17), `FindUncoveredSymbolsLogic.EnumerateCandidates` (17/57 cognitive) —
-следующие заходы.
+`ChangeSignatureBridge.Members.Resolve` (21), `CognitiveComplexityCalculator.Walker.Visit` (21),
+`DeadCodeFilters.Classify` (17), `ComplexityCalculator.Calculate` (16), `ApplyFixLogic.ExecuteAsync` (16),
+`ExtractMethodLogic.ExecuteAsync` (16), `FindUnusedSymbolsLogic.ShouldSkipMember` (16),
+`GetTestSummaryLogic.IsExcludedNamespace` (16), а на самом пороге — `ReferenceClassifier.ClassifyTypeContext`
+(15, сознательно не тронут в этом заходе: вне списка пункта), `FindGodObjectsLogic.Execute` (15),
+`ObsoleteUsageCollector.IsWrappedByOuterRelevantNode` (15) — следующие заходы.
 
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
