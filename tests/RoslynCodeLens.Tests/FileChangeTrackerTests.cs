@@ -7,14 +7,14 @@ public class FileChangeTrackerTests : IAsyncLifetime
     private LoadedSolution _loaded = null!;
     private string _solutionPath = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _solutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
         _loaded = await new SolutionLoader().LoadAsync(_solutionPath).ConfigureAwait(false);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => default;
 
     [Fact]
     public void Constructor_BuildsReverseDependencyGraph()

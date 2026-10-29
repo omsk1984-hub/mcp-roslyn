@@ -1,17 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- xunit v3 runs on Microsoft.Testing.Platform; on the .NET 10 SDK the VSTest
+         target is no longer supported, so opt into the new `dotnet test` experience. -->
+    <TestingPlatformDotnetHostSupport>true</TestingPlatformDotnetHostSupport>
   </PropertyGroup>
 
+  <!-- xunit v3 is MTP-native (xunit.v3 pulls in xunit.v3.mtp-v2). On the .NET 10 SDK the
+       VSTest target is no longer supported for MTP apps, so the VSTest bridge packages
+       (Microsoft.NET.Test.Sdk, xunit.runner.visualstudio, coverlet.collector) are removed.
+       `dotnet test` uses the new MTP-based test experience; coverage is collected via
+       the MTP coverage option (see .github/workflows/ci.yml). -->
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="10.1.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
 
   <ItemGroup>

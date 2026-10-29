@@ -35,7 +35,7 @@ public class TestSolutionFixture : IAsyncLifetime
     public SymbolResolver Resolver { get; private set; } = null!;
     public MetadataSymbolResolver Metadata { get; private set; } = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         SolutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
@@ -174,7 +174,7 @@ public class TestSolutionFixture : IAsyncLifetime
         }
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => default;
 }
 
 /// <summary>

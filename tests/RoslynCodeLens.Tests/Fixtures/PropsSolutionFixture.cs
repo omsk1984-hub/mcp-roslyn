@@ -27,7 +27,7 @@ public class PropsSolutionFixture : IAsyncLifetime
     public LoadedSolution Loaded { get; private set; } = null!;
     public SymbolResolver Resolver { get; private set; } = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         SolutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "PropsFixture", "PropsFixture.slnx"));
@@ -114,7 +114,7 @@ public class PropsSolutionFixture : IAsyncLifetime
         }
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => default;
 }
 
 [CollectionDefinition("PropsSolution")]

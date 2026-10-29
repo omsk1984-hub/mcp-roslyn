@@ -5,4 +5,4 @@
 // failures on cold CI runners cluster on cross-project symbol lookups (metadata
 // references whose first resolution races test-time queries). Running fully serial
 // matches the EventSourcing.Telemetry.Tests fix that's been stable for weeks.
-[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
+[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]

@@ -6,14 +6,14 @@ public class SolutionManagerTests : IAsyncLifetime
 {
     private string _solutionPath = null!;
 
-    public Task InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _solutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
-        return Task.CompletedTask;
+        return default;
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => default;
 
     [Fact]
     public async Task CreateAsync_LoadsSolutionAndResolver()

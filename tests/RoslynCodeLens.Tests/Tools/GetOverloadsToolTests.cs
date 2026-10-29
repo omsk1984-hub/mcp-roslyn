@@ -11,7 +11,7 @@ public class GetOverloadsToolTests : IAsyncLifetime
     private SymbolResolver _resolver = null!;
     private MetadataSymbolResolver _metadata = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var fixturePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "TestSolution", "TestSolution.slnx"));
@@ -20,7 +20,7 @@ public class GetOverloadsToolTests : IAsyncLifetime
         _metadata = new MetadataSymbolResolver(_loaded, _resolver);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => default;
 
     [Fact]
     public void Result_ReturnsAllOverloads()

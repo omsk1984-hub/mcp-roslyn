@@ -32,7 +32,7 @@ public class RazorSolutionFixture : IAsyncLifetime
         Path.GetFullPath(Path.Combine(
             new[] { Path.GetDirectoryName(SolutionPath)!, "RazorLib" }.Concat(parts).ToArray()));
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         SolutionPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "RazorFixture", "RazorFixture.slnx"));
@@ -110,7 +110,7 @@ public class RazorSolutionFixture : IAsyncLifetime
         }
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public ValueTask DisposeAsync() => default;
 }
 
 [CollectionDefinition("RazorSolution")]
