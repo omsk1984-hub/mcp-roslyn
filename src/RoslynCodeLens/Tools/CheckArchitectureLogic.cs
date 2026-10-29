@@ -36,6 +36,43 @@ public static class CheckArchitectureLogic
         public string ToPattern = string.Empty;
     }
 
+    /// <summary>
+    /// Everything one scan needs that is constant across every tree and every name node.
+    /// </summary>
+    /// <remarks>
+    /// Carried as a single value because the two per-node helpers below would otherwise take nine
+    /// parameters each, and because two of these are <b>memoized</b>: `SolutionScopeNames` and the
+    /// `generatedTargets` cache must survive the whole scan (the latter is the reason the same
+    /// target type is not re-read from tree text at every reference site).
+    /// </remarks>
+    /// <param name="HasAllowOnly">
+    /// Hoisted: with a forbid-only rule set nothing ever consults allowOnly eligibility, and
+    /// computing it per name node meant re-resolving generated-ness and solution membership for
+    /// every reference in the solution to answer a question no rule asked.
+    /// </param>
+    private sealed record ScanContext(
+        LoadedSolution Loaded,
+        SymbolResolver Resolver,
+        IReadOnlyList<ArchitectureRule> Rules,
+        bool ScopeIsNamespace,
+        int MaxSitesPerViolation,
+        Func<Compilation, SyntaxTree, SemanticModel>? ModelFactory,
+        CancellationToken CancellationToken)
+    {
+        public IReadOnlySet<string> SolutionScopeNames { get; } = SolutionScopeNames(Loaded.Solution);
+
+        public bool HasAllowOnly { get; } = Rules.Any(r => string.Equals(r.Kind, AllowOnlyKind, StringComparison.Ordinal));
+
+        public Dictionary<string, bool> GeneratedTargets { get; } = new(StringComparer.Ordinal);
+    }
+
+    /// <summary>One node that <i>is</i> counted: the resolved dependency plus both of its scopes.</summary>
+    private readonly record struct ResolvedReference(
+        ITypeSymbol Target,
+        string SourceScope,
+        string TargetScope,
+        bool EligibleForAllowOnly);
+
     public static IReadOnlyList<ArchitectureViolation> Execute(
         LoadedSolution loaded,
         SymbolResolver resolver,
@@ -64,49 +101,20 @@ public static class CheckArchitectureLogic
     {
         Validate(rules, scope, maxSitesPerViolation);
 
-        var byNamespace = string.Equals(scope, NamespaceScope, StringComparison.Ordinal);
-        var groups = new Dictionary<(int RuleIndex, string Source, string Target), Accumulator>();
-
-        var generatedTargets = new Dictionary<string, bool>(StringComparer.Ordinal);
-        var solutionScopeNames = SolutionScopeNames(loaded.Solution);
-
-        // Hoisted: with a forbid-only rule set nothing ever consults this, and computing it per
-        // name node meant re-resolving generated-ness and solution membership for every reference
-        // in the solution to answer a question no rule asked.
-        var hasAllowOnly = rules.Any(r => string.Equals(r.Kind, AllowOnlyKind, StringComparison.Ordinal));
-
-        // Source-side filtering, part 1: under project scope a whole compilation is either in play
-        // or not, so the scanner is told to decide before touching its trees.
-        //
-        // The dedupe key is SCOPE-AWARE, because "the same work twice" means different things per
-        // scope. Under namespace scope a linked file declares the same namespace in every
-        // compilation, so walking it twice would double-count one written reference — dedupe by
-        // identity alone. Under project scope its source scope DIFFERS per compilation, so an
-        // undiscriminated key would credit the file to whichever project was enumerated first and
-        // silently drop the other project's violations entirely. Discriminating by project name
-        // still collapses multi-targeting, where the several compilations share one project name.
-        var scans = SolutionScanner.EnumerateTrees(
+        var context = new ScanContext(
             loaded,
             resolver,
-            projectFilter: byNamespace
-                ? null
-                : (_, projectName) => rules.Any(r => ScopePattern.Matches(r.From, projectName)),
-            scopeDiscriminator: byNamespace ? null : (projectName, _) => projectName,
-            modelFactory: modelFactory,
-            cancellationToken: cancellationToken);
+            rules,
+            ScopeIsNamespace: string.Equals(scope, NamespaceScope, StringComparison.Ordinal),
+            MaxSitesPerViolation: maxSitesPerViolation,
+            ModelFactory: modelFactory,
+            CancellationToken: cancellationToken);
 
-        foreach (var scan in scans)
+        var groups = new Dictionary<(int RuleIndex, string Source, string Target), Accumulator>();
+
+        foreach (var (scan, model) in EnumerateScannedTrees(context))
         {
             var projectName = scan.ProjectName;
-
-            // Source-side filtering, part 2: if none of the scopes this tree declares can match
-            // any rule's From, the tree cannot produce a violation — skip it BEFORE creating a
-            // semantic model. This is what keeps cost proportional to the rules written rather
-            // than to solution size, and is why ScanTree hands over a model FACTORY.
-            if (byNamespace && !DeclaredScopes(scan.Root).Any(s => rules.Any(r => ScopePattern.Matches(r.From, s))))
-                continue;
-
-            var model = scan.SemanticModel();
 
             // `using` directives are deliberately NOT walked. A using is not itself a
             // dependency — it is a name-resolution convenience — and counting it breaks the
@@ -124,68 +132,13 @@ public static class CheckArchitectureLogic
                 // partway through one. Every 1024 nodes is far below human latency and costs
                 // nothing measurable.
                 if ((++walkedNodes & 0x3FF) == 0)
-                    cancellationToken.ThrowIfCancellationRequested();
+                    context.CancellationToken.ThrowIfCancellationRequested();
 
-                var target = ResolveTargetType(name, model);
-                if (target is null)
+                var reference = ResolveReference(name, model, projectName, context);
+                if (reference is null)
                     continue;
 
-                var sourceScope = byNamespace ? EnclosingNamespace(name) : projectName;
-                var targetScope = byNamespace
-                    ? NamespaceOf(target)
-                    : TargetProject(target, resolver);
-
-                // Self-reference: never a violation, under either rule kind.
-                if (string.Equals(sourceScope, targetScope, StringComparison.Ordinal))
-                    continue;
-
-                // allowOnly's target set is open-ended, so it only evaluates targets the
-                // author can actually act on: solution-internal, and not pure generator
-                // output. `forbid` names its target explicitly and evaluates everything.
-                var eligibleForAllowOnly = hasAllowOnly
-                    && IsSolutionInternal(target, solutionScopeNames)
-                    && !IsGeneratedOnly(target, generatedTargets);
-
-                for (var i = 0; i < rules.Count; i++)
-                {
-                    var rule = rules[i];
-                    if (!ScopePattern.Matches(rule.From, sourceScope))
-                        continue;
-
-                    string? toPattern;
-                    if (string.Equals(rule.Kind, ForbidKind, StringComparison.Ordinal))
-                    {
-                        toPattern = rule.To.FirstOrDefault(p => ScopePattern.Matches(p, targetScope));
-                        if (toPattern is null)
-                            continue;
-                    }
-                    else
-                    {
-                        // allowOnly ignores everything outside the solution.
-                        if (!eligibleForAllowOnly || rule.To.Any(p => ScopePattern.Matches(p, targetScope)))
-                            continue;
-                        toPattern = string.Join(", ", rule.To);
-                    }
-
-                    var key = (i, sourceScope, targetScope);
-                    if (!groups.TryGetValue(key, out var accumulator))
-                    {
-                        accumulator = new Accumulator { ToPattern = toPattern };
-                        groups[key] = accumulator;
-                    }
-
-                    accumulator.Count++;
-                    if (accumulator.Sites.Count < maxSitesPerViolation)
-                    {
-                        var position = name.GetLocation().GetLineSpan();
-                        accumulator.Sites.Add(new ViolationSite(
-                            File: position.Path,
-                            Line: position.StartLinePosition.Line + 1,
-                            Column: position.StartLinePosition.Character + 1,
-                            SourceSymbol: ExceptionQueries.DescribeContainingMember(name, model),
-                            TargetSymbol: target.ToDisplayString()));
-                    }
-                }
+                RecordViolations(reference.Value, name, model, context, groups);
             }
         }
 
@@ -205,6 +158,182 @@ public static class CheckArchitectureLogic
                 ReferenceCount: g.Value.Count,
                 Sites: g.Value.Sites))
             .ToList();
+    }
+
+    /// <summary>
+    /// The trees that can still contribute, paired with a semantic model created only for those.
+    /// </summary>
+    /// <remarks>
+    /// Two source-side filters, and their order is the tool's central performance claim: a tree
+    /// that cannot match any rule's <c>from</c> is dropped <b>before</b> a semantic model exists,
+    /// so cost stays proportional to the rules written rather than to solution size. This is why
+    /// the scanner hands over a model FACTORY rather than a model.
+    /// </remarks>
+    private static IEnumerable<(ScanTree Scan, SemanticModel Model)> EnumerateScannedTrees(
+        ScanContext context)
+    {
+        // Source-side filtering, part 1: under project scope a whole compilation is either in play
+        // or not, so the scanner is told to decide before touching its trees.
+        //
+        // The dedupe key is SCOPE-AWARE, because "the same work twice" means different things per
+        // scope. Under namespace scope a linked file declares the same namespace in every
+        // compilation, so walking it twice would double-count one written reference — dedupe by
+        // identity alone. Under project scope its source scope DIFFERS per compilation, so an
+        // undiscriminated key would credit the file to whichever project was enumerated first and
+        // silently drop the other project's violations entirely. Discriminating by project name
+        // still collapses multi-targeting, where the several compilations share one project name.
+        var scans = SolutionScanner.EnumerateTrees(
+            context.Loaded,
+            context.Resolver,
+            projectFilter: context.ScopeIsNamespace
+                ? null
+                : (_, projectName) => context.Rules.Any(r => ScopePattern.Matches(r.From, projectName)),
+            scopeDiscriminator: context.ScopeIsNamespace ? null : (projectName, _) => projectName,
+            modelFactory: context.ModelFactory,
+            cancellationToken: context.CancellationToken);
+
+        foreach (var scan in scans)
+        {
+            // Source-side filtering, part 2: if none of the scopes this tree declares can match
+            // any rule's From, the tree cannot produce a violation — skip it BEFORE creating a
+            // semantic model.
+            if (context.ScopeIsNamespace && !CanBeSource(scan.Root, context.Rules))
+                continue;
+
+            yield return (scan, scan.SemanticModel());
+        }
+    }
+
+    private static bool CanBeSource(SyntaxNode root, IReadOnlyList<ArchitectureRule> rules)
+        => DeclaredScopes(root).Any(s => rules.Any(r => ScopePattern.Matches(r.From, s)));
+
+    /// <summary>
+    /// Resolves one name node to a countable reference, or null when the node contributes nothing.
+    /// </summary>
+    /// <remarks>
+    /// The null cases, each deliberate:
+    /// <list type="bullet">
+    /// <item><description>the node names no type (<see cref="ResolveTargetType"/>'s own rules);</description></item>
+    /// <item><description><b>self-reference</b> — source and target scope are equal. Never a
+    /// violation, under either rule kind.</description></item>
+    /// </list>
+    /// </remarks>
+    private static ResolvedReference? ResolveReference(
+        SimpleNameSyntax name, SemanticModel model, string projectName, ScanContext context)
+    {
+        var target = ResolveTargetType(name, model);
+        if (target is null)
+            return null;
+
+        var sourceScope = context.ScopeIsNamespace ? EnclosingNamespace(name) : projectName;
+        var targetScope = context.ScopeIsNamespace
+            ? NamespaceOf(target)
+            : TargetProject(target, context.Resolver);
+
+        // Self-reference: never a violation, under either rule kind.
+        if (string.Equals(sourceScope, targetScope, StringComparison.Ordinal))
+            return null;
+
+        return new ResolvedReference(target, sourceScope, targetScope, IsEligibleForAllowOnly(target, context));
+    }
+
+    /// <summary>
+    /// allowOnly's target set is open-ended, so it only evaluates targets the author can actually
+    /// act on: solution-internal, and not pure generator output. <c>forbid</c> names its target
+    /// explicitly and evaluates everything (metadata and generated included).
+    /// </summary>
+    private static bool IsEligibleForAllowOnly(ITypeSymbol target, ScanContext context)
+        => context.HasAllowOnly
+           && IsSolutionInternal(target, context.SolutionScopeNames)
+           && !IsGeneratedOnly(target, context.GeneratedTargets);
+
+    /// <summary>
+    /// Feeds one resolved reference through every rule and records the ones it violates.
+    /// </summary>
+    /// <remarks>
+    /// Rule kinds are dispatched to <see cref="MatchForbid"/> or <see cref="TryMatchAllowOnly"/>,
+    /// which own the two deliberately different target semantics; this method only owns
+    /// accumulation, so it does not change when a rule kind is added.
+    /// </remarks>
+    private static void RecordViolations(
+        ResolvedReference reference,
+        SimpleNameSyntax name,
+        SemanticModel model,
+        ScanContext context,
+        Dictionary<(int RuleIndex, string Source, string Target), Accumulator> groups)
+    {
+        var rules = context.Rules;
+        for (var i = 0; i < rules.Count; i++)
+        {
+            var rule = rules[i];
+            if (!ScopePattern.Matches(rule.From, reference.SourceScope))
+                continue;
+
+            var toPattern = string.Equals(rule.Kind, ForbidKind, StringComparison.Ordinal)
+                ? MatchForbid(rule, reference.TargetScope)
+                : TryMatchAllowOnly(rule, reference);
+
+            if (toPattern is null)
+                continue;
+
+            var key = (i, reference.SourceScope, reference.TargetScope);
+            if (!groups.TryGetValue(key, out var accumulator))
+            {
+                accumulator = new Accumulator { ToPattern = toPattern };
+                groups[key] = accumulator;
+            }
+
+            accumulator.Count++;
+            if (accumulator.Sites.Count < context.MaxSitesPerViolation)
+                accumulator.Sites.Add(BuildSite(name, model, reference.Target));
+        }
+    }
+
+    /// <summary>
+    /// <c>forbid</c>: a violation when the target matches any <c>to</c> pattern, which is then
+    /// reported verbatim. Evaluates ALL targets — metadata and generated namespaces alike — because
+    /// forbidding a framework namespace is exactly what this kind is for.
+    /// </summary>
+    /// <returns>The matched pattern, or null when the target is not forbidden.</returns>
+    private static string? MatchForbid(ArchitectureRule rule, string targetScope)
+        => rule.To.FirstOrDefault(p => ScopePattern.Matches(p, targetScope));
+
+    /// <summary>
+    /// <c>allowOnly</c>: a violation when the target is inside the allowance, and the reported
+    /// pattern is the whole permitted set.
+    /// </summary>
+    /// <remarks>
+    /// Two rules decide eligibility, both load-bearing:
+    /// <list type="number">
+    /// <item><description><b>Only solution-internal, non-generated targets are evaluated.</b>
+    /// Otherwise <c>using System;</c> would violate "Api may depend only on Application". This is
+    /// the inverse of <c>forbid</c>, which evaluates everything.</description></item>
+    /// <item><description><b>Self-references never reach here</b> — they were dropped while
+    /// resolving, so a scope depending on itself cannot violate its own allowOnly rule.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <returns>The permitted set as a single pattern string, or null when allowed.</returns>
+    private static string? TryMatchAllowOnly(ArchitectureRule rule, ResolvedReference reference)
+    {
+        // allowOnly ignores everything outside the solution.
+        if (!reference.EligibleForAllowOnly)
+            return null;
+
+        if (rule.To.Any(p => ScopePattern.Matches(p, reference.TargetScope)))
+            return null;
+
+        return string.Join(", ", rule.To);
+    }
+
+    private static ViolationSite BuildSite(SimpleNameSyntax name, SemanticModel model, ITypeSymbol target)
+    {
+        var position = name.GetLocation().GetLineSpan();
+        return new ViolationSite(
+            File: position.Path,
+            Line: position.StartLinePosition.Line + 1,
+            Column: position.StartLinePosition.Character + 1,
+            SourceSymbol: ExceptionQueries.DescribeContainingMember(name, model),
+            TargetSymbol: target.ToDisplayString());
     }
 
     private static void Validate(IReadOnlyList<ArchitectureRule> rules, string scope, int maxSitesPerViolation)
