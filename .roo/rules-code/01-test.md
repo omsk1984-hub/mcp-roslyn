@@ -46,6 +46,10 @@ dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll \
 
 ## Примечания
 
+- Скрипт `scripts/rebuild.ps1` (`pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/rebuild.ps1 -Test -Coverage`)
+  выполняет всю цепочку: clean → restore → build → прямой прогон MTP-хоста с coverage.
+  Флаги: `-SkipClean` (инкрементальная сборка), `-Test`, `-Coverage` (подразумевает `-Test`).
+  Вызывать только через `pwsh -File` (см. `.roo/rules-code/02-powershell.md`).
 - `TestResults/` в `.gitignore`.
 - Фикстуры (`tests/.../Fixtures/**`) — отдельные решения, в основной прогон не входят;
   при необходимости восстанавливать/собирать отдельно (см. CI `Restore test fixtures`).

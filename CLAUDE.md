@@ -19,6 +19,8 @@ The `plugins/roslyn-codelens/skills/roslyn-codelens/SKILL.md` skill teaches Clau
 
 ## Development
 
+- Rebuild (clean + restore + build, опционально тесты): скрипт
+  `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/rebuild.ps1 [-SkipClean] [-Test] [-Coverage]`
 - Build: `dotnet build -c Release`
 - Test: прямой запуск MTP-хоста (xunit v3 на .NET 10 SDK не поддерживает `dotnet test`):
   `dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll`
