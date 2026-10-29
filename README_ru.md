@@ -363,8 +363,10 @@ HTTP-эндпоинт привязывается только к `127.0.0.1` и 
 ## Разработка
 
 ```bash
-dotnet build
-dotnet test
+dotnet build -c Release
+# xunit v3 работает на Microsoft.Testing.Platform; на .NET 10 SDK `dotnet test`
+# (VSTest) больше не поддерживается для MTP-приложений, поэтому тестовый хост запускается напрямую:
+dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll
 dotnet run --project benchmarks/RoslynCodeLens.Benchmarks -c Release
 ```
 

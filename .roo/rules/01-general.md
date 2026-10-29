@@ -40,7 +40,7 @@ pwsh -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $Outp
 `.roo/rules-code/03-roslyn.md`, полный справочник — скилл
 `roslyn-codelens-usage`.
 
-## Тесты: только через `dotnet test RoslynCodeLens.slnx`
+## Тесты: только прямым запуском MTP-хоста (не `dotnet test`)
 
 См. `.roo/rules-code/01-test.md`.
 

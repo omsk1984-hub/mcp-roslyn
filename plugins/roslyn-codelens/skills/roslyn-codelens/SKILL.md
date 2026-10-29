@@ -407,8 +407,12 @@ Grep is the correct tool for:
 
 `dotnet build` is the correct command for:
 - Actually producing a binary.
-- Running tests (`dotnet test`) — not covered by this skill.
 - Packaging / publishing.
+
+Tests are not run via `dotnet test`: the test project is xunit v3 (Microsoft.Testing.Platform),
+and on the .NET 10 SDK the VSTest target is no longer supported for MTP apps. Run the compiled
+test host directly instead — `dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll`
+(see `.roo/rules-code/01-test.md`). This skill does not cover test execution.
 
 State the reason when you take the exception. If you're about to type a Grep/Glob/build command and can't state the reason out loud, you're rationalizing — use the MCP tool.
 

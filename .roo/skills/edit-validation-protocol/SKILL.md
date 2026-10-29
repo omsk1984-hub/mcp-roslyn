@@ -56,7 +56,7 @@ flowchart TD
     M -- нет --> N[Исправить или откатить пункт]
     N --> L
     M -- да --> O[find_references по изменённому символу]
-    O --> P[dotnet test точечно]
+    O --> P[MTP-хост точечно --filter-method]
     P --> Q[Коммит одного пункта]
 ```
 
@@ -69,7 +69,7 @@ flowchart TD
 | Изменена **сигнатура** | то же, каскад на все вызовы | `change_signature` |
 | Символ **удалён/перенесён** | 0 ссылок | `find_references` |
 | Изменён **контракт** (интерфейс, база) | полнота реализаций + диагностики всех затронутых проектов | `find_implementations`, `get_type_hierarchy` |
-| Изменено **поведение** | тесты | `dotnet test` (`.roo/rules-code/01-test.md`) |
+| Изменено **поведение** | тесты | прямой запуск MTP-хоста (`.roo/rules-code/01-test.md`) |
 | `.csproj` / props / NuGet / новый файл | полный reload, затем диагностики | `rebuild_solution` / `start_background_task` |
 | Только `.md` / `.ps1` / `.json` / `.sql` | MCP не применим | — |
 | Файл вне загруженного решения | MCP не применим | `read_file` / `search_files` |

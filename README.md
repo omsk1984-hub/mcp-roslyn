@@ -371,8 +371,10 @@ When a solution contains legacy projects, the server:
 ## Development
 
 ```bash
-dotnet build
-dotnet test
+dotnet build -c Release
+# xunit v3 runs on Microsoft.Testing.Platform; on the .NET 10 SDK `dotnet test`
+# (VSTest) is no longer supported for MTP apps, so run the test host directly:
+dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll
 dotnet run --project benchmarks/RoslynCodeLens.Benchmarks -c Release
 ```
 

@@ -49,7 +49,7 @@
    инкрементальный rebuild сам (`FileChangeTracker` + `RebuildIfStale`),
    а после правок самого MCP снапшот обновляется через `CommitAsync`.
 3. Тесты — по `.roo/rules-code/01-test.md`:
-   `dotnet test RoslynCodeLens.slnx`.
+   прямой запуск MTP-хоста (`dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll`).
 4. Затронут публичный API? → `get_public_api_surface` (baseline) и
    `find_breaking_changes` при наличии предыдущего снимка. Помнить:
    return-типы, `sealed` и nullable-аннотации инструмент не видит —

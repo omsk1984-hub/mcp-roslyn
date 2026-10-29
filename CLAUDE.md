@@ -19,6 +19,8 @@ The `plugins/roslyn-codelens/skills/roslyn-codelens/SKILL.md` skill teaches Clau
 
 ## Development
 
-- Build: `dotnet build`
-- Test: `dotnet test`
+- Build: `dotnet build -c Release`
+- Test: прямой запуск MTP-хоста (xunit v3 на .NET 10 SDK не поддерживает `dotnet test`):
+  `dotnet tests/RoslynCodeLens.Tests/bin/Release/net10.0/RoslynCodeLens.Tests.dll`
+  (см. `.roo/rules-code/01-test.md`)
 - Benchmarks: `dotnet run --project benchmarks/RoslynCodeLens.Benchmarks -c Release`
