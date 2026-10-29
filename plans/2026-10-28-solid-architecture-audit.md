@@ -537,10 +537,10 @@ flowchart TD
 | [x] `FindAsyncViolationsLogic.Execute` (CC 27 / cognitive 66): детектор на каждый из 6 шаблонов; метод верхнего уровня только собирает результаты | [`FindAsyncViolationsLogic.cs:14`](../src/RoslynCodeLens/Tools/FindAsyncViolationsLogic.cs:14) |
 | [x] `FindObsoleteUsageLogic.Execute` (CC 24 / cognitive 61): отделить обход от группировки | [`FindObsoleteUsageLogic.cs:11`](../src/RoslynCodeLens/Tools/FindObsoleteUsageLogic.cs:11) |
 | [x] `SolutionLoader.OpenPerProjectAsync` (CC 23 / cognitive 50): разбить на «открыть проект», «применить фильтр», «скомпилировать пачкой» | [`SolutionLoader.cs:278`](../src/RoslynCodeLens/SolutionLoader.cs:278) |
-| `CheckArchitectureLogic.ExecuteCore` (CC 22 / cognitive 55): по одному методу на `forbid` и `allowOnly` | [`CheckArchitectureLogic.cs:56`](../src/RoslynCodeLens/Tools/CheckArchitectureLogic.cs:56) |
+| [x] `CheckArchitectureLogic.ExecuteCore` (CC 22 / cognitive 55): по одному методу на `forbid` и `allowOnly` | [`CheckArchitectureLogic.cs:56`](../src/RoslynCodeLens/Tools/CheckArchitectureLogic.cs:56) |
 | `GenerateTestSkeletonLogic` (530 LOC): выделить `TestSkeletonRenderer` (генерация текста) и `TestSkeletonPlanner` (что генерировать) | [`GenerateTestSkeletonLogic.cs:10`](../src/RoslynCodeLens/Tools/GenerateTestSkeletonLogic.cs:10) |
-| `GetCallGraphLogic.EnumerateOutgoingCalls` (CC 25): выделить обработку внешних узлов | [`GetCallGraphLogic.cs:179`](../src/RoslynCodeLens/Tools/GetCallGraphLogic.cs:179) |
-| `StackTraceParser.TryParseFrame` (CC 26): разбить по форматам кадра | [`StackTraceParser.cs:132`](../src/RoslynCodeLens/StackTrace/StackTraceParser.cs:132) |
+| [x] `GetCallGraphLogic.EnumerateOutgoingCalls` (CC 25): выделить обработку внешних узлов | [`GetCallGraphLogic.cs:179`](../src/RoslynCodeLens/Tools/GetCallGraphLogic.cs:179) |
+| [x] `StackTraceParser.TryParseFrame` (CC 26): разбить по форматам кадра | [`StackTraceParser.cs:132`](../src/RoslynCodeLens/StackTrace/StackTraceParser.cs:132) |
 
 #### 5.1. `SymbolResolver` — выполнено 2026-10-28
 
@@ -866,6 +866,104 @@ linked-file dedupe, event-handler исключение, conditional access, qual
 Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1296 passed, 0 failed**
 (1286 + 7 + 3).
 Подробности — [`decision/2026-10-28T23-59-stage5-4-logic-complexity.md`](../decision/2026-10-28T23-59-stage5-4-logic-complexity.md).
+
+#### 5.5. Следующая тройка по сложности — выполнено 2026-10-29
+
+Продолжение 5.4: три следующих места в рейтинге `get_complexity_metrics`. Подход тот же —
+извлечение **по ответственностям**, тесты-контракт **не правятся**, неизменность поведения
+доказывается зелёными существующими тестами. Три коммита, по одному на метод.
+
+| Метод | CC до | CC после | Cognitive до | Cognitive после | Вложенность до |
+|---|---|---|---|---|---|
+| `StackTraceParser.TryParseFrame` | **26** | **4** | **29** | **5** | 3 |
+| `GetCallGraphLogic.EnumerateOutgoingCalls` | **25** | **5** | **37** | 6 | 4 |
+| `CheckArchitectureLogic.ExecuteCore` | **22** | **4** | **55** | **8** | 5 |
+
+**`TryParseFrame` — по формату кадра.** `TryParseFrame` теперь последовательно снимает обёртки
+форматов и отдаёт остаток в `SplitTypeAndMethod`:
+
+| Извлечённый метод | Формат | CC |
+|---|---|---|
+| `StripFrameSuffixes` | `in File.cs:line N` + Native-AOT `+ 0xNN` | 3 |
+| `EnumerateFrameSuffixes` | Demystifier lambda `(...) => { }` | 5 |
+| `TryPeelLocalFunctionSuffix` | Demystifier `+LocalFunc(args)` | 5 |
+| `SplitTypeAndMethod` | последняя точка верхнего уровня, `.ctor`/`.cctor`, срез `[TKey]` | 5 |
+
+⚠️ **Главный инвариант, зафиксированный в XML-doc:** шаги это **не набор альтернатив**, а строго
+упорядоченная цепочка. Порядок несёт смысл, потому что суффиксы вложены друг в друга: lambda-суффикс
+снимается до поиска последней `(...)`-группы (иначе `(...)` лямбды окажется «списком параметров»),
+а снятие local function **заменяет** список параметров и потому обязано идти до его чтения. Сбой
+любого шага обрывает кадр целиком, а не передаёт управление следующему формату. Перестановка шагов
+или превращение их в независимые проверки молча изменила бы, какой формат «выигрывает» на
+неоднозначных строках. Единственный шаг, отсутствие которого не является ошибкой, —
+`TryPeelLocalFunctionSuffix`: его «нет» определяется синтаксически (перед текущим списком параметров
+должны стоять `+` и `)`).
+
+**`EnumerateOutgoingCalls` — по форме вызова.** Метод смешивал два вопроса: *какой символ вызывает
+узел* и *как обойти тело*. Теперь `EnumerateOutgoingCalls` только обходит, проверяет отмену и
+дедуплицирует, а `ResolveCallee` — `switch` по форме узла, где каждый case вынесен в свой метод:
+`TryInvocation`, `TryConstructor`, `TryPropertySet`, `TryPropertyGet`, `TryBinaryOperator`
+(все CC ≤ 4). В отличие от парсера кадров, эти case-ветви **взаимоисключающи по синтаксическому
+виду** узла, так что их порядок смысла не несёт.
+
+Семантика внешних узлов сохранена дословно: у метода без source-location нет тела, обход ничего не
+даёт — именно это делает BCL/NuGet-кали `isExternal = true` терминальными листьями. Логика лимита
+`maxNodes` и правило «edge to truncated target still recorded» остались в `WalkCallees`
+нетронутыми.
+
+**`ExecuteCore` — по виду правила.** Тело разнесено так, что каждая из двух намеренно разных
+семантик живёт в своём методе:
+
+| Извлечённый метод | Ответственность | CC |
+|---|---|---|
+| `EnumerateScannedTrees` | два source-side фильтра; модель создаётся только для выживших деревьев | 9 |
+| `CanBeSource` | «может ли дерево вообще быть источником» (pre-model фильтр) | 3 |
+| `ResolveReference` | узел имени → `ResolvedReference`; отбрасывает **self-references** | 5 |
+| `IsEligibleForAllowOnly` | `hasAllowOnly && internal && !generated` | 3 |
+| `RecordViolations` | прогон одного узла по всем правилам + накопление | 6 |
+| `MatchForbid` | `to`-паттерн или null | 2 |
+| `TryMatchAllowOnly` | разрешённый набор строкой или null | 5 |
+| `BuildSite` | локация + имена в `ViolationSite` | 1 |
+
+Два тонких правила сохранены и **задокументированы в месте, которое на них опирается**:
+`allowOnly` оценивает только solution-internal и не-сгенерированные цели (`forbid` оценивает всё,
+включая метаданные и сгенерированный код); self-references отбрасываются ещё при разрешении
+ссылки, поэтому не доходят ни до `forbid`, ни до `allowOnly`. Мемоизированное состояние
+(`SolutionScopeNames`, кэш `generatedTargets`) и hoisted `HasAllowOnly` переехали в `ScanContext`,
+так что по-прежнему живут весь скан, а не пересчитываются на каждом узле имени. Заявление о
+производительности («фильтр до создания модели») осталось буквально тем же кодом, только в
+`EnumerateScannedTrees`, — это видно по неизменным тестам, которые считают число моделей.
+
+**Поведение не изменилось — доказательство.** Тесты-контракт зелёные **без единой правки**:
+`StackTraceParserTests` + `StackFrameDemanglerTests` — 39/39, `GetCallGraphToolTests` — 18/18,
+`CheckArchitectureLogicTests` + `CheckArchitectureFixtureTests` — 47/47. Новых тестов не
+добавлялось: пункт — чистый перенос, и именно неизменность набора находок/кадров является
+требуемым доказательством.
+
+| Метрика | До | После |
+|---|---|---|
+| Методов `src/` с CC ≥ 16 | 16 | **13** |
+| Три худших метода пункта | 26 / 25 / 22 | — (все ниже порога) |
+| Максимальный CC нового метода | — | **5** |
+| `get_diagnostics` | 0 / 0 | **0 / 0** |
+| `dotnet test RoslynCodeLens.slnx` | 1296 passed | **1296 passed, 0 failed** |
+
+**Инструменты:** извлечение выполнено **вручную** (`apply_diff`), Roslyn-рефакторинги не
+вызывались — на диск через MCP ничего не писалось. Обоснование — то же, что в 5.4: `extract_method`
+вырезает один связный диапазон, а здесь нужно было предварительно переписать тело парсера в
+именованную цепочку шагов (шаг не совпадает с диапазоном строк); каскад `rename_symbol` по общим
+именам (`Resolve`, `Try`, `Build`) рискованнее самой правки.
+
+Проверка: `get_diagnostics` 0/0; `dotnet test RoslynCodeLens.slnx` — **1296 passed, 0 failed** (8 m 57 s).
+Подробности — [`decision/2026-10-29T00-27-stage5-5-three-more-methods.md`](../decision/2026-10-29T00-27-stage5-5-three-more-methods.md).
+
+⚠️ **Остаток этапа 5:** `GenerateTestSkeletonLogic` (530 LOC / 18 членов) не тронут — это
+декомпозиция типа, а не метода, отдельный заход. Из методов с CC ≥ 16 остаются
+`InspectExternalAssemblyLogic.ToTypeInfo` (22), `ChangeSignatureBridge.Members.Resolve` (21),
+`CognitiveComplexityCalculator.Walker.Visit` (21), `ReferenceClassifier.ClassifyValueContext` (21),
+`GetExtensionMethodsLogic.ResolveSyntax` (19), `ProjectClosure.Compute` (17),
+`DeadCodeFilters.Classify` (17), `FindUncoveredSymbolsLogic.EnumerateCandidates` (17/57 cognitive) —
+следующие заходы.
 
 **Затронутые области:** резолвер, 6 инструментов, загрузчик, парсер стек-трейсов.
 **Критерий готовности:** `get_complexity_metrics(threshold=15)` — 0 методов;
